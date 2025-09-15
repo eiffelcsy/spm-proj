@@ -11,7 +11,7 @@ import { statuses } from './data/data'
 import DataTableFacetedFilter from './data-table-faceted-filter.vue'
 
 interface DataTableToolbarProps {
-  table: Table<Task>
+  table: Table<any>
 }
 
 const props = defineProps<DataTableToolbarProps>()
