@@ -40,6 +40,10 @@ const table = useVueTable({
         get sorting() { return sorting.value },
     },
 })
+
+defineOptions({
+  name: 'DataTable'
+})
 </script>
 
 <template>

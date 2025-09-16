@@ -1,15 +1,7 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import DataTableColumnHeader from './data-table-column-header.vue'
-
-export interface Task {
-  id: string
-  title: string
-  startDate: Date
-  dueDate: Date
-  project: string
-  status: string
-}
+import type { Task } from './data/schema'
 
 export const columns: ColumnDef<Task>[] = [
   {

@@ -18,6 +18,10 @@ interface DataTablePaginationProps {
   table: Table<any>
 }
 defineProps<DataTablePaginationProps>()
+
+defineOptions({
+  name: 'DataTablePagination'
+})
 </script>
 
 <template>

@@ -17,6 +17,10 @@ interface DataTableToolbarProps {
 const props = defineProps<DataTableToolbarProps>()
 
 const isFiltered = computed(() => props.table.getState().columnFilters.length > 0)
+
+defineOptions({
+  name: 'DataTableToolbar'
+})
 </script>
 
 <template>
