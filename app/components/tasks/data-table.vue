@@ -1,8 +1,7 @@
-<script setup lang="ts" generic="TData, TValue">
-import type { 
-    ColumnDef, 
-    SortingState,
-} from '@tanstack/vue-table'
+
+
+<script setup lang="ts">
+import type { ColumnDef, SortingState } from '@tanstack/vue-table'
 import {
     FlexRender,
     getCoreRowModel,
@@ -12,7 +11,6 @@ import {
     useVueTable,
 } from '@tanstack/vue-table'
 import { valueUpdater } from '@/lib/utils'
-
 import {
     Table,
     TableBody,
@@ -24,13 +22,12 @@ import {
 import DataTablePagination from './data-table-pagination.vue'
 import DataTableToolbar from './data-table-toolbar.vue'
 
-const props = defineProps<{
-    columns: ColumnDef<TData, TValue>[]
-    data: TData[]
-}>()
-
-const sorting = ref<SortingState>([])
-
+const props = defineProps<{ columns: any[]; data: any[]; hideToolbar?: boolean }>()
+const emit = defineEmits(['rowClick'])
+function handleRowClick(row: any) {
+    emit('rowClick', row.original)
+}
+const sorting = ref([])
 const table = useVueTable({
     get data() { return props.data },
     get columns() { return props.columns },
@@ -47,7 +44,7 @@ const table = useVueTable({
 
 <template>
     <div class="space-y-2">
-        <DataTableToolbar :table="table" />
+        <DataTableToolbar v-if="!props.hideToolbar" :table="table" />
         <div class="border rounded-md">
             <Table>
                 <TableHeader>
@@ -61,7 +58,8 @@ const table = useVueTable({
                 <TableBody>
                     <template v-if="table.getRowModel().rows?.length">
                         <TableRow v-for="row in table.getRowModel().rows" :key="row.id"
-                            :data-state="row.getIsSelected() ? 'selected' : undefined">
+                            :data-state="row.getIsSelected() ? 'selected' : undefined"
+                            @click="handleRowClick(row)">
                             <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
                                 <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
                             </TableCell>
