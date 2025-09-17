@@ -117,9 +117,8 @@
             class="w-full border rounded-lg px-3 py-2"
           >
             <option value="">Unassigned</option>
-            <option v-for="staff in staffMembers" :key="staff.staff_id" :value="staff.staff_id">
+            <option v-for="staff in staffMembers" :key="staff.id" :value="staff.id">
               {{ staff.name }} ({{ staff.email }})
-              <span v-if="staff.department"> - {{ staff.department }}</span>
             </option>
           </select>
         </div>
@@ -185,39 +184,24 @@ const subtasks = ref<{ title: string; dueDate: string }[]>([])
 const assignedTo = ref('')
 
 // TODO: STAFF MODULE INTEGRATION REQUIRED
-// staff members for assignee dropdown - will need staff information from staff module
-const staffMembers = ref<{ staff_id: number; name: string; email: string; department?: string }[]>([])
+// staff members for assignee dropdown - will show staff fullname and email only
+const staffMembers = ref<{ id: number; name: string; email: string }[]>([])
 
 // Load staff members when modal opens
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
-    // TODO: REPLACE WITH ACTUAL STAFF LOADING ONCE STAFF MODULE IS READY
-    // This should load from your staff table/module with proper staff information
-    /*
+    // Load staff members from staff table
     const { data: staffData, error: staffError } = await supabase
-      .from('staff') // or whatever your staff table is called
-      .select('staff_id, name, email, department, position')
-      .eq('status', 'active') // only active staff members
+      .from('staff')
+      .select('id, fullname, email')
       
     if (!staffError && staffData) {
-      staffMembers.value = staffData.map(staff => ({
-        staff_id: staff.staff_id,
-        name: staff.name,
-        email: staff.email,
-        department: staff.department
+      staffMembers.value = (staffData as any[]).map((staff: any) => ({
+        id: staff.id,
+        name: staff.fullname,
+        email: staff.email || `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
       }))
     }
-    */
-    
-    // TEMPORARY: Using placeholder staff list until staff module is ready
-    staffMembers.value = [
-      {
-        staff_id: 1,
-        name: 'Current User',
-        email: user.value?.email || 'user@company.com'
-      }
-      // Add more placeholder staff members as needed for testing
-    ]
   }
 })
 
