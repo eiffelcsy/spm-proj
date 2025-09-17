@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
 import DataTable from '@/components/tasks/data-table.vue'
-import { columns, type Task } from '@/components/tasks/columns'
+import { columns } from '@/components/tasks/columns'
+import type { Task } from '@/components/tasks/data/schema'
 
 const mockTasks: Task[] = [
   {

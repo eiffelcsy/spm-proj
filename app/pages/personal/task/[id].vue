@@ -34,15 +34,13 @@
       <div class="mb-4">
           <template v-if="!isSubtask">
             <h3 class="text-lg font-semibold mb-2">Subtasks</h3>
-            <div class="border rounded-md overflow-hidden">
-              <DataTable
-                :columns="subtaskColumns"
-                :data="subtaskRows"
-                @rowClick="row => goToSubtask(row.id)"
-                isSubtaskTable
-                :hideToolbar="true"
-              />
-            </div>
+            <DataTable
+              :columns="subtaskColumns"
+              :data="subtaskRows"
+              @rowClick="row => goToSubtask(row.id)"
+              isSubtaskTable
+              :hideToolbar="true"
+            />
           </template>
       </div>
  <div class="mb-4">
