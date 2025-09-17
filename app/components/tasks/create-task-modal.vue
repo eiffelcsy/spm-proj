@@ -117,9 +117,9 @@
             class="w-full border rounded-lg px-3 py-2"
           >
             <option value="">Unassigned</option>
-            <option :value="currentUser">Myself ({{ currentUser }})</option>
-            <option v-if="role === 'manager'" v-for="member in teamMembers" :key="member" :value="member">
-              {{ member }}
+            <option v-for="staff in staffMembers" :key="staff.staff_id" :value="staff.staff_id">
+              {{ staff.name }} ({{ staff.email }})
+              <span v-if="staff.department"> - {{ staff.department }}</span>
             </option>
           </select>
         </div>
@@ -147,6 +147,21 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
+const supabase = useSupabaseClient()
+const user = useSupabaseUser()
+
+// Define the task insert type to match your database schema
+interface TaskInsert {
+  task_name: string
+  start_date: string
+  end_date: string | null
+  status: string
+  description: string | null
+  project_id: number | null
+  creator_id: number
+  assignee_id: number | null
+}
+
 const props = defineProps<{
   isOpen: boolean
   project?: string | null
@@ -169,6 +184,43 @@ const description = ref('')
 const subtasks = ref<{ title: string; dueDate: string }[]>([])
 const assignedTo = ref('')
 
+// TODO: STAFF MODULE INTEGRATION REQUIRED
+// staff members for assignee dropdown - will need staff information from staff module
+const staffMembers = ref<{ staff_id: number; name: string; email: string; department?: string }[]>([])
+
+// Load staff members when modal opens
+watch(() => props.isOpen, async (isOpen) => {
+  if (isOpen) {
+    // TODO: REPLACE WITH ACTUAL STAFF LOADING ONCE STAFF MODULE IS READY
+    // This should load from your staff table/module with proper staff information
+    /*
+    const { data: staffData, error: staffError } = await supabase
+      .from('staff') // or whatever your staff table is called
+      .select('staff_id, name, email, department, position')
+      .eq('status', 'active') // only active staff members
+      
+    if (!staffError && staffData) {
+      staffMembers.value = staffData.map(staff => ({
+        staff_id: staff.staff_id,
+        name: staff.name,
+        email: staff.email,
+        department: staff.department
+      }))
+    }
+    */
+    
+    // TEMPORARY: Using placeholder staff list until staff module is ready
+    staffMembers.value = [
+      {
+        staff_id: 1,
+        name: 'Current User',
+        email: user.value?.email || 'user@company.com'
+      }
+      // Add more placeholder staff members as needed for testing
+    ]
+  }
+})
+
 // feedback state
 const successMessage = ref('')
 const errorMessage = ref('')
@@ -188,39 +240,81 @@ function removeSubtask(index: number) {
   subtasks.value.splice(index, 1)
 }
 
-function createTask() {
+async function createTask() {
   try {
     if (!title.value.trim()) {
       errorMessage.value = 'Task title is required.'
       return
     }
 
-    const newTask = {
-      id: Date.now().toString(),
-      title: title.value,
-      startDate: startDate.value ? new Date(startDate.value) : new Date(),
-      dueDate: dueDate.value ? new Date(dueDate.value) : null,
-      status: status.value,
-      description: description.value || null,
-      subtasks: subtasks.value
-        .filter(st => st.title.trim() !== '')
-        .map(st => ({
-          title: st.title,
-          dueDate: st.dueDate ? new Date(st.dueDate) : null,
-          status: 'not-started'
-        })),
-      project: props.project ?? 'personal',
-      owner: props.currentUser,
-      assignedTo: assignedTo.value || null,
+    if (!user.value) {
+      errorMessage.value = 'You must be logged in to create a task.'
+      return
     }
 
-    emit('task-created', newTask)
-
-    // feedback
-    successMessage.value = 'Task created successfully!'
+    // Clear any previous messages
     errorMessage.value = ''
+    successMessage.value = ''
 
-    // reset form after short delay
+    // TODO: STAFF MODULE INTEGRATION REQUIRED
+    // Replace this with actual staff_id lookup once staff module is implemented
+    // This should query user_staff_mapping table to get staff_id for current user
+    /*
+    const { data: staffMapping, error: staffError } = await supabase
+      .from('user_staff_mapping')
+      .select('staff_id')
+      .eq('user_id', user.value.id)
+      .single()
+    
+    if (staffError || !staffMapping) {
+      errorMessage.value = 'Unable to find your staff record. Please contact administrator.'
+      return
+    }
+    
+    const staffId = staffMapping.staff_id
+    */
+    
+    // TEMPORARY: Using placeholder staff_id until staff module is ready
+    const staffId = 1 // Replace with actual staff_id lookup above
+
+    const taskData: TaskInsert = {
+      task_name: title.value,
+      start_date: startDate.value ? new Date(startDate.value).toISOString() : new Date().toISOString(),
+      end_date: dueDate.value ? new Date(dueDate.value).toISOString() : null,
+      status: status.value,
+      description: description.value || null,
+      project_id: null, // No project assignment initially - can be assigned later
+      creator_id: staffId, // TODO: STAFF MODULE - This will come from user_staff_mapping lookup
+      assignee_id: assignedTo.value ? parseInt(assignedTo.value) : null, // TODO: STAFF MODULE - Convert selected staff_id to int8
+    }
+
+    // Insert task into Supabase
+    // Note: Using 'as any' for the insert due to Supabase type generation limitations
+    // The TaskInsert interface above ensures our data structure is correct
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([taskData as any])
+      .select()
+
+    if (error) {
+      throw error
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('No data returned from task creation')
+    }
+
+    // Note: Subtasks are not supported in the current database schema
+    // If you want to support subtasks, you'll need to add a parent_task_id column
+    // or store subtasks in a separate table
+
+    // Emit the created task data
+    emit('task-created', data[0] as any)
+
+    // Show success feedback
+    successMessage.value = 'Task created successfully!'
+
+    // Reset form after short delay
     setTimeout(() => {
       successMessage.value = ''
       title.value = ''
@@ -232,8 +326,15 @@ function createTask() {
       assignedTo.value = ''
       emit('close')
     }, 1000)
-  } catch (err) {
-    errorMessage.value = 'Something went wrong. Task was not created.'
+  } catch (err: any) {
+    console.error('Error creating task:', err)
+    console.error('Error details:', {
+      message: err.message,
+      details: err.details,
+      hint: err.hint,
+      code: err.code
+    })
+    errorMessage.value = err.message || 'Something went wrong. Task was not created.'
     successMessage.value = ''
   }
 }
