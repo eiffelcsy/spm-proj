@@ -22,8 +22,8 @@ import {
 import DataTablePagination from './data-table-pagination.vue'
 import DataTableToolbar from './data-table-toolbar.vue'
 
-const props = defineProps<{ columns: any[]; data: any[]; hideToolbar?: boolean }>()
-const emit = defineEmits(['rowClick'])
+const props = defineProps<{ columns: any[]; data: any[]; hideToolbar?: boolean; showCreateButton?: boolean }>()
+const emit = defineEmits(['rowClick', 'create-task'])
 function handleRowClick(row: any) {
     emit('rowClick', row.original)
 }
@@ -48,7 +48,12 @@ defineOptions({
 
 <template>
     <div class="space-y-2">
-        <DataTableToolbar v-if="!props.hideToolbar" :table="table" />
+        <DataTableToolbar 
+            v-if="!props.hideToolbar" 
+            :table="table" 
+            :showCreateButton="props.showCreateButton"
+            @create-task="emit('create-task')"
+        />
         <div class="border rounded-md">
             <Table>
                 <TableHeader>

@@ -3,18 +3,15 @@
     <h1 class="text-3xl font-bold mb-6">Personal Dashboard</h1>
     
     <div class="mb-4">
-      <div class = 'display flex mb-4'>
-        <h2 class="text-xl font-semibold py-1">My Tasks</h2>
-        <button
-          @click="isModalOpen = true"
-          class="mx-4 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + Create New Task
-        </button>
-      </div>
+      <h2 class="text-xl font-semibold mb-4">My Tasks</h2>
 
-
-    <DataTable :columns="columns" :data="tasks" @rowClick="goToTask" />
+    <DataTable 
+      :columns="columns" 
+      :data="tasks" 
+      @rowClick="goToTask" 
+      :showCreateButton="true"
+      @create-task="isModalOpen = true"
+    />
 
       <CreateTaskModal
       :isOpen="isModalOpen"
@@ -29,7 +26,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { columns, type Task } from '@/components/tasks/columns'
+import { columns } from '@/components/tasks/columns'
+import type { Task } from '@/components/tasks/data/schema'
 import DataTable from '@/components/tasks/data-table.vue'
 import tasksJson from '@/components/tasks/data/example.json'
 import CreateTaskModal from '@/components/tasks/create-task-modal.vue'

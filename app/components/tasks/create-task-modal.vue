@@ -1,9 +1,15 @@
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 flex items-center justify-center z-50"
+    class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
+    @click="$emit('close')"
   >
-    <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
+    
+    <!-- Modal content -->
+    <div 
+      class="relative bg-white rounded-xl shadow-lg w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto z-10"
+      @click.stop
+    >
       <h2 class="text-xl font-semibold mb-4">Create New Task</h2>
 
       <!-- Feedback Messages -->
@@ -43,6 +49,7 @@
           <input
             v-model="dueDate"
             type="date"
+            :min="startDate"
             class="w-full border rounded-lg px-3 py-2"
           />
         </div>
@@ -138,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -166,6 +173,13 @@ const assignedTo = ref('')
 const successMessage = ref('')
 const errorMessage = ref('')
 
+// Watch startDate changes and clear dueDate if it becomes invalid
+watch(startDate, (newStartDate) => {
+  if (dueDate.value && newStartDate && dueDate.value < newStartDate) {
+    dueDate.value = ''
+  }
+})
+
 function addSubtask() {
   subtasks.value.push({ title: '', dueDate: '' })
 }
@@ -184,7 +198,7 @@ function createTask() {
     const newTask = {
       id: Date.now().toString(),
       title: title.value,
-      startDate: new Date(startDate.value),
+      startDate: startDate.value ? new Date(startDate.value) : new Date(),
       dueDate: dueDate.value ? new Date(dueDate.value) : null,
       status: status.value,
       description: description.value || null,
@@ -224,3 +238,18 @@ function createTask() {
   }
 }
 </script>
+
+<style scoped>
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); /* Safari support */
+}
+
+/* Fallback for browsers that don't support backdrop-filter */
+@supports not (backdrop-filter: blur(8px)) {
+  .modal-backdrop {
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+</style>
