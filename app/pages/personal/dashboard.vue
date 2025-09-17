@@ -3,8 +3,16 @@
     <h1 class="text-3xl font-bold mb-6">Personal Dashboard</h1>
     
     <div class="mb-4">
-      <h2 class="text-xl font-semibold mb-4">My Tasks</h2>
-
+      <div class = 'display flex mb-4'>
+        <h2 class="text-xl font-semibold py-1">My Tasks</h2>
+        <button
+          @click="isModalOpen = true"
+          class="mx-4 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          + Create New Task
+        </button>
+      </div>
+      
     <DataTable 
       :columns="columns" 
       :data="tasks" 
