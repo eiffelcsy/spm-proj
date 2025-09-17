@@ -10,10 +10,9 @@
       class="relative bg-white rounded-xl shadow-lg w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto z-10"
       @click.stop
     >
-      <h2 class="text-xl font-semibold mb-4">Create New Task</h2>
+      <h2 class="text-xl font-semibold mb-4">{{ isSubtask ? 'Edit Subtask' : 'Edit Task' }}</h2>
 
       <!-- Feedback Messages -->
-       <!-- this is still not working im sorry ill cont laterr -->
       <div v-if="successMessage" class="mb-4 p-3 rounded bg-green-100 text-green-700">
         {{ successMessage }}
       </div>
@@ -21,7 +20,7 @@
         {{ errorMessage }}
       </div>
 
-      <form @submit.prevent="createTask" class="space-y-4">
+      <form @submit.prevent="updateTask" class="space-y-4">
         <!-- Title -->
         <div>
           <label class="block text-sm font-medium mb-1">Task Title</label>
@@ -135,7 +134,7 @@
             type="submit"
             class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
           >
-            Create Task
+            {{ isSubtask ? 'Update Subtask' : 'Update Task' }}
           </button>
         </div>
       </form>
@@ -147,36 +146,51 @@
 import { ref, watch } from 'vue'
 
 const supabase = useSupabaseClient()
+const user = useSupabaseUser()
+
+// Define the task update type to match your database schema
+interface TaskUpdate {
+  task_name: string
+  start_date: string
+  end_date: string | null
+  status: string
+  description: string | null
+  assignee_id: number | null
+}
 
 const props = defineProps<{
   isOpen: boolean
-  project?: string | null
-  role: 'staff' | 'manager'
-  currentUser: string
+  task: any | null
+  isSubtask?: boolean
+  role?: 'staff' | 'manager'
+  currentUser?: string
   teamMembers?: string[]
 }>()
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'task-created', task: any): void
+  (e: 'task-updated', task: any): void
 }>()
 
 // form state
 const title = ref('')
-const startDate = ref(new Date().toISOString().split('T')[0])
+const startDate = ref('')
 const dueDate = ref('')
 const status = ref('not-started')
 const description = ref('')
 const subtasks = ref<{ title: string; dueDate: string }[]>([])
 const assignedTo = ref('')
 
-// TODO: STAFF MODULE INTEGRATION REQUIRED
-// staff members for assignee dropdown - will show staff fullname and email only
+// staff members for assignee dropdown
 const staffMembers = ref<{ id: number; name: string; email: string }[]>([])
 
-// Load staff members when modal opens
+// feedback state
+const successMessage = ref('')
+const errorMessage = ref('')
+
+// Load staff members and populate form when modal opens
 watch(() => props.isOpen, async (isOpen) => {
-  if (isOpen) {
+  if (isOpen && props.task) {
     // Load staff members from staff table
     const { data: staffData, error: staffError } = await supabase
       .from('staff')
@@ -189,12 +203,56 @@ watch(() => props.isOpen, async (isOpen) => {
         email: staff.email || `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
       }))
     }
+
+    // Populate form with existing task data
+    populateForm()
   }
 })
 
-// feedback state
-const successMessage = ref('')
-const errorMessage = ref('')
+function populateForm() {
+  if (!props.task) return
+
+  title.value = props.task.title || props.task.task_name || ''
+  
+  // Handle date formatting
+  const startDateValue = props.task.startDate || props.task.start_date
+  if (startDateValue) {
+    const date = new Date(startDateValue)
+    if (!isNaN(date.getTime())) {
+      const isoString = date.toISOString()
+      startDate.value = isoString.split('T')[0] || ''
+    }
+  } else {
+    startDate.value = ''
+  }
+  
+  const dueDateValue = props.task.dueDate || props.task.end_date
+  if (dueDateValue) {
+    const date = new Date(dueDateValue)
+    if (!isNaN(date.getTime())) {
+      const isoString = date.toISOString()
+      dueDate.value = isoString.split('T')[0] || ''
+    }
+  } else {
+    dueDate.value = ''
+  }
+  
+  status.value = props.task.status || 'not-started'
+  description.value = props.task.description || props.task.notes || ''
+  
+  // Handle subtasks if they exist
+  if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
+    subtasks.value = props.task.subtasks.map((subtask: any) => ({
+      title: subtask.title || '',
+      dueDate: subtask.dueDate ? new Date(subtask.dueDate).toISOString().split('T')[0] : ''
+    }))
+  } else {
+    subtasks.value = []
+  }
+  
+  // Handle assignee - might need to map from assignee name to ID
+  assignedTo.value = props.task.assignee_id || ''
+}
 
 // Watch startDate changes and clear dueDate if it becomes invalid
 watch(startDate, (newStartDate) => {
@@ -211,10 +269,20 @@ function removeSubtask(index: number) {
   subtasks.value.splice(index, 1)
 }
 
-async function createTask() {
+async function updateTask() {
   try {
     if (!title.value.trim()) {
       errorMessage.value = 'Task title is required.'
+      return
+    }
+
+    if (!props.task || !props.task.id) {
+      errorMessage.value = 'Task ID is missing.'
+      return
+    }
+
+    if (!user.value) {
+      errorMessage.value = 'You must be logged in to update a task.'
       return
     }
 
@@ -222,51 +290,39 @@ async function createTask() {
     errorMessage.value = ''
     successMessage.value = ''
 
-    const taskData = {
+    const taskData: TaskUpdate = {
       task_name: title.value,
-      start_date: startDate.value || null,
-      end_date: dueDate.value || null,
+      start_date: startDate.value ? new Date(startDate.value).toISOString() : new Date().toISOString(),
+      end_date: dueDate.value ? new Date(dueDate.value).toISOString() : null,
       status: status.value,
       description: description.value || null,
-      project_id: null, // No project assignment initially - can be assigned later
       assignee_id: assignedTo.value ? parseInt(assignedTo.value) : null,
     }
 
-    // Create task via API endpoint
-    const response = await $fetch('/api/tasks', {
-      method: 'POST',
+    // Update task via API endpoint
+    const response = await $fetch(`/api/tasks/${props.task.id}`, {
+      method: 'PUT',
       body: taskData
     })
 
     if (!response.success) {
-      throw new Error('Failed to create task')
+      throw new Error('Failed to update task')
     }
 
-    // Note: Subtasks are not supported in the current database schema
-    // If you want to support subtasks, you'll need to add a parent_task_id column
-    // or store subtasks in a separate table
-
-    // Emit the created task data
-    emit('task-created', response.task)
+    // Emit the updated task data
+    emit('task-updated', response.task)
 
     // Show success feedback
-    successMessage.value = 'Task created successfully!'
+    successMessage.value = props.isSubtask ? 'Subtask updated successfully!' : 'Task updated successfully!'
 
-    // Reset form after short delay
+    // Close modal after short delay
     setTimeout(() => {
       successMessage.value = ''
-      title.value = ''
-      startDate.value = new Date().toISOString().split('T')[0]
-      dueDate.value = ''
-      status.value = 'not-started'
-      description.value = ''
-      subtasks.value = []
-      assignedTo.value = ''
       emit('close')
     }, 1000)
   } catch (err: any) {
-    console.error('Error creating task:', err)
-    errorMessage.value = err.message || 'Something went wrong. Task was not created.'
+    console.error('Error updating task:', err)
+    errorMessage.value = err.message || 'Something went wrong. Task was not updated.'
     successMessage.value = ''
   }
 }

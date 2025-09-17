@@ -1,14 +1,122 @@
+import { serverSupabaseClient } from '#supabase/server'
+
 export default defineEventHandler(async (event) => {
-  // TODO: Implement task update
-  // const supabase = await serverSupabaseServiceRole(event)
-  // const taskId = getRouterParam(event, 'id')
-  // const body = await readBody(event)
-  
-  // Validate request body here using taskSchema
-  // Update task in Supabase database
-  
-  throw createError({
-    statusCode: 501,
-    statusMessage: 'Task update endpoint not implemented yet'
-  })
+  const supabase = await serverSupabaseClient(event)
+  const taskId = getRouterParam(event, 'id')
+  const body = await readBody(event)
+
+  if (!taskId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Task ID is required'
+    })
+  }
+
+  if (!body) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Request body is required'
+    })
+  }
+
+  try {
+    // First, get the current task to check permissions
+    const { data: currentTask, error: fetchError } = await supabase
+      .from('tasks')
+      .select('creator_id, assignee_id')
+      .eq('id', taskId)
+      .single()
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        throw createError({
+          statusCode: 404,
+          statusMessage: 'Task not found'
+        })
+      }
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch task for permission check',
+        data: fetchError
+      })
+    }
+
+    // TODO: STAFF MODULE INTEGRATION REQUIRED
+    // For now, we'll skip permission validation until user-staff mapping is implemented
+    // Once staff module is ready, uncomment and implement this permission check:
+    /*
+    // Get current user's staff ID
+    const { data: userStaffMapping, error: mappingError } = await supabase
+      .from('user_staff_mapping')
+      .select('staff_id')
+      .eq('user_id', event.context.user?.id)
+      .single()
+
+    if (mappingError || !userStaffMapping) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Unable to verify user permissions'
+      })
+    }
+
+    const userStaffId = userStaffMapping.staff_id
+
+    // Check if user is creator or assignee
+    const canEdit = currentTask.creator_id === userStaffId || currentTask.assignee_id === userStaffId
+
+    if (!canEdit) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to edit this task. Only the creator or assignee can edit it.'
+      })
+    }
+    */
+
+    // Validate and prepare the update data
+    const updateData: any = {}
+    
+    if (body.task_name) updateData.task_name = body.task_name
+    if (body.start_date) updateData.start_date = body.start_date
+    if (body.end_date !== undefined) updateData.end_date = body.end_date
+    if (body.status) updateData.status = body.status
+    if (body.description !== undefined) updateData.description = body.description
+    if (body.assignee_id !== undefined) updateData.assignee_id = body.assignee_id
+
+    // Update task in database
+    const { data: task, error } = await supabase
+      .from('tasks')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(updateData as any)
+      .eq('id', taskId)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw createError({
+          statusCode: 404,
+          statusMessage: 'Task not found'
+        })
+      }
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to update task',
+        data: error
+      })
+    }
+
+    return {
+      success: true,
+      task
+    }
+  } catch (error: any) {
+    if (error.statusCode) {
+      throw error
+    }
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+      data: error
+    })
+  }
 })

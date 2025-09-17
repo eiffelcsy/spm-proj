@@ -1,5 +1,6 @@
 <template>
   <div class="container mx-auto p-6 relative">
+    <!-- Close button -->
     <button
       class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold focus:outline-none"
       @click="goToDashboard"
@@ -22,7 +23,21 @@
         </span>
       </div>
       <div class="mb-4">
-        <h2 class="text-xl font-semibold">{{ task.title }}</h2>
+        <!-- Task title with inline Edit button -->
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xl font-semibold">{{ task.title }}</h2>
+          <Button
+            v-if="canEdit"
+            variant="outline"
+            size="sm"
+            class="h-8 border-dashed"
+            @click="openEditModal"
+            :aria-label="isSubtask ? 'Edit Subtask' : 'Edit Task'"
+          >
+            <Pencil1Icon class="mr-2 h-4 w-4" />
+            {{ isSubtask ? 'Edit Subtask' : 'Edit Task' }}
+          </Button>
+        </div>
         <p class="mb-2 text-gray-600">{{ task.description }}</p>
         <div class="mb-2"><strong>Notes:</strong> {{ task.notes }}</div>
         <div class="mb-2"><strong>Start Date:</strong> {{ formatDate(task.startDate) }}</div>
@@ -73,11 +88,20 @@
     </div>
   </div>
 </div>
-      <div v-if="!isAssignee" class="text-sm text-gray-500">This view is read-only. Only the assignee can edit this task.</div>
+      <div v-if="!canEdit" class="text-sm text-gray-500">This view is read-only. Only the creator or assignee can edit this {{ isSubtask ? 'subtask' : 'task' }}.</div>
     </div>
     <div v-else>
       <p>Task not found.</p>
     </div>
+    
+    <!-- Edit Task Modal -->
+    <EditTaskModal
+      :isOpen="isEditModalOpen"
+      :task="task"
+      :isSubtask="isSubtask"
+      @close="closeEditModal"
+      @task-updated="handleTaskUpdated"
+    />
   </div>
 </template>
 
@@ -85,7 +109,10 @@
 
 import { useRoute, useRouter } from 'vue-router'
 import { ref, computed, h } from 'vue'
+import { Pencil1Icon } from '@radix-icons/vue'
+import { Button } from '@/components/ui/button'
 import DataTable from '@/components/tasks/data-table.vue'
+import EditTaskModal from '@/components/tasks/edit-task-modal.vue'
 import tasksJson from '@/components/tasks/data/example.json'
 
 const route = useRoute()
@@ -117,6 +144,7 @@ const currentUser = 'john.doe'
 
 const task = ref<any>(null)
 const isSubtask = ref(false)
+const isEditModalOpen = ref(false)
 
 function findTaskById(id: string): any {
   // Search main tasks
@@ -166,10 +194,28 @@ function goToSubtask(subtaskId: string) {
   router.push(`/personal/task/${subtaskId}`)
 }
 
-const isAssignee = computed(() => task.value && task.value.assignee === currentUser)
+const canEdit = computed(() => {
+  if (!task.value) return false
+  // User can edit if they are the assignee OR the creator
+  return task.value.assignee === currentUser || task.value.creator === currentUser
+})
 
 function goToParentTask(parentId: string) {
   router.push(`/personal/task/${parentId}`)
+}
+
+function openEditModal() {
+  isEditModalOpen.value = true
+}
+
+function closeEditModal() {
+  isEditModalOpen.value = false
+}
+
+function handleTaskUpdated(updatedTask: any) {
+  // Update the local task data
+  task.value = { ...task.value, ...updatedTask }
+  closeEditModal()
 }
 
 // Subtask table columns (use row.original for compatibility)
