@@ -189,17 +189,17 @@ const pendingDeleteIndex = ref<number | null>(null)
 // Load staff members and populate form when modal opens
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen && props.task) {
-    // Load staff members from staff table
-    const { data: staffData, error: staffError } = await supabase
-      .from('staff')
-      .select('id, fullname, email')
+    try {
+      const staffData = await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/staff')
 
-    if (!staffError && staffData) {
-      staffMembers.value = (staffData as any[]).map((staff: any) => ({
+      staffMembers.value = staffData.map(staff => ({
         id: staff.id,
         name: staff.fullname,
         email: staff.email || `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
       }))
+    } catch (err) {
+      console.error('Failed to load staff', err)
+      staffMembers.value = [] // fallback to empty array
     }
 
     // Populate form with existing task data

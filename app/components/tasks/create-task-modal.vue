@@ -164,17 +164,21 @@ const subtasks = ref<{
 const assignedTo = ref('')
 
 // staff members for assignee dropdown - will show staff fullname and email only
-// doesnt have email for now
-const staffMembers = ref<{ id: number; name: string; }[]>([])
+const staffMembers = ref<{ id: number; name: string; email: string }[]>([])
 
 // Load staff members when modal opens
 watch(() => props.isOpen, async (isOpen) => {
-  if (isOpen) {
-    try {
-      staffMembers.value = await $fetch('/api/staff')
-    } catch (err) {
-      console.error('Failed to load staff', err)
-    }
+  if (!isOpen) return
+
+  try {
+    staffMembers.value = (await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/staff'))
+      .map(staff => ({
+      ...staff,
+      name: staff.fullname,
+      email: staff.email ?? `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
+    }))
+  } catch (err) {
+    console.error('Failed to load staff', err)
   }
 })
 

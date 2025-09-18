@@ -17,6 +17,6 @@ export default defineEventHandler(async (event) => {
 
   return data.map((staff: any) => ({
     id: staff.id,
-    name: staff.fullname,
+    fullname: staff.fullname,
   }))
 })
