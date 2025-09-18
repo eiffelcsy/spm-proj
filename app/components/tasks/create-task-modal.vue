@@ -7,7 +7,7 @@
     
     <!-- Modal content -->
     <div 
-      class="relative bg-white rounded-xl shadow-lg w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto z-10"
+      class="relative bg-white rounded-xl shadow-lg w-full max-w-5xl p-6 min-h-[60vh] max-h-[90vh] overflow-y-auto z-10"
       @click.stop
     >
       <h2 class="text-xl font-semibold mb-4">Create New Task</h2>
@@ -39,7 +39,8 @@
           <input
             v-model="startDate"
             type="date"
-            class="w-full border rounded-lg px-3 py-2"
+            class="w-full border rounded-lg px-3 py-2 cursor-pointer"
+            @click="($event.target as HTMLInputElement)?.showPicker?.()"
           />
         </div>
 
@@ -50,7 +51,8 @@
             v-model="dueDate"
             type="date"
             :min="startDate"
-            class="w-full border rounded-lg px-3 py-2"
+            class="w-full border rounded-lg px-3 py-2 cursor-pointer"
+            @click="($event.target as HTMLInputElement)?.showPicker?.()"
           />
         </div>
 
@@ -80,25 +82,95 @@
         <!-- Subtasks -->
         <div>
           <label class="block text-sm font-medium mb-2">Subtasks</label>
-          <div v-for="(subtask, index) in subtasks" :key="index" class="flex gap-2 mb-2">
-            <input
-              v-model="subtask.title"
-              type="text"
-              placeholder="Subtask Title"
-              class="flex-1 border rounded-lg px-2 py-1"
-            />
-            <input
-              v-model="subtask.dueDate"
-              type="date"
-              class="border rounded-lg px-2 py-1"
-            />
-            <button
-              type="button"
-              @click="removeSubtask(index)"
-              class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-            >
-              ✕
-            </button>
+          <div v-for="(subtask, index) in subtasks" :key="index" class="border rounded-lg p-3 mb-3 bg-gray-50">
+            <!-- Subtask Header -->
+            <div class="flex gap-2 mb-2">
+              <input
+                v-model="subtask.title"
+                type="text"
+                placeholder="Subtask Title"
+                class="flex-1 border rounded-lg px-3 py-2"
+                required
+              />
+              <button
+                type="button"
+                @click="toggleSubtaskExpanded(index)"
+                class="px-3 py-2 bg-white border border-gray-300 text-black rounded-lg hover:bg-gray-50 text-sm"
+                :title="subtask.expanded ? 'Collapse details' : 'Expand details'"
+              >
+                <span class="inline-block transition-transform duration-200" :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
+              </button>
+              <button
+                type="button"
+                @click="removeSubtask(index)"
+                class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Expanded Subtask Details -->
+            <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4 border-l-2 border-blue-200">
+              <!-- Start Date & Due Date -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Start Date</label>
+                  <input
+                    v-model="subtask.startDate"
+                    type="date"
+                    class="w-full border rounded-lg px-2 py-1 text-sm cursor-pointer"
+                    @click="($event.target as HTMLInputElement)?.showPicker?.()"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Due Date</label>
+                  <input
+                    v-model="subtask.dueDate"
+                    type="date"
+                    class="w-full border rounded-lg px-2 py-1 text-sm cursor-pointer"
+                    @click="($event.target as HTMLInputElement)?.showPicker?.()"
+                  />
+                </div>
+              </div>
+
+              <!-- Status & Assignee -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium mb-1">Status</label>
+                  <select
+                    v-model="subtask.status"
+                    class="w-full border rounded-lg px-2 py-1 text-sm"
+                  >
+                    <option value="not-started">Not Started</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1">Assign To</label>
+                  <select
+                    v-model="subtask.assignedTo"
+                    class="w-full border rounded-lg px-2 py-1 text-sm"
+                  >
+                    <option value="">Unassigned</option>
+                    <option v-for="staff in staffMembers" :key="staff.id" :value="staff.id">
+                      {{ staff.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div>
+                <label class="block text-xs font-medium mb-1">Description</label>
+                <textarea
+                  v-model="subtask.description"
+                  rows="2"
+                  placeholder="Subtask description..."
+                  class="w-full border rounded-lg px-2 py-1 text-sm"
+                ></textarea>
+              </div>
+            </div>
           </div>
           <button
             type="button"
@@ -139,6 +211,37 @@
           </button>
         </div>
       </form>
+
+      <!-- Confirmation Dialog -->
+      <div
+        v-if="showDeleteConfirmation"
+        class="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-50"
+        @click="cancelDelete"
+      >
+        <div
+          class="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-lg"
+          @click.stop
+        >
+          <h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
+          <p class="text-gray-600 mb-6">Are you sure you want to delete this subtask?</p>
+          <div class="flex justify-end gap-3">
+            <button
+              type="button"
+              @click="cancelDelete"
+              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+            >
+              No
+            </button>
+            <button
+              type="button"
+              @click="confirmDelete"
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+            >
+              Yes
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -167,7 +270,15 @@ const startDate = ref(new Date().toISOString().split('T')[0])
 const dueDate = ref('')
 const status = ref('not-started')
 const description = ref('')
-const subtasks = ref<{ title: string; dueDate: string }[]>([])
+const subtasks = ref<{ 
+  title: string; 
+  startDate: string; 
+  dueDate: string; 
+  status: string; 
+  description: string; 
+  assignedTo: string;
+  expanded: boolean;
+}[]>([])
 const assignedTo = ref('')
 
 // TODO: STAFF MODULE INTEGRATION REQUIRED
@@ -196,6 +307,10 @@ watch(() => props.isOpen, async (isOpen) => {
 const successMessage = ref('')
 const errorMessage = ref('')
 
+// confirmation dialog state
+const showDeleteConfirmation = ref(false)
+const pendingDeleteIndex = ref<number | null>(null)
+
 // Watch startDate changes and clear dueDate if it becomes invalid
 watch(startDate, (newStartDate) => {
   if (dueDate.value && newStartDate && dueDate.value < newStartDate) {
@@ -204,11 +319,39 @@ watch(startDate, (newStartDate) => {
 })
 
 function addSubtask() {
-  subtasks.value.push({ title: '', dueDate: '' })
+  subtasks.value.push({ 
+    title: '', 
+    startDate: new Date().toISOString().split('T')[0] || '', 
+    dueDate: '', 
+    status: 'not-started', 
+    description: '', 
+    assignedTo: '',
+    expanded: false
+  })
 }
 
 function removeSubtask(index: number) {
-  subtasks.value.splice(index, 1)
+  pendingDeleteIndex.value = index
+  showDeleteConfirmation.value = true
+}
+
+function confirmDelete() {
+  if (pendingDeleteIndex.value !== null) {
+    subtasks.value.splice(pendingDeleteIndex.value, 1)
+  }
+  cancelDelete()
+}
+
+function cancelDelete() {
+  showDeleteConfirmation.value = false
+  pendingDeleteIndex.value = null
+}
+
+function toggleSubtaskExpanded(index: number) {
+  const subtask = subtasks.value[index]
+  if (subtask) {
+    subtask.expanded = !subtask.expanded
+  }
 }
 
 async function createTask() {
