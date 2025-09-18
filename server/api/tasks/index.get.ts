@@ -1,13 +1,22 @@
-import { serverSupabaseClient } from '#supabase/server'
+import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseClient(event)
+  const user = await serverSupabaseUser(event)
+  
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized - User not authenticated'
+    })
+  }
   
   try {
     const { data: tasks, error } = await supabase
       .from('test_tasks')
       .select('*')
-      .order('created_at', { ascending: false })
+      // .or(`assignee_id.eq.${user.id},creator_id.eq.${user.id}`)
+      // .order('created_at', { ascending: false })
 
     if (error) {
       throw createError({
