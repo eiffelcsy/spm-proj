@@ -163,24 +163,17 @@ const subtasks = ref<{
 }[]>([])
 const assignedTo = ref('')
 
-// TODO: STAFF MODULE INTEGRATION REQUIRED
 // staff members for assignee dropdown - will show staff fullname and email only
-const staffMembers = ref<{ id: number; name: string; email: string }[]>([])
+// doesnt have email for now
+const staffMembers = ref<{ id: number; name: string; }[]>([])
 
 // Load staff members when modal opens
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
-    // Load staff members from staff table
-    const { data: staffData, error: staffError } = await supabase
-      .from('staff')
-      .select('id, fullname, email')
-
-    if (!staffError && staffData) {
-      staffMembers.value = (staffData as any[]).map((staff: any) => ({
-        id: staff.id,
-        name: staff.fullname,
-        email: staff.email || `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
-      }))
+    try {
+      staffMembers.value = await $fetch('/api/staff')
+    } catch (err) {
+      console.error('Failed to load staff', err)
     }
   }
 })
