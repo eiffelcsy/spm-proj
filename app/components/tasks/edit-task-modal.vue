@@ -1,15 +1,11 @@
 <template>
-  <div
-    v-if="isOpen"
-    class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
-    @click="$emit('close')"
-  >
-    
+  <div v-if="isOpen" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
+    @click="$emit('close')">
+
     <!-- Modal content -->
-    <div 
+    <div
       class="relative bg-white rounded-xl shadow-lg w-full max-w-5xl p-6 min-h-[60vh] max-h-[90vh] overflow-y-auto z-10"
-      @click.stop
-    >
+      @click.stop>
       <h2 class="text-xl font-semibold mb-4">{{ isSubtask ? 'Edit Subtask' : 'Edit Task' }}</h2>
 
       <!-- Feedback Messages -->
@@ -24,58 +20,27 @@
         <!-- Title -->
         <div>
           <label class="block text-sm font-medium mb-1">Task Title</label>
-          <input
-            v-model="title"
-            type="text"
-            required
-            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input v-model="title" type="text" required
+            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
 
-        <!-- Start Date -->
-        <div>
-          <label class="block text-sm font-medium mb-1">Start Date</label>
-          <input
-            v-model="startDate"
-            type="date"
-            class="w-full border rounded-lg px-3 py-2 cursor-pointer"
-            @click="($event.target as HTMLInputElement)?.showPicker?.()"
-          />
+        <!-- Start Date & Due Date -->
+        <div class="grid grid-cols-2 gap-4">
+          <DatePicker v-model="startDate" label="Start Date" placeholder="Select start date" />
+          <DatePicker v-model="dueDate" label="Due Date" placeholder="Select due date" />
         </div>
 
-        <!-- Due Date -->
-        <div>
-          <label class="block text-sm font-medium mb-1">Due Date</label>
-          <input
-            v-model="dueDate"
-            type="date"
-            :min="startDate"
-            class="w-full border rounded-lg px-3 py-2 cursor-pointer"
-            @click="($event.target as HTMLInputElement)?.showPicker?.()"
-          />
-        </div>
-
-        <!-- Status -->
-        <div>
-          <label class="block text-sm font-medium mb-1">Status</label>
-          <select
-            v-model="status"
-            class="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="not-started">Not Started</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
+        <!-- Status & Assignee -->
+        <div class="grid grid-cols-2 gap-4">
+          <StatusDropdown v-model="status" label="Status" placeholder="Select status" />
+          <AssignDropdown v-model="assignedTo" label="Assign To" placeholder="Select assignee"
+            :staff-members="staffMembers" />
         </div>
 
         <!-- Notes -->
         <div>
           <label class="block text-sm font-medium mb-1">Notes / Description</label>
-          <textarea
-            v-model="description"
-            rows="3"
-            class="w-full border rounded-lg px-3 py-2"
-          ></textarea>
+          <textarea v-model="description" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
         </div>
 
         <!-- Subtasks -->
@@ -84,26 +49,16 @@
           <div v-for="(subtask, index) in subtasks" :key="index" class="border rounded-lg p-3 mb-3 bg-gray-50">
             <!-- Subtask Header -->
             <div class="flex gap-2 mb-2">
-              <input
-                v-model="subtask.title"
-                type="text"
-                placeholder="Subtask Title"
-                class="flex-1 border rounded-lg px-3 py-2"
-                required
-              />
-              <button
-                type="button"
-                @click="toggleSubtaskExpanded(index)"
+              <input v-model="subtask.title" type="text" placeholder="Subtask Title"
+                class="flex-1 border rounded-lg px-3 py-2" required />
+              <button type="button" @click="toggleSubtaskExpanded(index)"
                 class="px-3 py-2 bg-white border border-gray-300 text-black rounded-lg hover:bg-gray-50 text-sm"
-                :title="subtask.expanded ? 'Collapse details' : 'Expand details'"
-              >
-                <span class="inline-block transition-transform duration-200" :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
+                :title="subtask.expanded ? 'Collapse details' : 'Expand details'">
+                <span class="inline-block transition-transform duration-200"
+                  :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
               </button>
-              <button
-                type="button"
-                @click="removeSubtask(index)"
-                class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              >
+              <button type="button" @click="removeSubtask(index)"
+                class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
                 ✕
               </button>
             </div>
@@ -112,130 +67,55 @@
             <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4 border-l-2 border-blue-200">
               <!-- Start Date & Due Date -->
               <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-medium mb-1">Start Date</label>
-                  <input
-                    v-model="subtask.startDate"
-                    type="date"
-                    class="w-full border rounded-lg px-2 py-1 text-sm cursor-pointer"
-                    @click="($event.target as HTMLInputElement)?.showPicker?.()"
-                  />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium mb-1">Due Date</label>
-                  <input
-                    v-model="subtask.dueDate"
-                    type="date"
-                    class="w-full border rounded-lg px-2 py-1 text-sm cursor-pointer"
-                    @click="($event.target as HTMLInputElement)?.showPicker?.()"
-                  />
-                </div>
+                <DatePicker v-model="subtask.startDate" label="Start Date" placeholder="Select start date" />
+                <DatePicker v-model="subtask.dueDate" label="Due Date" placeholder="Select due date" />
               </div>
 
               <!-- Status & Assignee -->
               <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-medium mb-1">Status</label>
-                  <select
-                    v-model="subtask.status"
-                    class="w-full border rounded-lg px-2 py-1 text-sm"
-                  >
-                    <option value="not-started">Not Started</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-xs font-medium mb-1">Assign To</label>
-                  <select
-                    v-model="subtask.assignedTo"
-                    class="w-full border rounded-lg px-2 py-1 text-sm"
-                  >
-                    <option value="">Unassigned</option>
-                    <option v-for="staff in staffMembers" :key="staff.id" :value="staff.id">
-                      {{ staff.name }}
-                    </option>
-                  </select>
-                </div>
+                <StatusDropdown v-model="subtask.status" label="Status" placeholder="Select status" compact />
+                <AssignDropdown v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
+                  :staff-members="staffMembers" compact />
               </div>
 
               <!-- Description -->
               <div>
                 <label class="block text-xs font-medium mb-1">Description</label>
-                <textarea
-                  v-model="subtask.description"
-                  rows="2"
-                  placeholder="Subtask description..."
-                  class="w-full border rounded-lg px-2 py-1 text-sm"
-                ></textarea>
+                <textarea v-model="subtask.description" rows="2" placeholder="Subtask description..."
+                  class="w-full border rounded-lg px-2 py-1 text-sm"></textarea>
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            @click="addSubtask"
-            class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm"
-          >
+          <button type="button" @click="addSubtask" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">
             + Add Subtask
           </button>
         </div>
 
-        <!-- Assignee -->
-        <div>
-          <label class="block text-sm font-medium mb-1">Assign To</label>
-          <select
-            v-model="assignedTo"
-            class="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="">Unassigned</option>
-            <option v-for="staff in staffMembers" :key="staff.id" :value="staff.id">
-              {{ staff.name }} ({{ staff.email }})
-            </option>
-          </select>
-        </div>
 
         <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            @click="$emit('close')"
-            class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
-          >
+          <button type="button" @click="$emit('close')"
+            class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">
             Cancel
           </button>
-          <button
-            type="submit"
-            class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-          >
+          <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
             {{ isSubtask ? 'Update Subtask' : 'Update Task' }}
           </button>
         </div>
       </form>
 
       <!-- Confirmation Dialog -->
-      <div
-        v-if="showDeleteConfirmation"
-        class="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-50"
-        @click="cancelDelete"
-      >
-        <div
-          class="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-lg"
-          @click.stop
-        >
+      <div v-if="showDeleteConfirmation"
+        class="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-50" @click="cancelDelete">
+        <div class="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-lg" @click.stop>
           <h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
           <p class="text-gray-600 mb-6">Are you sure you want to delete this subtask?</p>
           <div class="flex justify-end gap-3">
-            <button
-              type="button"
-              @click="cancelDelete"
-              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
-            >
+            <button type="button" @click="cancelDelete"
+              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">
               No
             </button>
-            <button
-              type="button"
-              @click="confirmDelete"
-              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
-            >
+            <button type="button" @click="confirmDelete"
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
               Yes
             </button>
           </div>
@@ -247,6 +127,9 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { DatePicker } from '@/components/ui/date-picker'
+import { StatusDropdown } from '@/components/ui/status-dropdown'
+import { AssignDropdown } from '@/components/ui/assign-dropdown'
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
@@ -281,12 +164,12 @@ const startDate = ref('')
 const dueDate = ref('')
 const status = ref('not-started')
 const description = ref('')
-const subtasks = ref<{ 
-  title: string; 
-  startDate: string; 
-  dueDate: string; 
-  status: string; 
-  description: string; 
+const subtasks = ref<{
+  title: string;
+  startDate: string;
+  dueDate: string;
+  status: string;
+  description: string;
   assignedTo: string;
   expanded: boolean;
 }[]>([])
@@ -310,7 +193,7 @@ watch(() => props.isOpen, async (isOpen) => {
     const { data: staffData, error: staffError } = await supabase
       .from('staff')
       .select('id, fullname, email')
-      
+
     if (!staffError && staffData) {
       staffMembers.value = (staffData as any[]).map((staff: any) => ({
         id: staff.id,
@@ -328,7 +211,7 @@ function populateForm() {
   if (!props.task) return
 
   title.value = props.task.title || props.task.task_name || ''
-  
+
   // Handle date formatting
   const startDateValue = props.task.startDate || props.task.start_date
   if (startDateValue) {
@@ -340,7 +223,7 @@ function populateForm() {
   } else {
     startDate.value = ''
   }
-  
+
   const dueDateValue = props.task.dueDate || props.task.end_date
   if (dueDateValue) {
     const date = new Date(dueDateValue)
@@ -351,10 +234,10 @@ function populateForm() {
   } else {
     dueDate.value = ''
   }
-  
+
   status.value = props.task.status || 'not-started'
   description.value = props.task.description || props.task.notes || ''
-  
+
   // Handle subtasks if they exist
   if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
     subtasks.value = props.task.subtasks.map((subtask: any) => ({
@@ -364,7 +247,7 @@ function populateForm() {
   } else {
     subtasks.value = []
   }
-  
+
   // Handle assignee - might need to map from assignee name to ID
   assignedTo.value = props.task.assignee_id || ''
 }
@@ -377,12 +260,12 @@ watch(startDate, (newStartDate) => {
 })
 
 function addSubtask() {
-  subtasks.value.push({ 
-    title: '', 
-    startDate: new Date().toISOString().split('T')[0] || '', 
-    dueDate: '', 
-    status: 'not-started', 
-    description: '', 
+  subtasks.value.push({
+    title: '',
+    startDate: new Date().toISOString().split('T')[0] || '',
+    dueDate: '',
+    status: 'not-started',
+    description: '',
     assignedTo: '',
     expanded: false
   })
@@ -475,7 +358,8 @@ async function updateTask() {
 .modal-backdrop {
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px); /* Safari support */
+  -webkit-backdrop-filter: blur(8px);
+  /* Safari support */
 }
 
 /* Fallback for browsers that don't support backdrop-filter */
