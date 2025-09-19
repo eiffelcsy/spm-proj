@@ -4,7 +4,7 @@ import { serverSupabaseClient } from '#supabase/server'
 interface TaskInsert {
   task_name: string
   start_date: string
-  end_date: string | null
+  due_date: string | null
   status: string
   description: string | null
   project_id: number | null

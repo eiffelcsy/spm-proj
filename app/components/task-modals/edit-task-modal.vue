@@ -128,8 +128,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { DatePicker } from '@/components/ui/date-picker'
-import { StatusDropdown } from '@/components/ui/status-dropdown'
-import { AssignDropdown } from '@/components/ui/assign-dropdown'
+import { StatusDropdown } from '@/components/task-modals/status-dropdown'
+import { AssignDropdown } from '@/components/task-modals/assign-dropdown'
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()

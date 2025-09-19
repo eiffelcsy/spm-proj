@@ -58,7 +58,7 @@ defineOptions({
         <Button
           variant="outline"
           size="sm"
-          class="h-8 border-dashed"
+          class="h-8"
           @click="emit('refresh-tasks')"
         >
           <UpdateIcon class="mr-2 h-4 w-4" />
@@ -67,9 +67,9 @@ defineOptions({
       </div>
       <div v-if="showCreateButton">
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
-          class="h-8 border-dashed"
+          class="h-8"
           @click="emit('create-task')"
         >
           <PlusCircledIcon class="mr-2 h-4 w-4" />

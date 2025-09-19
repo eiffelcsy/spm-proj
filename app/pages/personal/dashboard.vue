@@ -45,7 +45,7 @@ import { columns } from '@/components/tasks/columns'
 import type { Task } from '@/components/tasks/data/schema'
 import DataTable from '@/components/tasks/data-table.vue'
 // import tasksJson from '@/components/tasks/data/example.json' // TODO: Replace with actual tasks from API
-import CreateTaskModal from '@/components/tasks/create-task-modal.vue'
+import CreateTaskModal from '~/components/task-modals/create-task-modal.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()

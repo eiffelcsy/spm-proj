@@ -224,7 +224,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import DataTable from '@/components/tasks/data-table.vue'
-import EditTaskModal from '@/components/tasks/edit-task-modal.vue'
+import EditTaskModal from '~/components/task-modals/edit-task-modal.vue'
 import tasksJson from '@/components/tasks/data/example.json'
 
 const route = useRoute()
