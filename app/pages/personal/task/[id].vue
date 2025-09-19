@@ -294,7 +294,7 @@ function isOverdue(dueDate: string | Date | undefined | null): boolean {
   return due < new Date() && task.value?.status !== 'completed';
 }
 
-const currentUser = 'john.doe'
+
 
 function goToDashboard() {
   router.push('/personal/dashboard')
@@ -304,11 +304,16 @@ function goToSubtask(subtaskId: string) {
   router.push(`/personal/task/${subtaskId}`)
 }
 
-const canEdit = computed(() => {
-  if (!task.value) return false
-  // User can edit if they are the assignee OR the creator
-  return task.value.assignee === currentUser || task.value.creator === currentUser
-})
+// edit this when we can verify the current user
+
+// const currentUser = 'Alice Smith'
+// const canEdit = computed(() => {
+//   if (!task.value) return false
+//   // User can edit if they are the assignee OR the creator
+//   return task.value.assignee === currentUser || task.value.creator === currentUser
+// })
+
+const canEdit = computed(() => true)
 
 function goToParentTask(parentId: string) {
   router.push(`/personal/task/${parentId}`)

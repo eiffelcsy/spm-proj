@@ -24,10 +24,49 @@
             class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
 
+        
         <!-- Start Date & Due Date -->
         <div class="grid grid-cols-2 gap-4">
-          <DatePicker v-model="startDate" label="Start Date" placeholder="Select start date" />
-          <DatePicker v-model="dueDate" label="Due Date" placeholder="Select due date" />
+          <!-- Start Date -->
+          <div class="flex flex-col">
+            <Label class="mb-1">
+              Start Date
+            </Label>
+            <Popover>
+              <PopoverTrigger as-child>
+                <Button variant="outline" :class="cn(
+                  'w-[280px] justify-start text-left font-normal',
+                  !startDate && 'text-muted-foreground',
+                )">
+                  <CalendarIcon class="mr-2 h-4 w-4" />
+                  {{ startDate ? startDate.toDate(getLocalTimeZone())?.toLocaleDateString() : "Select start date" }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0">
+                <Calendar v-model="startDate" initial-focus />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <!-- Due Date -->
+          <div class="flex flex-col">
+            <Label class="mb-1">
+              Due Date
+            </Label>
+            <Popover>
+              <PopoverTrigger as-child>
+                <Button variant="outline" :class="cn(
+                  'w-[280px] justify-start text-left font-normal',
+                  !dueDate && 'text-muted-foreground',
+                )">
+                  <CalendarIcon class="mr-2 h-4 w-4" />
+                  {{ dueDate ? dueDate.toDate(getLocalTimeZone())?.toLocaleDateString() : "Select due date" }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0">
+                <Calendar v-model="dueDate" initial-focus :min-value="startDate" />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         <!-- Status & Assignee -->
@@ -130,7 +169,11 @@ import { ref, watch } from 'vue'
 //import { DatePicker } from '@/components/ui/date-picker'
 import { StatusDropdown } from '@/components/task-modals/status-dropdown'
 import { AssignDropdown } from '@/components/task-modals/assign-dropdown'
-
+import { cn } from '@/lib/utils'
+import { getLocalTimeZone } from '@internationalized/date'
+import { Calendar } from '@/components/ui/calendar'
+import { CalendarIcon } from 'lucide-vue-next'
+// import { parseDate, getLocalTimeZone, CalendarDate } from '@internationalized/date'
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 
@@ -160,14 +203,14 @@ const emit = defineEmits<{
 
 // form state
 const title = ref('')
-const startDate = ref('')
-const dueDate = ref('')
+const startDate = ref<CalendarDate>()
+const dueDate = ref<CalendarDate>()
 const status = ref('not-started')
 const description = ref('')
 const subtasks = ref<{
   title: string;
-  startDate: string;
-  dueDate: string;
+  startDate: CalendarDate;
+  dueDate: CalendarDate;
   status: string;
   description: string;
   assignedTo: string;
@@ -214,26 +257,10 @@ function populateForm() {
 
   // Handle date formatting
   const startDateValue = props.task.startDate || props.task.start_date
-  if (startDateValue) {
-    const date = new Date(startDateValue)
-    if (!isNaN(date.getTime())) {
-      const isoString = date.toISOString()
-      startDate.value = isoString.split('T')[0] || ''
-    }
-  } else {
-    startDate.value = ''
-  }
+  startDate.value = startDateValue ? parseDate(new Date(startDateValue).toISOString().split('T')[0]) : undefined
 
   const dueDateValue = props.task.dueDate || props.task.end_date
-  if (dueDateValue) {
-    const date = new Date(dueDateValue)
-    if (!isNaN(date.getTime())) {
-      const isoString = date.toISOString()
-      dueDate.value = isoString.split('T')[0] || ''
-    }
-  } else {
-    dueDate.value = ''
-  }
+  dueDate.value = dueDateValue ? parseDate(new Date(dueDateValue).toISOString().split('T')[0]) : undefined
 
   status.value = props.task.status || 'not-started'
   description.value = props.task.description || props.task.notes || ''
@@ -242,7 +269,12 @@ function populateForm() {
   if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
     subtasks.value = props.task.subtasks.map((subtask: any) => ({
       title: subtask.title || '',
-      dueDate: subtask.dueDate ? new Date(subtask.dueDate).toISOString().split('T')[0] : ''
+      startDate: subtask.startDate ? parseDate(new Date(subtask.startDate).toISOString().split('T')[0]) : undefined,
+      dueDate: subtask.dueDate ? parseDate(new Date(subtask.dueDate).toISOString().split('T')[0]) : undefined,
+      status: subtask.status || 'not-started',
+      description: subtask.description || '',
+      assignedTo: subtask.assignedTo || '',
+      expanded: false
     }))
   } else {
     subtasks.value = []
@@ -254,16 +286,16 @@ function populateForm() {
 
 // Watch startDate changes and clear dueDate if it becomes invalid
 watch(startDate, (newStartDate) => {
-  if (dueDate.value && newStartDate && dueDate.value < newStartDate) {
-    dueDate.value = ''
+  if (dueDate.value && newStartDate && dueDate.value.compare(newStartDate) < 0) {
+    dueDate.value = undefined
   }
 })
 
 function addSubtask() {
   subtasks.value.push({
     title: '',
-    startDate: new Date().toISOString().split('T')[0] || '',
-    dueDate: '',
+    startDate: parseDate(new Date().toISOString().split('T')[0]),
+    dueDate: parseDate(new Date().toISOString().split('T')[0]),
     status: 'not-started',
     description: '',
     assignedTo: '',
@@ -318,8 +350,8 @@ async function updateTask() {
 
     const taskData: TaskUpdate = {
       task_name: title.value,
-      start_date: startDate.value ? new Date(startDate.value).toISOString() : new Date().toISOString(),
-      end_date: dueDate.value ? new Date(dueDate.value).toISOString() : null,
+      start_date: startDate.value ? startDate.value.toDate(getLocalTimeZone()).toISOString() : new Date().toISOString(),
+      end_date: dueDate.value ? dueDate.value.toDate(getLocalTimeZone()).toISOString() : null,
       status: status.value,
       description: description.value || null,
       assignee_id: assignedTo.value ? parseInt(assignedTo.value) : null,
