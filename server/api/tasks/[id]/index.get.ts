@@ -1,8 +1,16 @@
-import { serverSupabaseClient } from '#supabase/server'
+import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseClient(event)
+  const user = await serverSupabaseUser(event)
   const taskId = getRouterParam(event, 'id')
+
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized - User not authenticated'
+    })
+  }
 
   if (!taskId) {
     throw createError({
@@ -13,9 +21,10 @@ export default defineEventHandler(async (event) => {
 
   try {
     const { data: task, error } = await supabase
-      .from('tasks')
+      .from('test_tasks')
       .select('*')
       .eq('id', taskId)
+      .or(`assignee_id.eq.${user.id},creator_id.eq.${user.id}`)
       .single()
 
     if (error) {

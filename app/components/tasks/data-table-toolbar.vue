@@ -3,7 +3,7 @@ import type { Table } from '@tanstack/vue-table'
 import type { Task } from './data/schema'
 import { computed } from 'vue'
 
-import { Cross2Icon, PlusCircledIcon } from '@radix-icons/vue'
+import { Cross2Icon, PlusCircledIcon, UpdateIcon } from '@radix-icons/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -13,10 +13,11 @@ import DataTableFacetedFilter from './data-table-faceted-filter.vue'
 interface DataTableToolbarProps {
   table: Table<any>
   showCreateButton?: boolean
+  showRefreshButton?: boolean
 }
 
 const props = defineProps<DataTableToolbarProps>()
-const emit = defineEmits(['create-task'])
+const emit = defineEmits(['create-task', 'refresh-tasks'])
 
 const isFiltered = computed(() => props.table.getState().columnFilters.length > 0)
 
@@ -52,16 +53,29 @@ defineOptions({
       </Button>
     </div>
     
-    <div v-if="showCreateButton">
-      <Button
-        variant="outline"
-        size="sm"
-        class="h-8 border-dashed"
-        @click="emit('create-task')"
-      >
-        <PlusCircledIcon class="mr-2 h-4 w-4" />
-        Create New Task
-      </Button>
+    <div class="flex flex-1 justify-end space-x-2">
+      <div v-if="showRefreshButton">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-8 border-dashed"
+          @click="emit('refresh-tasks')"
+        >
+          <UpdateIcon class="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
+      </div>
+      <div v-if="showCreateButton">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-8 border-dashed"
+          @click="emit('create-task')"
+        >
+          <PlusCircledIcon class="mr-2 h-4 w-4" />
+          Create New Task
+        </Button>
+      </div>
     </div>
   </div>
 </template>
