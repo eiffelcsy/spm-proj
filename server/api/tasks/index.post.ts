@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
   
   // Validate request body here using taskSchema
   // Insert into Supabase database
+  // handles post requests
   
   throw createError({
     statusCode: 501,

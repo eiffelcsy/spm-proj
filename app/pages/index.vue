@@ -1,21 +1,44 @@
 <template>
   <div class="home-container">
-    <div v-if="user" class="logged-in-message">
-      <h1 class="welcome-title">Welcome!</h1>
-      <p class="welcome-text">You have successfully logged in as **{{ user.email }}**.</p>
-      <button @click="handleLogout" class="logout-button">Log Out</button>
+    <div class="left-section">
+      <img src="https://via.placeholder.com/600x800?text=Sky" alt="Sky" class="left-image" />
     </div>
-    <div v-else class="logged-out-section">
-      <h1 class="logged-out-title">Welcome to Scrummies</h1>
-      <p class="logged-out-text">Please <NuxtLink to="/login" class="link">log in</NuxtLink> to continue.</p>
-      <p class="logged-out-text">Don't have an account? 
-        <NuxtLink to="/signup" class="link">Sign up here</NuxtLink>
-      </p>
+    <div class="right-section">
+      <div v-if="user" class="logged-in-message">
+        <h1 class="welcome-title">Welcome!</h1>
+        <p class="welcome-text">You have successfully logged in as **{{ user.email }}**.</p>
+        <button @click="handleLogout" class="logout-button">Log Out</button>
+      </div>
+      <div v-else class="login-card">
+        <h1 class="login-title">Welcome Back</h1>
+        <p class="login-description">Sign in to continue</p>
+        <form @submit.prevent="handleLogin" class="login-form">
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <input v-model="email" type="email" id="email" class="form-input" placeholder="Enter your email" required />
+          </div>
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input v-model="password" type="password" id="password" class="form-input" placeholder="Enter your password"
+              required />
+          </div>
+          <p class="forgot-password">
+            <NuxtLink to="/forgot-password" class="link">Forgot password?</NuxtLink>
+          </p>
+          <button type="submit" class="login-button">Log In</button>
+        </form>
+        <p class="signup-link">
+          Don't have an account? <NuxtLink to="/signup" class="link">Sign up here</NuxtLink>
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+const email = ref('');
+const password = ref('');
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
 const router = useRouter();
@@ -29,43 +52,108 @@ const handleLogout = async () => {
     console.error('Error logging out:', error);
   }
 };
+
+// Handles user login
+const handleLogin = async () => {
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value,
+    });
+    if (error) throw error;
+    router.push('/');
+  } catch (error) {
+    console.error('Error logging in:', error);
+  }
+};
 </script>
 
 <style scoped>
 .home-container {
   display: flex;
-  flex-direction: column;
+  min-height: 100vh;
+}
+
+.left-section {
+  flex: 1;
+  background-color: #f0f0f0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80vh;
-  text-align: center;
-  padding: 20px;
 }
 
-.logged-in-message {
+.left-image {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.right-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+}
+
+.logged-in-message,
+.login-card {
   padding: 40px;
-  background-color: #e8f5e9;
-  border: 1px solid #a5d6a7;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
   border-radius: 8px;
-  max-width: 500px;
+  max-width: 400px;
+  width: 100%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: left;
 }
 
-.welcome-title {
-  font-size: 2.5em;
+.login-title {
+  font-size: 2em;
   margin-bottom: 0.5em;
-  color: #388e3c;
+  color: #333;
+  text-align: center;
 }
 
-.welcome-text {
-  font-size: 1.3em;
+.login-description {
+  font-size: 1.2em;
   margin-bottom: 1.5em;
+  color: #777;
+  text-align: center;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 1.5em;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5em;
+  font-size: 1em;
   color: #555;
 }
 
-.logout-button {
+.form-input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-bottom: 1.5em;
+}
+
+.login-button {
   padding: 12px 24px;
-  background-color: #dc3545;
+  background-color: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
@@ -74,25 +162,14 @@ const handleLogout = async () => {
   transition: background-color 0.3s ease;
 }
 
-.logout-button:hover {
-  background-color: #c82333;
+.login-button:hover {
+  background-color: #0056b3;
 }
 
-.logged-out-section {
-  width: 100%;
-  max-width: 600px;
-}
-
-.logged-out-title {
-  font-size: 2.5em;
-  margin-bottom: 0.5em;
-  color: #333;
-}
-
-.logged-out-text {
-  font-size: 1.3em;
-  margin-bottom: 2em;
-  color: #777;
+.signup-link {
+  margin-top: 1.5em;
+  text-align: center;
+  font-size: 1em;
 }
 
 .link {
