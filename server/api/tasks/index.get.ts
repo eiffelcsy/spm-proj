@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   
   try {
     const { data: tasks, error } = await supabase
-      .from('tasks_test_kylene')
+      .from('tasks')
       .select('*')
       // .or(`assignee_id.eq.${user.id},creator_id.eq.${user.id}`)
       // .order('created_at', { ascending: false })

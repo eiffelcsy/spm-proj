@@ -58,16 +58,16 @@
                   <CalendarIcon class="h-4 w-4" />
                   Start Date
                 </div>
-                <div class="text-sm">{{ formatDate(task.startDate) }}</div>
+                <div class="text-sm">{{ formatDate(task.start_date) }}</div>
               </div>
               <div>
                 <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
                   <CalendarIcon class="h-4 w-4" />
                   Due Date
                 </div>
-                <div class="text-sm" :class="{ 'text-red-600': isOverdue(task.dueDate) }">
-                  {{ formatDate(task.dueDate) }}
-                  <div v-if="isOverdue(task.dueDate)" class="inline-block ml-2 px-2.5 py-0.5 rounded-full text-xs text-center font-medium bg-red-500 text-white">
+                <div class="text-sm" :class="{ 'text-red-600': isOverdue(task.due_date) }">
+                  {{ formatDate(task.due_date) }}
+                  <div v-if="isOverdue(task.due_date)" class="inline-block ml-2 px-2.5 py-0.5 rounded-full text-xs text-center font-medium bg-red-500 text-white">
                     Overdue
                   </div>
                 </div>
@@ -83,9 +83,9 @@
                 </div>
                 <div class="flex items-center space-x-2">
                   <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                    {{ getInitials(task.creator) }}
+                    {{ getInitials(task.creator?.fullname) }}
                   </div>
-                  <span class="text-sm">{{ task.creator }}</span>
+                  <span class="text-sm">{{ task.creator?.fullname || '?' }}</span>
                 </div>
               </div>
               <div>
@@ -95,9 +95,9 @@
                 </div>
                 <div class="flex items-center space-x-2">
                   <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium">
-                    {{ getInitials(task.assignee) }}
+                    {{ getInitials(task.assignee?.fullname) }}
                   </div>
-                  <span class="text-sm">{{ task.assignee }}</span>
+                  <span class="text-sm">{{ task.assignee?.fullname || '?' }}</span>
                 </div>
               </div>
             </div>
@@ -164,7 +164,7 @@
                   </time>
                 </div>
                 <p class="text-sm text-muted-foreground">
-                  by {{ log.user }}
+                  by {{ log.staff?.fullname || '?' }}
                 </p>
               </div>
             </div>
@@ -206,30 +206,46 @@
 
 <script setup lang="ts">
 
-import { useRoute, useRouter } from 'vue-router'
-import { ref, computed, h } from 'vue'
-import { 
-  Pencil1Icon, 
-  Cross2Icon, 
-  ChevronRightIcon, 
-  CalendarIcon, 
-  PersonIcon, 
-  FileTextIcon, 
-  ListBulletIcon, 
-  ClockIcon, 
-  InfoCircledIcon, 
-  ExclamationTriangleIcon 
-} from '@radix-icons/vue'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+// ...existing code...
 import DataTable from '@/components/tasks/data-table.vue'
 import EditTaskModal from '~/components/task-modals/edit-task-modal.vue'
-import tasksJson from '@/components/tasks/data/example.json'
+import {
+  ListBulletIcon,
+  ClockIcon,
+  InfoCircledIcon,
+  ExclamationTriangleIcon,
+  Cross2Icon,
+  Pencil1Icon,
+  CalendarIcon,
+  PersonIcon,
+  FileTextIcon,
+  ChevronRightIcon
+} from '@radix-icons/vue'
+
+// Register Radix icons for template usage
+const components = {
+  ListBulletIcon,
+  ClockIcon,
+  InfoCircledIcon,
+  ExclamationTriangleIcon,
+  Cross2Icon,
+  Pencil1Icon,
+  CalendarIcon,
+  PersonIcon,
+  FileTextIcon,
+  ChevronRightIcon
+}
 
 const route = useRoute()
 const router = useRouter()
 const taskId = route.params.id
+
+const { data, pending, error, refresh } = await useFetch(`/api/tasks/${taskId}`)
+const task = computed(() => data.value?.task || null)
+const isSubtask = ref(false)
+const isEditModalOpen = ref(false)
+// Local ref for editing task in modal
+const editableTask = ref<any>(null)
 
 function formatDate(date: string | Date | undefined | null) {
   if (!date) return '—';
@@ -280,50 +296,6 @@ function isOverdue(dueDate: string | Date | undefined | null): boolean {
 
 const currentUser = 'john.doe'
 
-const task = ref<any>(null)
-const isSubtask = ref(false)
-const isEditModalOpen = ref(false)
-
-function findTaskById(id: string): any {
-  // Search main tasks
-  let found = tasksJson.find((t: any) => String(t.id) === String(id))
-  if (found) {
-    isSubtask.value = false
-    return found
-  }
-  // Search subtasks recursively
-  for (const t of tasksJson) {
-    if (Array.isArray(t.subtasks)) {
-      for (const sub of t.subtasks) {
-        if (String(sub.id) === String(id)) {
-          isSubtask.value = true
-          return {
-            ...sub,
-            parentTask: t.title,
-            parentId: t.id
-          }
-        }
-        // Support nested subtasks (if any)
-        if (Array.isArray(sub.subtasks) && sub.subtasks.length > 0) {
-          for (const subsub of sub.subtasks as any[]) {
-            if (subsub && typeof subsub === 'object' && 'id' in subsub && String(subsub.id) === String(id)) {
-              isSubtask.value = true
-              return {
-                ...(subsub as object),
-                parentTask: sub.title,
-                parentId: sub.id
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  return null
-}
-
-task.value = findTaskById(String(taskId))
-
 function goToDashboard() {
   router.push('/personal/dashboard')
 }
@@ -343,6 +315,8 @@ function goToParentTask(parentId: string) {
 }
 
 function openEditModal() {
+  // Copy current task to editableTask for modal editing
+  editableTask.value = task.value ? { ...task.value } : null
   isEditModalOpen.value = true
 }
 
@@ -351,8 +325,10 @@ function closeEditModal() {
 }
 
 function handleTaskUpdated(updatedTask: any) {
-  // Update the local task data
-  task.value = { ...task.value, ...updatedTask }
+  // Update the editable task data
+  if (editableTask.value) {
+    editableTask.value = { ...editableTask.value, ...updatedTask }
+  }
   closeEditModal()
 }
 
@@ -366,13 +342,13 @@ const subtaskColumns = [
   {
     accessorKey: 'startDate',
     header: 'Start Date',
-    cell: ({ row }: any) => formatDate(row.original?.startDate),
+    cell: ({ row }: any) => formatDate(row.original?.start_date || row.original?.startDate),
     enableSorting: true,
   },
   {
     accessorKey: 'dueDate',
     header: 'Due Date',
-    cell: ({ row }: any) => formatDate(row.original?.dueDate),
+    cell: ({ row }: any) => formatDate(row.original?.due_date || row.original?.dueDate),
     enableSorting: true,
   },
   {
@@ -393,6 +369,6 @@ const subtaskColumns = [
 // Subtask rows for DataTable (no transformation needed)
 const subtaskRows = computed(() => {
   if (!task.value || !Array.isArray(task.value.subtasks)) return [];
-  return task.value.subtasks;
+  return task.value.subtasks || [];
 });
 </script>

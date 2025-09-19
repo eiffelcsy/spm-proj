@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const { data: task, error } = await supabase
-      .from('tasks_test_kylene')
+      .from('tasks')
       .select(`*,
         creator:creator_id (id, fullname),
         assignee:assignee_id (id, fullname)
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     const parentTask = task as any;
     if (parentTask && !parentTask.parent_task_id) {
       const { data: subtaskData, error: subtaskError } = await supabase
-        .from('tasks_test_kylene')
+        .from('tasks')
         .select(`*,
           creator:creator_id (id, fullname),
           assignee:assignee_id (id, fullname)
