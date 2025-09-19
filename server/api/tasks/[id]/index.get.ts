@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event)
   const taskId = getRouterParam(event, 'id')
 
+
   if (!user) {
     throw createError({
       statusCode: 401,
@@ -21,11 +22,14 @@ export default defineEventHandler(async (event) => {
 
   try {
     const { data: task, error } = await supabase
-      .from('test_tasks')
-      .select('*')
+      .from('tasks_test_kylene')
+      .select(`*,
+        creator:creator_id (id, fullname),
+        assignee:assignee_id (id, fullname)
+      `)
       .eq('id', taskId)
-      .or(`assignee_id.eq.${user.id},creator_id.eq.${user.id}`)
       .single()
+
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -41,9 +45,49 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    return {
-      task
+    // Fetch activity timeline for this task
+    const { data: history, error: timelineError } = await supabase
+      .from('activity_timeline')
+      .select('*, staff:user_id (fullname)')
+      .eq('task_id', taskId)
+      .order('timestamp', { ascending: true })
+
+    if (timelineError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch activity timeline',
+        data: timelineError
+      })
     }
+
+    // Fetch subtasks if this is a parent task
+    let subtasks: any[] = [];
+    const parentTask = task as any;
+    if (parentTask && !parentTask.parent_task_id) {
+      const { data: subtaskData, error: subtaskError } = await supabase
+        .from('tasks_test_kylene')
+        .select(`*,
+          creator:creator_id (id, fullname),
+          assignee:assignee_id (id, fullname)
+        `)
+        .eq('parent_task_id', parentTask.id)
+        .order('start_date', { ascending: true });
+      if (subtaskError) {
+        // Log error but do not throw, just return empty subtasks
+        console.error('Failed to fetch subtasks:', subtaskError);
+        subtasks = [];
+      } else {
+        subtasks = subtaskData || [];
+      }
+    }
+
+    // Attach history to the task object
+    if (task) {
+  parentTask.history = history || [];
+  parentTask.subtasks = subtasks;
+    }
+
+    return { task }
   } catch (error: any) {
     if (error.statusCode) {
       throw error
