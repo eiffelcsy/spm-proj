@@ -1,135 +1,189 @@
 <template>
-    <div class="login-container">
-      <h1>Log In</h1>
-      <form @submit.prevent="handleLogin">
-        <div>
-          <label for="email">Email</label>
-          <input id="email" type="email" v-model="email" required />
-        </div>
-        <div>
-          <label for="password">Password</label>
-          <input id="password" type="password" v-model="password" required />
-          <p class="forgot-password-link">
+  <div class="home-container">
+    <div class="left-section">
+      <img src="/Users/xlium/Documents/SPM/Github/scrummies/app/assets/office picture.jpg" alt="office"
+        class="left-image" />
+    </div>
+    <div class="right-section">
+
+
+
+      <div v-if="user" class="logged-in-message">
+        <h1 class="welcome-title">Welcome!</h1>
+        <p class="welcome-text">You have successfully logged in as **{{ user.email }}**.</p>
+        <button @click="handleLogout" class="logout-button">Log Out</button>
+      </div>
+      <div v-else class="login-card">
+        <h1 class="login-title">Welcome Back</h1>
+        <p class="login-description">Sign in to continue</p>
+        <form @submit.prevent="handleLogin" class="login-form">
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <input v-model="email" type="email" id="email" class="form-input" placeholder="Enter your email" required />
+          </div>
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input v-model="password" type="password" id="password" class="form-input" placeholder="Enter your password"
+              required />
+          </div>
+          <p class="forgot-password">
             <NuxtLink to="/forgot-password" class="link">Forgot password?</NuxtLink>
           </p>
-        </div>
-        <button type="submit" :disabled="!isFormValid || loading">
-          {{ loading ? 'Loading...' : 'Log In' }}
-        </button>
-        <div v-if="errorMsg" class="error-message">{{ errorMsg }}</div>
-      </form>
-      
-      <div class="links-container">
-        <p>Don't have an account? <NuxtLink to="/signup" class="link">Sign up</NuxtLink></p>
-        <p><NuxtLink to="/" class="link">Go to Home</NuxtLink></p>
+          <button type="submit" class="login-button">Log In</button>
+        </form>
+        <p class="signup-link">
+          Don't have an account? <NuxtLink to="/signup" class="link">Sign up here</NuxtLink>
+        </p>
       </div>
     </div>
-  </template>
-  
-  <script setup lang="ts">
-  import { ref, watch, computed } from 'vue';
-  
-  const supabase = useSupabaseClient();
-  const user = useSupabaseUser();
-  const router = useRouter();
-  
-  const email = ref('');
-  const password = ref('');
-  const loading = ref(false);
-  const errorMsg = ref('');
-  
-  // Computed property to check if both fields are filled
-  const isFormValid = computed(() => {
-    return email.value.length > 0 && password.value.length > 0;
-  });
-  
-  watch(user, (newUser) => {
-    if (newUser) {
-      router.push('/');
-    }
-  });
-  
-  const handleLogin = async () => {
-    try {
-      loading.value = true;
-      errorMsg.value = '';
-  
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.value,
-        password: password.value,
-      });
-  
-      if (error) {
-        throw error;
-      }
-    } catch (error: any) {
-      errorMsg.value = error.message;
-    } finally {
-      loading.value = false;
-    }
-  };
-  </script>
-  
-  <style scoped>
-  .login-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    text-align: center;
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+const email = ref('');
+const password = ref('');
+const user = useSupabaseUser();
+const supabase = useSupabaseClient();
+const router = useRouter();
+
+// Handles user logout
+const handleLogout = async () => {
+  try {
+    await supabase.auth.signOut();
+    router.push('/');
+  } catch (error) {
+    console.error('Error logging out:', error);
   }
-  
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+};
+
+// Handles user login
+const handleLogin = async () => {
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value,
+    });
+    if (error) throw error;
+    router.push('/');
+  } catch (error) {
+    console.error('Error logging in:', error);
   }
-  
-  input {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-  }
-  
-  button {
-    padding: 10px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-  }
-  
-  button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-  
-  .error-message {
-    color: red;
-    margin-top: 10px;
-  }
-  
-  .links-container {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .forgot-password-link {
-    margin-top: 5px;
-    text-align: right;
-    font-size: 0.9em;
-  }
-  
-  .link {
-    color: #007bff;
-    text-decoration: none;
-  }
-  
-  .link:hover {
-    text-decoration: underline;
-  }
-  </style>
+};
+</script>
+
+<style scoped>
+.home-container {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden; 
+}
+
+.left-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; 
+}
+
+.left-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; 
+  max-height: 100vh; 
+}
+
+.right-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+}
+
+.logged-in-message,
+.login-card {
+  padding: 40px;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.login-title {
+  font-size: 2em;
+  margin-bottom: 0.5em;
+  color: #333;
+  text-align: center;
+}
+
+.login-description {
+  font-size: 1.2em;
+  margin-bottom: 1.5em;
+  color: #777;
+  text-align: center;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 1.5em;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5em;
+  font-size: 1em;
+  color: #555;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-bottom: 1.5em;
+}
+
+.login-button {
+  padding: 12px 24px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+  background-color: #0056b3;
+}
+
+.signup-link {
+  margin-top: 1.5em;
+  text-align: center;
+  font-size: 1em;
+}
+
+.link {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+</style>
