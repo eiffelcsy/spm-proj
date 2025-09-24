@@ -4,9 +4,6 @@
       <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
     </div>
     <div class="right-section">
-
-
-
       <div v-if="user" class="logged-in-message">
         <h1 class="welcome-title">Welcome!</h1>
         <p class="welcome-text">You have successfully logged in as **{{ user.email }}**.</p>
@@ -22,8 +19,7 @@
           </div>
           <div class="form-group">
             <label for="password" class="form-label">Password</label>
-            <input v-model="password" type="password" id="password" class="form-input" placeholder="Enter your password"
-              required />
+            <input v-model="password" type="password" id="password" class="form-input" placeholder="Enter your password" required />
           </div>
           <p class="forgot-password">
             <NuxtLink to="/forgot-password" class="link">Forgot password?</NuxtLink>
@@ -40,36 +36,60 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useSupabaseUser, useSupabaseClient } from '#imports';
+
 const email = ref('');
 const password = ref('');
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
 const router = useRouter();
 
-// Handles user logout
-const handleLogout = async () => {
+// Handles user login by calling the server API
+const handleLogin = async () => {
   try {
-    await supabase.auth.signOut();
-    router.push('/');
+    const response = await $fetch('/api/login/login', {
+      method: 'POST',
+      body: {
+        email: email.value,
+        password: password.value,
+      },
+    });
+
+    if (response.success && response.session) {
+      await supabase.auth.setSession(response.session);
+      router.push('/');
+    } else {
+      alert('Login failed. Please try again.');
+    }
   } catch (error) {
-    console.error('Error logging out:', error);
+    // **CRITICAL CHANGE:** Safely check the type of the error object
+    if (typeof error === 'object' && error !== null && 'statusMessage' in error) {
+      alert((error as { statusMessage: string }).statusMessage);
+    } else {
+      alert('An unexpected error occurred during login.');
+    }
+    console.error('Login failed:', error);
   }
 };
 
-// Handles user login
-const handleLogin = async () => {
+const handleLogout = async () => {
   try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value,
+    await $fetch('/api/login/logout', {
+      method: 'POST',
     });
-    if (error) throw error;
     router.push('/');
   } catch (error) {
-    console.error('Error logging in:', error);
+    // **CRITICAL CHANGE:** Safely check the type of the error object
+    if (typeof error === 'object' && error !== null && 'statusMessage' in error) {
+      alert((error as { statusMessage: string }).statusMessage);
+    } else {
+      alert('An unexpected error occurred during logout.');
+    }
+    console.error('Error logging out:', error);
   }
 };
 </script>
+
 
 <style scoped>
 .home-container {
