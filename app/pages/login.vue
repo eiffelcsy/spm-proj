@@ -1,8 +1,7 @@
 <template>
   <div class="home-container">
     <div class="left-section">
-      <img src="/Users/xlium/Documents/SPM/Github/scrummies/app/assets/office picture.jpg" alt="office"
-        class="left-image" />
+      <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
     </div>
     <div class="right-section">
 

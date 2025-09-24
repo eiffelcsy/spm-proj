@@ -2,8 +2,7 @@
   <div class="home-container">
     <!-- Left Section with Photo -->
     <div class="left-section">
-      <img src="/Users/xlium/Documents/SPM/Github/scrummies/app/assets/office picture.jpg" alt="office"
-        class="left-image" />
+      <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
     </div>
 
     <!-- Right Section with Forgot Password Card -->
