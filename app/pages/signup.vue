@@ -1,11 +1,9 @@
 <template>
   <div class="home-container">
-    <!-- Left Section with Photo -->
     <div class="left-section">
       <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
     </div>
 
-    <!-- Right Section with Sign-Up Card -->
     <div class="right-section">
       <div class="signup-card">
         <h1 class="signup-title">Create an Account</h1>
@@ -39,7 +37,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-const supabase = useSupabaseClient();
 const router = useRouter();
 const email = ref('');
 const password = ref('');
@@ -47,23 +44,30 @@ const loading = ref(false);
 const errorMsg = ref('');
 
 const handleSignup = async () => {
-  try {
-    loading.value = true;
-    errorMsg.value = '';
+  loading.value = true;
+  errorMsg.value = '';
 
-    const { error } = await supabase.auth.signUp({
-      email: email.value,
-      password: password.value,
+  try {
+    const response = await $fetch('/api/signup/signup', {
+      method: 'POST',
+      body: {
+        email: email.value,
+        password: password.value,
+      },
     });
 
-    if (error) {
-      throw error;
-    }
-
-    alert('Please check your email to confirm your account!');
+    // Display a message to the user and redirect on success
+    alert(response.message);
     router.push('/login');
-  } catch (error: any) {
-    errorMsg.value = error.message;
+
+  } catch (error) {
+    // Safely check the type of the error object for type-safe error handling
+    if (typeof error === 'object' && error !== null && 'statusMessage' in error) {
+      errorMsg.value = (error as { statusMessage: string }).statusMessage;
+    } else {
+      errorMsg.value = 'An unexpected error occurred. Please try again.';
+    }
+    console.error('Signup failed:', error);
   } finally {
     loading.value = false;
   }

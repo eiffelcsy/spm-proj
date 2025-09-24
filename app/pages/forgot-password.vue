@@ -1,11 +1,9 @@
 <template>
   <div class="home-container">
-    <!-- Left Section with Photo -->
     <div class="left-section">
       <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
     </div>
 
-    <!-- Right Section with Forgot Password Card -->
     <div class="right-section">
       <div class="forgot-password-card">
         <h1 class="forgot-password-title">Forgot Password</h1>
@@ -29,29 +27,34 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-const supabase = useSupabaseClient();
 const email = ref('');
 const loading = ref(false);
 const successMsg = ref('');
 const errorMsg = ref('');
 
+// Handles the password reset request by calling the server API
 const handleReset = async () => {
+  loading.value = true;
+  errorMsg.value = '';
+  successMsg.value = '';
+  
   try {
-    loading.value = true;
-    errorMsg.value = '';
-    successMsg.value = '';
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
-      redirectTo: `${window.location.origin}/update-password`,
+    const response = await $fetch('/api/forgot-password/forgot-password', {
+      method: 'POST',
+      body: { email: email.value },
     });
-
-    if (error) {
-      throw error;
+    
+    // Display the success message from the backend
+    successMsg.value = response.message;
+    
+  } catch (error) {
+    // Safely check the type of the error object for type-safe error handling
+    if (typeof error === 'object' && error !== null && 'statusMessage' in error) {
+      errorMsg.value = (error as { statusMessage: string }).statusMessage;
+    } else {
+      errorMsg.value = 'An unexpected error occurred. Please try again.';
     }
-
-    successMsg.value = 'Check your email for the password reset link.';
-  } catch (error: any) {
-    errorMsg.value = error.message;
+    console.error('Forgot password failed:', error);
   } finally {
     loading.value = false;
   }
