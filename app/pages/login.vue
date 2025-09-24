@@ -3,99 +3,112 @@
     <div class="left-section">
       <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
     </div>
-    <div class="right-section">
-      <div v-if="user" class="logged-in-message">
-        <h1 class="welcome-title">Welcome!</h1>
-        <p class="welcome-text">You have successfully logged in as **{{ user.email }}**.</p>
-        <button @click="handleLogout" class="logout-button">Log Out</button>
-      </div>
-      <div v-else class="login-card">
-        <h1 class="login-title">Welcome Back</h1>
-        <p class="login-description">Sign in to continue</p>
-        <form @submit.prevent="handleLogin" class="login-form">
-          <div class="form-group">
-            <label for="email" class="form-label">Email Address</label>
-            <input v-model="email" type="email" id="email" class="form-input" placeholder="Enter your email" required />
-          </div>
-          <div class="form-group">
-            <label for="password" class="form-label">Password</label>
-            <input v-model="password" type="password" id="password" class="form-input" placeholder="Enter your password" required />
-          </div>
-          <p class="forgot-password">
-            <NuxtLink to="/forgot-password" class="link">Forgot password?</NuxtLink>
+    <div class="right-section login-section">
+      <div class="login-card-container">
+        <NuxtLink to="/" class="back-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="back-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span class="back-text">Back to Home</span>
+        </NuxtLink>
+        <div class="login-card">
+          <h1 class="login-title">Welcome Back</h1>
+          <p class="login-description">Sign in to continue</p>
+          <form @submit.prevent="handleLogin" class="login-form">
+            <div class="form-group">
+              <label for="email" class="form-label">Email Address</label>
+              <input v-model="email" type="email" id="email" class="form-input" placeholder="Enter your email" required />
+            </div>
+            <div class="form-group">
+              <label for="password" class="form-label">Password</label>
+              <input v-model="password" type="password" id="password" class="form-input" placeholder="Enter your password" required />
+            </div>
+            <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
+            <p class="forgot-password">
+              <NuxtLink to="/forgot-password" class="link">Forgot password?</NuxtLink>
+            </p>
+            <button type="submit" class="login-button" :disabled="loading">
+              {{ loading ? 'Logging in...' : 'Log In' }}
+            </button>
+          </form>
+          <p class="signup-link">
+            Don't have an account? <NuxtLink to="/signup" class="link">Sign up here</NuxtLink>
           </p>
-          <button type="submit" class="login-button">Log In</button>
-        </form>
-        <p class="signup-link">
-          Don't have an account? <NuxtLink to="/signup" class="link">Sign up here</NuxtLink>
-        </p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+// Your script logic remains the same
 import { ref } from 'vue';
-import { useSupabaseUser, useSupabaseClient } from '#imports';
+import { useSupabaseClient, useRouter } from '#imports';
 
-const email = ref('');
-const password = ref('');
-const user = useSupabaseUser();
 const supabase = useSupabaseClient();
 const router = useRouter();
+const email = ref('');
+const password = ref('');
+const loading = ref(false);
+const errorMsg = ref('');
 
-// Handles user login by calling the server API
 const handleLogin = async () => {
+  loading.value = true;
+  errorMsg.value = '';
+
+  // Frontend Validation (checks and logic)
+  if (!email.value || !password.value) {
+    errorMsg.value = 'Please enter both email and password.';
+    loading.value = false;
+    return;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.value)) {
+    errorMsg.value = 'Please enter a valid email address.';
+    loading.value = false;
+    return;
+  }
+
   try {
     const response = await $fetch('/api/login/login', {
       method: 'POST',
-      body: {
-        email: email.value,
-        password: password.value,
-      },
+      body: { email: email.value, password: password.value },
     });
 
     if (response.success && response.session) {
       await supabase.auth.setSession(response.session);
       router.push('/');
     } else {
-      alert('Login failed. Please try again.');
+      errorMsg.value = 'Login failed. Please try again.';
     }
   } catch (error) {
-    // **CRITICAL CHANGE:** Safely check the type of the error object
     if (typeof error === 'object' && error !== null && 'statusMessage' in error) {
-      alert((error as { statusMessage: string }).statusMessage);
+      errorMsg.value = (error as { statusMessage: string }).statusMessage;
     } else {
-      alert('An unexpected error occurred during login.');
+      errorMsg.value = 'An unexpected error occurred.';
     }
-    console.error('Login failed:', error);
-  }
-};
-
-const handleLogout = async () => {
-  try {
-    await $fetch('/api/login/logout', {
-      method: 'POST',
-    });
-    router.push('/');
-  } catch (error) {
-    // **CRITICAL CHANGE:** Safely check the type of the error object
-    if (typeof error === 'object' && error !== null && 'statusMessage' in error) {
-      alert((error as { statusMessage: string }).statusMessage);
-    } else {
-      alert('An unexpected error occurred during logout.');
-    }
-    console.error('Error logging out:', error);
+  } finally {
+    loading.value = false;
   }
 };
 </script>
 
-
 <style scoped>
+/* Base layout and sections */
 .home-container {
   display: flex;
   min-height: 100vh;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .left-section {
@@ -103,14 +116,14 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .left-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; 
-  max-height: 100vh; 
+  object-fit: cover;
+  max-height: 100vh;
 }
 
 .right-section {
@@ -118,26 +131,56 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #ffffff;
+  background-color: #f0f2f5; /* Light gray background */
 }
 
-.logged-in-message,
-.login-card {
+/* Back Link Styling */
+.back-link {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5a5a5a;
+  text-decoration: none;
+  font-size: 1em;
+  font-weight: 500;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.back-link:hover {
+  color: #007bff;
+  transform: translateX(-4px);
+}
+
+.back-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Login Card Styling */
+.login-card-container {
+  position: relative;
   padding: 40px;
   background-color: #ffffff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  max-width: 400px;
+  border-radius: 12px;
+  max-width: 450px;
   width: 100%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.8s ease-in-out forwards;
+}
+
+.login-card {
   text-align: left;
 }
 
 .login-title {
-  font-size: 2em;
-  margin-bottom: 0.5em;
+  font-size: 2.5em;
+  margin-bottom: 0.2em;
   color: #333;
   text-align: center;
+  font-weight: 700;
 }
 
 .login-description {
@@ -165,30 +208,40 @@ const handleLogout = async () => {
 
 .form-input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   font-size: 1em;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
 .forgot-password {
   text-align: right;
   margin-bottom: 1.5em;
+  font-size: 0.9em;
 }
 
 .login-button {
-  padding: 12px 24px;
+  padding: 14px 24px;
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1em;
-  transition: background-color 0.3s ease;
+  font-size: 1.1em;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  font-weight: 600;
 }
 
 .login-button:hover {
   background-color: #0056b3;
+  transform: translateY(-2px);
 }
 
 .signup-link {
@@ -200,9 +253,30 @@ const handleLogout = async () => {
 .link {
   color: #007bff;
   text-decoration: none;
+  font-weight: 600;
+  transition: text-decoration 0.3s ease;
 }
 
 .link:hover {
   text-decoration: underline;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.9em;
+  margin-bottom: 1em;
+  text-align: center;
+}
+
+/* Optional animation to make it look nicer */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
