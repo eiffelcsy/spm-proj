@@ -26,12 +26,7 @@ defineOptions({
 
 <template>
   <div class="flex items-center justify-between px-2">
-    <div class="flex-1 text-sm text-muted-foreground">
-      {{ table.getFilteredSelectedRowModel().rows.length }} of
-      {{ table.getFilteredRowModel().rows.length }} row(s) selected.
-    </div>
-    <div class="flex items-center space-x-6 lg:space-x-8">
-      <div class="flex items-center space-x-2">
+    <div class="flex items-center space-x-2">
         <p class="text-sm font-medium">
           Rows per page
         </p>
@@ -49,7 +44,8 @@ defineOptions({
           </SelectContent>
         </Select>
       </div>
-      <div class="flex w-[100px] items-center justify-center text-sm font-medium">
+    <div class="flex items-center space-x-6 lg:space-x-8">
+      <div class="w-[100px] items-center justify-center text-sm font-medium hidden md:flex">
         Page {{ table.getState().pagination.pageIndex + 1 }} of
         {{ table.getPageCount() }}
       </div>

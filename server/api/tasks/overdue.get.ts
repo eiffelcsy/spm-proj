@@ -13,9 +13,10 @@ export default defineEventHandler(async (event) => {
   
   try {
     const { data: tasks, error } = await supabase
-      .from('test_tasks')
+      .from('tasks')
       .select('*')
       .lt('due_date', new Date().toISOString().split('T')[0])
+      .neq('status', 'completed') // Exclude completed tasks
       // .or(`assignee_id.eq.${user.id},creator_id.eq.${user.id}`)
       .order('due_date', { ascending: true })
 

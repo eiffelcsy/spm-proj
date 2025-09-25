@@ -61,8 +61,8 @@ defineOptions({
           class="h-8"
           @click="emit('refresh-tasks')"
         >
-          <UpdateIcon class="mr-2 h-4 w-4" />
-          Refresh
+          <UpdateIcon class="md:mr-2 h-4 w-4" />
+          <span class="hidden md:block">Refresh</span>
         </Button>
       </div>
       <div v-if="showCreateButton">
@@ -72,8 +72,8 @@ defineOptions({
           class="h-8"
           @click="emit('create-task')"
         >
-          <PlusCircledIcon class="mr-2 h-4 w-4" />
-          Create New Task
+          <PlusCircledIcon class="md:mr-2 h-4 w-4" />
+          <span class="hidden md:block">Create New Task</span>
         </Button>
       </div>
     </div>
