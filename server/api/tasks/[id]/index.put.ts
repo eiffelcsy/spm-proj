@@ -20,6 +20,9 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    console.log('PUT /api/tasks/[id] - Request body:', body)
+    console.log('PUT /api/tasks/[id] - Task ID:', taskId)
+
     // First, get the current task to check permissions
     const { data: currentTask, error: fetchError } = await supabase
       .from('tasks')
@@ -75,12 +78,14 @@ export default defineEventHandler(async (event) => {
     // Validate and prepare the update data
     const updateData: any = {}
     
-    if (body.task_name) updateData.task_name = body.task_name
+    if (body.task_name) updateData.title = body.task_name
     if (body.start_date) updateData.start_date = body.start_date
-    if (body.end_date !== undefined) updateData.end_date = body.end_date
+    if (body.end_date !== undefined) updateData.due_date = body.end_date
     if (body.status) updateData.status = body.status
     if (body.description !== undefined) updateData.description = body.description
     if (body.assignee_id !== undefined) updateData.assignee_id = body.assignee_id
+
+    console.log('PUT /api/tasks/[id] - Update data:', updateData)
 
     // Update task in database
     const { data: task, error } = await supabase
@@ -92,6 +97,7 @@ export default defineEventHandler(async (event) => {
       .single()
 
     if (error) {
+      console.error('PUT /api/tasks/[id] - Database error:', error)
       if (error.code === 'PGRST116') {
         throw createError({
           statusCode: 404,
@@ -104,6 +110,8 @@ export default defineEventHandler(async (event) => {
         data: error
       })
     }
+
+    console.log('PUT /api/tasks/[id] - Success, updated task:', task)
 
     return {
       success: true,

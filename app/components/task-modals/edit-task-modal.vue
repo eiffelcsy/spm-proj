@@ -24,7 +24,7 @@
             class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
 
-        
+
         <!-- Start Date & Due Date -->
         <div class="grid grid-cols-2 gap-4">
           <!-- Start Date -->
@@ -106,8 +106,43 @@
             <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4 border-l-2 border-blue-200">
               <!-- Start Date & Due Date -->
               <div class="grid grid-cols-2 gap-3">
-                <DatePicker v-model="subtask.startDate" label="Start Date" placeholder="Select start date" />
-                <DatePicker v-model="subtask.dueDate" label="Due Date" placeholder="Select due date" />
+                <!-- Start Date -->
+                <div class="flex flex-col">
+                  <Label class="mb-1">Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger as-child>
+                      <Button variant="outline" :class="cn(
+                        'w-full justify-start text-left font-normal',
+                        !subtask.startDate && 'text-muted-foreground',
+                      )">
+                        <CalendarIcon class="mr-2 h-4 w-4" />
+                        {{ subtask.startDate ? subtask.startDate.toDate(getLocalTimeZone())?.toLocaleDateString() :
+                        "Select start date" }}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-auto p-0">
+                      <Calendar v-model="subtask.startDate" initial-focus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <!-- Due Date -->
+                <div class="flex flex-col">
+                  <Label class="mb-1">Due Date</Label>
+                  <Popover>
+                    <PopoverTrigger as-child>
+                      <Button variant="outline" :class="cn(
+                        'w-full justify-start text-left font-normal',
+                        !subtask.dueDate && 'text-muted-foreground',
+                      )">
+                        <CalendarIcon class="mr-2 h-4 w-4" />
+                        {{ subtask.dueDate ? subtask.dueDate.toDate(getLocalTimeZone())?.toLocaleDateString() : "Select due date" }}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-auto p-0">
+                      <Calendar v-model="subtask.dueDate" initial-focus :min-value="subtask.startDate" />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               <!-- Status & Assignee -->
@@ -170,10 +205,9 @@ import { ref, watch } from 'vue'
 import { StatusDropdown } from '@/components/task-modals/status-dropdown'
 import { AssignDropdown } from '@/components/task-modals/assign-dropdown'
 import { cn } from '@/lib/utils'
-import { getLocalTimeZone } from '@internationalized/date'
+import { getLocalTimeZone, parseDate, CalendarDate } from '@internationalized/date'
 import { Calendar } from '@/components/ui/calendar'
 import { CalendarIcon } from 'lucide-vue-next'
-// import { parseDate, getLocalTimeZone, CalendarDate } from '@internationalized/date'
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 
@@ -213,10 +247,10 @@ const subtasks = ref<{
   dueDate: CalendarDate;
   status: string;
   description: string;
-  assignedTo: string;
+  assignedTo: string[];
   expanded: boolean;
 }[]>([])
-const assignedTo = ref('')
+const assignedTo = ref<string[]>([])
 
 // staff members for assignee dropdown
 const staffMembers = ref<{ id: number; name: string; email: string }[]>([])
@@ -255,12 +289,44 @@ function populateForm() {
 
   title.value = props.task.title || props.task.task_name || ''
 
-  // Handle date formatting
-  const startDateValue = props.task.startDate || props.task.start_date
-  startDate.value = startDateValue ? parseDate(new Date(startDateValue).toISOString().split('T')[0]) : undefined
+  // Handle date formatting - check for both camelCase and snake_case field names
+  const startDateValue = props.task.start_date || props.task.startDate
+  if (startDateValue && typeof startDateValue === 'string') {
+    try {
+      const date = new Date(startDateValue)
+      if (!isNaN(date.getTime())) {
+        const isoString = date.toISOString()
+        const dateString = isoString.split('T')[0]
+        if (dateString) {
+          startDate.value = parseDate(dateString)
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse start date:', startDateValue, error)
+      startDate.value = undefined
+    }
+  } else {
+    startDate.value = undefined
+  }
 
-  const dueDateValue = props.task.dueDate || props.task.end_date
-  dueDate.value = dueDateValue ? parseDate(new Date(dueDateValue).toISOString().split('T')[0]) : undefined
+  const dueDateValue = props.task.due_date || props.task.end_date || props.task.dueDate
+  if (dueDateValue && typeof dueDateValue === 'string') {
+    try {
+      const date = new Date(dueDateValue)
+      if (!isNaN(date.getTime())) {
+        const isoString = date.toISOString()
+        const dateString = isoString.split('T')[0]
+        if (dateString) {
+          dueDate.value = parseDate(dateString)
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse due date:', dueDateValue, error)
+      dueDate.value = undefined
+    }
+  } else {
+    dueDate.value = undefined
+  }
 
   status.value = props.task.status || 'not-started'
   description.value = props.task.description || props.task.notes || ''
@@ -269,19 +335,43 @@ function populateForm() {
   if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
     subtasks.value = props.task.subtasks.map((subtask: any) => ({
       title: subtask.title || '',
-      startDate: subtask.startDate ? parseDate(new Date(subtask.startDate).toISOString().split('T')[0]) : undefined,
-      dueDate: subtask.dueDate ? parseDate(new Date(subtask.dueDate).toISOString().split('T')[0]) : undefined,
+      startDate: subtask.start_date && typeof subtask.start_date === 'string' ? (() => {
+        try {
+          const date = new Date(subtask.start_date)
+          if (!isNaN(date.getTime())) {
+            const isoString = date.toISOString()
+            const dateString = isoString.split('T')[0]
+            return dateString ? parseDate(dateString) : undefined
+          }
+          return undefined
+        } catch {
+          return undefined
+        }
+      })() : undefined,
+      dueDate: subtask.due_date && typeof subtask.due_date === 'string' ? (() => {
+        try {
+          const date = new Date(subtask.due_date)
+          if (!isNaN(date.getTime())) {
+            const isoString = date.toISOString()
+            const dateString = isoString.split('T')[0]
+            return dateString ? parseDate(dateString) : undefined
+          }
+          return undefined
+        } catch {
+          return undefined
+        }
+      })() : undefined,
       status: subtask.status || 'not-started',
       description: subtask.description || '',
-      assignedTo: subtask.assignedTo || '',
+      assignedTo: subtask.assignedTo || (subtask.assignee_id ? [String(subtask.assignee_id)] : []),
       expanded: false
     }))
   } else {
     subtasks.value = []
   }
 
-  // Handle assignee - might need to map from assignee name to ID
-  assignedTo.value = props.task.assignee_id || ''
+  // Handle assignee - use assignee_id from the task
+  assignedTo.value = props.task.assignee_id ? [String(props.task.assignee_id)] : []
 }
 
 // Watch startDate changes and clear dueDate if it becomes invalid
@@ -292,15 +382,18 @@ watch(startDate, (newStartDate) => {
 })
 
 function addSubtask() {
-  subtasks.value.push({
-    title: '',
-    startDate: parseDate(new Date().toISOString().split('T')[0]),
-    dueDate: parseDate(new Date().toISOString().split('T')[0]),
-    status: 'not-started',
-    description: '',
-    assignedTo: '',
-    expanded: false
-  })
+  const today = new Date().toISOString().split('T')[0]
+  if (today) {
+    subtasks.value.push({
+      title: '',
+      startDate: parseDate(today),
+      dueDate: parseDate(today),
+      status: 'not-started',
+      description: '',
+      assignedTo: [],
+      expanded: false
+    })
+  }
 }
 
 function removeSubtask(index: number) {
@@ -354,11 +447,11 @@ async function updateTask() {
       end_date: dueDate.value ? dueDate.value.toDate(getLocalTimeZone()).toISOString() : null,
       status: status.value,
       description: description.value || null,
-      assignee_id: assignedTo.value ? parseInt(assignedTo.value) : null,
+      assignee_id: assignedTo.value.length > 0 && assignedTo.value[0] ? parseInt(assignedTo.value[0]) : null,
     }
 
     // Update task via API endpoint
-    const response = await $fetch(`/api/tasks/${props.task.id}`, {
+    const response = await $fetch<{ success: boolean; task: any }>(`/api/tasks/${props.task.id}`, {
       method: 'PUT',
       body: taskData
     })

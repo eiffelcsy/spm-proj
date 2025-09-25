@@ -242,7 +242,11 @@ const taskId = route.params.id
 
 const { data, pending, error, refresh } = await useFetch(`/api/tasks/${taskId}`)
 const task = computed(() => data.value?.task || null)
-const isSubtask = ref(false)
+const isSubtask = computed(() => {
+  if (!task.value) return false
+  // A task is a subtask if it has a parent_task_id
+  return task.value.parent_task_id !== null && task.value.parent_task_id !== undefined
+})
 const isEditModalOpen = ref(false)
 // Local ref for editing task in modal
 const editableTask = ref<any>(null)
