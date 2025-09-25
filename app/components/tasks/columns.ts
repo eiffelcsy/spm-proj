@@ -21,7 +21,12 @@ export const columns: ColumnDef<Task>[] = [
         title: 'Start Date'
     }),
     cell: ({ row }) => {
-      const date = row.getValue('startDate') as Date
+      const value = row.getValue('startDate') as string | null
+      if (!value) return h('div', '—') // show dash if empty
+
+      const date = new Date(value) // safely convert string to Date
+      if (isNaN(date.getTime())) return h('div', '—') // invalid date guard
+
       const formatted = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'short',
@@ -37,7 +42,12 @@ export const columns: ColumnDef<Task>[] = [
         title: 'Due Date'
     }),
     cell: ({ row }) => {
-      const date = row.getValue('dueDate') as Date
+      const value = row.getValue('dueDate') as string | null
+      if (!value) return h('div', '—') // show dash if empty
+
+      const date = new Date(value) // safely convert string to Date
+      if (isNaN(date.getTime())) return h('div', '—') // invalid date guard
+
       const formatted = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'short',
