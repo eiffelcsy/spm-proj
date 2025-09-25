@@ -17,7 +17,7 @@
   </template>
   
   <script setup lang="ts">
-  import { ref } from 'vue';
+  import { onMounted, ref } from 'vue';
   
   const supabase = useSupabaseClient();
   const router = useRouter();
@@ -27,11 +27,49 @@
   const successMsg = ref('');
   const errorMsg = ref('');
   
+  function parseHashParams(hash: string): Record<string, string> {
+    const params = new URLSearchParams(hash.replace(/^#/, ''));
+    const result: Record<string, string> = {};
+    params.forEach((value, key) => {
+      result[key] = value;
+    });
+    return result;
+  }
+  
+  onMounted(async () => {
+    // Ensure there's an active session. Recovery links often include tokens in the URL hash
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session && typeof window !== 'undefined' && window.location.hash) {
+      const hashParams = parseHashParams(window.location.hash);
+      const accessToken = hashParams['access_token'];
+      const refreshToken = hashParams['refresh_token'];
+      const type = hashParams['type'];
+      try {
+        if (type === 'recovery' && accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            throw error;
+          }
+        }
+      } catch (e: any) {
+        errorMsg.value = e?.message || 'Failed to initialize session from recovery link.';
+      }
+    }
+  });
+  
   const handleUpdate = async () => {
     try {
       loading.value = true;
       errorMsg.value = '';
       successMsg.value = '';
+  
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error('Auth session missing. Please use the password reset link from your email.');
+      }
   
       const { error } = await supabase.auth.updateUser({
         password: newPassword.value,
