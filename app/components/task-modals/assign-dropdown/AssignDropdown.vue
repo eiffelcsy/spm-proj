@@ -4,8 +4,16 @@
         <DropdownMenu>
             <DropdownMenuTrigger as-child>
                 <Button variant="outline" :class="buttonClass">
-                    <span :class="{ 'text-muted-foreground': !selectedAssignee }">
-                        {{ selectedAssigneeLabel || placeholder }}
+                    <span :class="{ 'text-muted-foreground': !selectedAssignees.length }">
+                        <template v-if="selectedAssignees.length">
+                            <span v-for="staff in selectedStaff" :key="staff.id" class="inline-flex items-center mr-2">
+                                <span class="font-medium">{{ staff.name }}</span>
+                                <span class="text-xs text-muted-foreground ml-1">({{ staff.email }})</span>
+                            </span>
+                        </template>
+                        <template v-else>
+                            {{ placeholder }}
+                        </template>
                     </span>
                     <ChevronDownIcon :class="iconClass" />
                 </Button>
@@ -14,7 +22,7 @@
                 <DropdownMenuLabel>Assign To</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem @click="selectAssignee('')" :class="{ 'bg-accent': selectedAssignee === '' }">
+                    <DropdownMenuItem @click="toggleAssignee('')" :class="{ 'bg-accent': selectedAssignees.length === 0 }">
                         <div class="flex items-center gap-2">
                             <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
                                 ?
@@ -24,8 +32,8 @@
                     </DropdownMenuItem>
                     <DropdownMenuSeparator v-if="staffMembers.length > 0" />
                     <DropdownMenuItem v-for="staff in staffMembers" :key="staff.id"
-                        @click="selectAssignee(staff.id.toString())"
-                        :class="{ 'bg-accent': selectedAssignee === staff.id.toString() }">
+                        @click="toggleAssignee(staff.id.toString())"
+                        :class="{ 'bg-accent': selectedAssignees.includes(staff.id.toString()) }">
                         <div class="flex items-center gap-2">
                             <div
                                 class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
@@ -35,6 +43,7 @@
                                 <span class="font-medium">{{ staff.name }}</span>
                                 <span class="text-xs text-muted-foreground">{{ staff.email }}</span>
                             </div>
+                            <span v-if="selectedAssignees.includes(staff.id.toString())" class="ml-auto text-blue-600 font-bold">✓</span>
                         </div>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -64,7 +73,7 @@ interface StaffMember {
 }
 
 interface Props {
-    modelValue?: string
+    modelValue?: string[]
     label?: string
     placeholder?: string
     staffMembers?: StaffMember[]
@@ -72,10 +81,11 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    placeholder: 'Select assignee',
+    placeholder: 'Select assignees',
     label: 'Assign To',
     staffMembers: () => [],
-    compact: false
+    compact: false,
+    modelValue: () => []
 })
 
 const labelClass = computed(() =>
@@ -91,22 +101,31 @@ const iconClass = computed(() =>
 )
 
 const emit = defineEmits<{
-    'update:modelValue': [value: string]
+    'update:modelValue': [value: string[]]
 }>()
 
-const selectedAssignee = computed({
-    get: () => props.modelValue,
-    set: (value: string) => emit('update:modelValue', value)
+const selectedAssignees = computed({
+    get: () => props.modelValue ?? [],
+    set: (value: string[]) => emit('update:modelValue', value)
 })
 
-const selectedAssigneeLabel = computed(() => {
-    if (!selectedAssignee.value) return null
-    const staff = props.staffMembers.find(s => s.id.toString() === selectedAssignee.value)
-    return staff ? `${staff.name} (${staff.email})` : null
-})
+const selectedStaff = computed(() =>
+    props.staffMembers.filter(s => selectedAssignees.value.includes(s.id.toString()))
+)
 
-function selectAssignee(id: string) {
-    selectedAssignee.value = id
+function toggleAssignee(id: string) {
+    if (id === '') {
+        selectedAssignees.value = []
+        return
+    }
+    const idx = selectedAssignees.value.indexOf(id)
+    if (idx === -1) {
+        selectedAssignees.value = [...selectedAssignees.value, id]
+    } else {
+        const updated = [...selectedAssignees.value]
+        updated.splice(idx, 1)
+        selectedAssignees.value = updated
+    }
 }
 
 function getInitials(name: string): string {
