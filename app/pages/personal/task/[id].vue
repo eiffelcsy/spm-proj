@@ -37,16 +37,25 @@
                 {{ task.description }}
               </CardDescription>
             </div>
-            <Button
-              v-if="canEdit"
-              variant="outline"
-              size="sm"
-              @click="openEditModal"
-              class="ml-4"
-            >
-              <Pencil1Icon class="mr-2 h-4 w-4" />
-              Edit {{ isSubtask ? 'Subtask' : 'Task' }}
-            </Button>
+            <div v-if="canEdit" class="ml-4 flex flex-col gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                @click="openEditModal"
+              >
+                <Pencil1Icon class="mr-2 h-4 w-4" />
+                Edit {{ isSubtask ? 'Subtask' : 'Task' }}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                @click="openDeleteModal"
+                class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
+              >
+                <TrashIcon class="mr-2 h-4 w-4" />
+                Delete {{ isSubtask ? 'Subtask' : 'Task' }}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -201,6 +210,15 @@
       @close="closeEditModal"
       @task-updated="handleTaskUpdated"
     />
+
+    <!-- Delete Task Modal -->
+    <DeleteTaskModal
+      :isOpen="isDeleteModalOpen"
+      :isSubtask="isSubtask"
+      @close="closeDeleteModal"
+      @undo="undoDelete"
+      @delete-complete="handleDeleteComplete"
+    />
   </div>
 </template>
 
@@ -209,6 +227,7 @@
 // ...existing code...
 import DataTable from '@/components/tasks/data-table.vue'
 import EditTaskModal from '~/components/task-modals/edit-task-modal.vue'
+import { DeleteTaskModal } from '~/components/task-modals/delete-task-modal'
 import {
   ListBulletIcon,
   ClockIcon,
@@ -219,7 +238,8 @@ import {
   CalendarIcon,
   PersonIcon,
   FileTextIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  TrashIcon
 } from '@radix-icons/vue'
 
 // Register Radix icons for template usage
@@ -233,7 +253,8 @@ const components = {
   CalendarIcon,
   PersonIcon,
   FileTextIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  TrashIcon
 }
 
 const route = useRoute()
@@ -250,6 +271,9 @@ const isSubtask = computed(() => {
 const isEditModalOpen = ref(false)
 // Local ref for editing task in modal
 const editableTask = ref<any>(null)
+
+// Delete functionality state
+const isDeleteModalOpen = ref(false)
 
 function formatDate(date: string | Date | undefined | null) {
   if (!date) return '—';
@@ -339,6 +363,61 @@ function handleTaskUpdated(updatedTask: any) {
     editableTask.value = { ...editableTask.value, ...updatedTask }
   }
   closeEditModal()
+}
+
+// Delete functionality
+function openDeleteModal() {
+  isDeleteModalOpen.value = true
+}
+
+function closeDeleteModal() {
+  isDeleteModalOpen.value = false
+}
+
+function undoDelete() {
+  closeDeleteModal()
+}
+
+async function handleDeleteComplete() {
+  // Perform the actual deletion after countdown completes
+  try {
+    await performDelete()
+  } catch (error) {
+    console.error('Error during delete completion:', error)
+    // Don't redirect if deletion failed
+  }
+}
+
+async function performDelete() {
+  try {
+    console.log('performDelete - Starting deletion process')
+    console.log('performDelete - Task:', task.value)
+    
+    if (!task.value || !task.value.id) {
+      throw new Error('Task ID is missing')
+    }
+
+    console.log('performDelete - Deleting task with ID:', task.value.id)
+
+    const response = await $fetch<{ success: boolean; message: string }>(`/api/tasks/${task.value.id}`, {
+      method: 'DELETE'
+    })
+
+    console.log('performDelete - API response:', response)
+
+    if (response.success) {
+      console.log('performDelete - Deletion successful, redirecting to dashboard')
+      // Close modal and navigate back to dashboard
+      closeDeleteModal()
+      router.push('/personal/dashboard')
+    } else {
+      throw new Error('Failed to delete task')
+    }
+  } catch (error) {
+    console.error('Error deleting task:', error)
+    closeDeleteModal()
+    // You might want to show an error message to the user here
+  }
 }
 
 // Subtask table columns (use row.original for compatibility)
