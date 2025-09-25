@@ -362,6 +362,7 @@ function handleTaskUpdated(updatedTask: any) {
   if (editableTask.value) {
     editableTask.value = { ...editableTask.value, ...updatedTask }
   }
+  refresh()
   closeEditModal()
 }
 

@@ -85,7 +85,7 @@ function fetchTasks() {
 }
 
 async function addTask(newTask: Task) {
-  // await refreshTasks()
+  await refreshTasks()
   tasks.value.push(newTask)
   isModalOpen.value = false
 }
