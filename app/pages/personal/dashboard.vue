@@ -118,7 +118,7 @@ const tasks = computed(() => {
 })
 
 const error = computed(() => {
-  if (fetchError.value) return 'Failed to load tasks. Please try again.'
+  if (fetchError.value) return 'Failed to load tasks. Please try again. ' + fetchError.value.message
   if (fetchOverdueError.value) return 'Failed to load overdue tasks. Please try again.'
   return null
 })

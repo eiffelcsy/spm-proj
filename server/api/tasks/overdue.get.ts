@@ -12,20 +12,42 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
+    const { data: staffIdData, error: staffIdError } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (staffIdError || !staffIdData) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch staff ID',
+        data: staffIdError
+      })
+    }
+    const staffId = (staffIdData as { id: number }).id
+    
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
       .lt('due_date', new Date().toISOString().split('T')[0])
       .neq('status', 'completed') // Exclude completed tasks
-      // .or(`assignee_id.eq.${user.id},creator_id.eq.${user.id}`)
+      // .or(`assignee_id.eq.${staffId},creator_id.eq.${staffId}`)
       .order('due_date', { ascending: true })
 
     if (error) {
+      if (error.code === 'PGRST116') {
+        return {
+          tasks: [],
+          count: 0
+        }
+      } else {
       throw createError({
         statusCode: 500,
         statusMessage: 'Failed to fetch overdue tasks',
-        data: error
-      })
+          data: error
+        })
+      }
     }
 
     return {
@@ -35,7 +57,7 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Internal server error',
+      statusMessage: "Internal server error",
       data: error
     })
   }

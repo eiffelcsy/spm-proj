@@ -12,18 +12,40 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
+    const { data: staffIdData, error: staffIdError } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (staffIdError || !staffIdData) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch staff ID',
+        data: staffIdError
+      })
+    }
+    const staffId = (staffIdData as { id: number }).id
+    
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
-      // .or(`assignee_id.eq.${user.id},creator_id.eq.${user.id}`)
-      // .order('created_at', { ascending: false })
+      // .or(`assignee_id.eq.${staffId},creator_id.eq.${staffId}`)
+      .order('created_at', { ascending: false })
 
     if (error) {
+      if (error.code === 'PGRST116') {
+        return {
+          tasks: [],
+          count: 0
+        }
+      } else {
       throw createError({
         statusCode: 500,
         statusMessage: 'Failed to fetch tasks',
         data: error
       })
+      }
     }
 
     return {
@@ -33,7 +55,7 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Internal server error',
+      statusMessage: "Internal server error",
       data: error
     })
   }
