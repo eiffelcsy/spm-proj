@@ -1,13 +1,22 @@
+<script setup lang="ts">
+import type { HTMLAttributes } from "vue"
+import { cn } from "@/lib/utils"
+
+const props = defineProps<{
+  class?: HTMLAttributes["class"]
+}>()
+</script>
+
 <template>
-  <div :class="cn('rounded-xl border bg-card text-card-foreground shadow', $attrs.class)" v-bind="$attrs">
+  <div
+    data-slot="card"
+    :class="
+      cn(
+        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
+        props.class,
+      )
+    "
+  >
     <slot />
   </div>
 </template>
-
-<script setup lang="ts">
-import { cn } from '@/lib/utils'
-
-defineOptions({
-  inheritAttrs: false
-})
-</script>
