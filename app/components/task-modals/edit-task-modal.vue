@@ -43,7 +43,7 @@
                 </Button>
               </PopoverTrigger>
               <PopoverContent class="w-auto p-0">
-                <Calendar v-model="startDate" initial-focus />
+                <Calendar v-model="startDate as DateValue" initial-focus />
               </PopoverContent>
             </Popover>
           </div>
@@ -63,7 +63,7 @@
                 </Button>
               </PopoverTrigger>
               <PopoverContent class="w-auto p-0">
-                <Calendar v-model="dueDate" initial-focus :min-value="startDate" />
+                <Calendar v-model="dueDate as DateValue" initial-focus :min-value="startDate as DateValue" />
               </PopoverContent>
             </Popover>
           </div>
@@ -121,7 +121,7 @@
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent class="w-auto p-0">
-                      <Calendar v-model="subtask.startDate" initial-focus />
+                      <Calendar v-model="subtask.startDate as DateValue" initial-focus />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -139,7 +139,7 @@
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent class="w-auto p-0">
-                      <Calendar v-model="subtask.dueDate" initial-focus :min-value="subtask.startDate" />
+                      <Calendar v-model="subtask.dueDate as DateValue" initial-focus :min-value="subtask.startDate as DateValue" />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -205,7 +205,7 @@ import { ref, watch } from 'vue'
 import { StatusDropdown } from '@/components/task-modals/status-dropdown'
 import { AssignDropdown } from '@/components/task-modals/assign-dropdown'
 import { cn } from '@/lib/utils'
-import { getLocalTimeZone, parseDate, CalendarDate } from '@internationalized/date'
+import { getLocalTimeZone, parseDate, CalendarDate, type DateValue } from '@internationalized/date'
 import { Calendar } from '@/components/ui/calendar'
 import { CalendarIcon } from 'lucide-vue-next'
 const supabase = useSupabaseClient()
@@ -293,12 +293,18 @@ function populateForm() {
   const startDateValue = props.task.start_date || props.task.startDate
   if (startDateValue && typeof startDateValue === 'string') {
     try {
-      const date = new Date(startDateValue)
-      if (!isNaN(date.getTime())) {
-        const isoString = date.toISOString()
-        const dateString = isoString.split('T')[0]
-        if (dateString) {
-          startDate.value = parseDate(dateString)
+      // If it's already in YYYY-MM-DD format, parse it directly
+      if (/^\d{4}-\d{2}-\d{2}$/.test(startDateValue)) {
+        startDate.value = parseDate(startDateValue)
+      } else {
+        // For other formats, use Date parsing
+        const date = new Date(startDateValue)
+        if (!isNaN(date.getTime())) {
+          const isoString = date.toISOString()
+          const dateString = isoString.split('T')[0]
+          if (dateString) {
+            startDate.value = parseDate(dateString)
+          }
         }
       }
     } catch (error) {
@@ -312,12 +318,18 @@ function populateForm() {
   const dueDateValue = props.task.due_date || props.task.end_date || props.task.dueDate
   if (dueDateValue && typeof dueDateValue === 'string') {
     try {
-      const date = new Date(dueDateValue)
-      if (!isNaN(date.getTime())) {
-        const isoString = date.toISOString()
-        const dateString = isoString.split('T')[0]
-        if (dateString) {
-          dueDate.value = parseDate(dateString)
+      // If it's already in YYYY-MM-DD format, parse it directly
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dueDateValue)) {
+        dueDate.value = parseDate(dueDateValue)
+      } else {
+        // For other formats, use Date parsing
+        const date = new Date(dueDateValue)
+        if (!isNaN(date.getTime())) {
+          const isoString = date.toISOString()
+          const dateString = isoString.split('T')[0]
+          if (dateString) {
+            dueDate.value = parseDate(dateString)
+          }
         }
       }
     } catch (error) {
@@ -337,11 +349,17 @@ function populateForm() {
       title: subtask.title || '',
       startDate: subtask.start_date && typeof subtask.start_date === 'string' ? (() => {
         try {
-          const date = new Date(subtask.start_date)
-          if (!isNaN(date.getTime())) {
-            const isoString = date.toISOString()
-            const dateString = isoString.split('T')[0]
-            return dateString ? parseDate(dateString) : undefined
+          // If it's already in YYYY-MM-DD format, parse it directly
+          if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.start_date)) {
+            return parseDate(subtask.start_date)
+          } else {
+            // For other formats, use Date parsing
+            const date = new Date(subtask.start_date)
+            if (!isNaN(date.getTime())) {
+              const isoString = date.toISOString()
+              const dateString = isoString.split('T')[0]
+              return dateString ? parseDate(dateString) : undefined
+            }
           }
           return undefined
         } catch {
@@ -350,11 +368,17 @@ function populateForm() {
       })() : undefined,
       dueDate: subtask.due_date && typeof subtask.due_date === 'string' ? (() => {
         try {
-          const date = new Date(subtask.due_date)
-          if (!isNaN(date.getTime())) {
-            const isoString = date.toISOString()
-            const dateString = isoString.split('T')[0]
-            return dateString ? parseDate(dateString) : undefined
+          // If it's already in YYYY-MM-DD format, parse it directly
+          if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.due_date)) {
+            return parseDate(subtask.due_date)
+          } else {
+            // For other formats, use Date parsing
+            const date = new Date(subtask.due_date)
+            if (!isNaN(date.getTime())) {
+              const isoString = date.toISOString()
+              const dateString = isoString.split('T')[0]
+              return dateString ? parseDate(dateString) : undefined
+            }
           }
           return undefined
         } catch {
@@ -443,8 +467,8 @@ async function updateTask() {
 
     const taskData: TaskUpdate = {
       task_name: title.value,
-      start_date: startDate.value ? startDate.value.toDate(getLocalTimeZone()).toISOString() : new Date().toISOString(),
-      end_date: dueDate.value ? dueDate.value.toDate(getLocalTimeZone()).toISOString() : null,
+      start_date: startDate.value ? startDate.value.toString() : new Date().toISOString().split('T')[0] || '',
+      end_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
       description: description.value || null,
       assignee_id: assignedTo.value.length > 0 && assignedTo.value[0] ? parseInt(assignedTo.value[0]) : null,
