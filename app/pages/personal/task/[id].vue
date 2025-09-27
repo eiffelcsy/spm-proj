@@ -97,16 +97,33 @@
                   <span class="text-sm">{{ task.creator?.fullname || '?' }}</span>
                 </div>
               </div>
-              <div>
+               <div>
                 <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
                   <PersonIcon class="h-4 w-4" />
                   Assignee
                 </div>
-                <div class="flex items-center space-x-2">
+                <div v-if="task.assignees && task.assignees.length" class="flex flex-col space-y-1">
+                  <template v-for="(assignee, idx) in task.assignees" :key="idx">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium">
+                        {{ getInitials(assignee.assigned_to?.fullname) }}
+                      </div>
+                      <span class="text-sm">{{ assignee.assigned_to?.fullname || 'Unassigned' }}</span>
+                      <span v-if="assignee.assigned_by" class="text-xs text-muted-foreground ml-1">
+                        (assigned by {{ assignee.assigned_by.fullname }})
+                      </span>
+                      <span v-if="assignee.assigned_at" class="text-xs text-muted-foreground ml-1">
+                        on {{ formatDate(assignee.assigned_at) }}
+                      </span>
+                      <span v-if="idx < task.assignees.length - 1"></span>
+                    </div>
+                  </template>
+                </div>
+                <div v-else class="flex items-center space-x-2">
                   <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium">
-                    {{ getInitials(task.assignee?.fullname) }}
+                    ?
                   </div>
-                  <span class="text-sm">{{ task.assignee?.fullname || '?' }}</span>
+                  <span class="text-sm">Unassigned</span>
                 </div>
               </div>
             </div>
