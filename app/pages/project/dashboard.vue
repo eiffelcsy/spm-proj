@@ -214,7 +214,7 @@ function getSelectedProjectName(): string {
 }
 
 function goToTask(task: Task) {
-  router.push(`/tasks/${task.id}`)
+  router.push(`/task/${task.id}?from=project`)
 }
 
 function openCreateModal() {

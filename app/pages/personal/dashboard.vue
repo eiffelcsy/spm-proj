@@ -137,7 +137,7 @@ async function addTask(newTask: Task) {
 }
 
 function goToTask(task: Task) {
-  router.push(`/task/${task.id}`)
+  router.push(`/task/${task.id}?from=personal`)
 }
 
 // Event listeners for task updates and deletions from dropdown actions

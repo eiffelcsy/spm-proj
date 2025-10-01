@@ -341,8 +341,14 @@ function isOverdue(dueDate: string | Date | undefined | null): boolean {
 
 
 
+
 function goToDashboard() {
-  router.push('/personal/dashboard')
+  const from = route.query.from
+  if (from === 'project') {
+    router.push('/project/dashboard')
+  } else {
+    router.push('/personal/dashboard') // default to personal
+  }
 }
 
 function goToSubtask(subtaskId: string) {
