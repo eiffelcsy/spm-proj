@@ -346,7 +346,7 @@ function goToDashboard() {
 }
 
 function goToSubtask(subtaskId: string) {
-  router.push(`/personal/task/${subtaskId}`)
+  router.push(`/task/${subtaskId}`)
 }
 
 // edit this when we can verify the current user
@@ -361,7 +361,7 @@ function goToSubtask(subtaskId: string) {
 const canEdit = computed(() => true)
 
 function goToParentTask(parentId: string) {
-  router.push(`/personal/task/${parentId}`)
+  router.push(`/task/${parentId}`)
 }
 
 function openEditModal() {
