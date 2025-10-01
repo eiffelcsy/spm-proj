@@ -4,7 +4,7 @@
 
     <!-- Modal content -->
     <div
-      class="relative bg-white rounded-xl shadow-lg w-full max-w-5xl p-6 min-h-[60vh] max-h-[90vh] overflow-y-auto z-10"
+      class="relative bg-white rounded-xl shadow-lg w-full max-w-5xl p-6 h-[70vh] overflow-y-auto z-10"
       @click.stop>
       <h2 class="text-xl font-semibold mb-4">Create New Task</h2>
 
@@ -79,9 +79,9 @@
           <!-- Notes -->
           <div>
             <Label>
-              Description
+              Notes
             </Label>
-            <textarea v-model="description" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+            <textarea v-model="notes" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
           </div>
 
           <!-- Subtasks -->
@@ -106,9 +106,6 @@
 
               <!-- Expanded Subtask Details -->
               <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4 border-l-2 border-blue-200">
-                <!-- Start Date & Due Date -->
-                <div class="grid grid-cols-2 gap-3">
-                </div>
 
                 <!-- Status & Assignee -->
                 <div class="grid grid-cols-2 gap-3">
@@ -117,17 +114,17 @@
                     :staff-members="staffMembers" compact />
                 </div>
 
-                <!-- Description -->
+                <!-- Notes -->
                 <div>
-                  <label class="block text-xs font-medium mb-1">Description</label>
-                  <textarea v-model="subtask.description" rows="2" placeholder="Subtask description..."
+                  <label class="block text-xs font-medium mb-1">Notes</label>
+                  <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
                     class="w-full border rounded-lg px-2 py-1 text-sm"></textarea>
                 </div>
               </div>
             </div>
-            <button type="button" @click="addSubtask" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">
+            <Button variant="outline" @click="addSubtask" class="bg-gray-100 hover:bg-gray-200 text-sm">
               + Add Subtask
-            </button>
+            </Button>
           </div>
 
           <div class="flex justify-end gap-2">
@@ -165,7 +162,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { StatusDropdown } from '@/components/task-modals/status-dropdown'
-// import { AssignDropdown } from '@/components/task-modals/assign-dropdown'
 import { AssignCombobox } from '@/components/task-modals/assign-combobox'
 import { Input } from '@/components/ui/input'
 import type { CalendarDate } from '@internationalized/date'
@@ -200,13 +196,13 @@ const title = ref('')
 const startDate = ref<CalendarDate>(parseDate(today))
 const dueDate = ref<CalendarDate>(parseDate(today))
 const status = ref('not-started')
-const description = ref('')
+const notes = ref('')
 const subtasks = ref<{
   title: string;
   startDate: CalendarDate;
   dueDate: CalendarDate;
   status: string;
-  description: string;
+  notes: string;
   assignedTo: string[];
   expanded: boolean;
 }[]>([])
@@ -219,12 +215,11 @@ const staffMembers = ref<{ id: number; fullname: string; email: string }[]>([])
 watch(() => props.isOpen, async (isOpen) => {
   if (!isOpen) return
   try {
-    // const todayStr = new Date().toISOString().split('T')[0]
     startDate.value = parseDate(today)
     dueDate.value = parseDate(today)
     title.value = ''
     status.value = 'not-started'
-    description.value = ''
+    notes.value = ''
     assignedTo.value = []
     subtasks.value = []
     errorMessage.value = ''
@@ -249,7 +244,6 @@ const errorMessage = ref('')
 const showDeleteConfirmation = ref(false)
 const pendingDeleteIndex = ref<number | null>(null)
 
-// Watch startDate changes and clear dueDate if it becomes invalid
 watch(startDate, (newStartDate) => {
   if (dueDate.value && newStartDate && dueDate.value < newStartDate) {
     dueDate.value = newStartDate
@@ -262,7 +256,7 @@ function addSubtask() {
     startDate: parseDate(new Date().toISOString().split('T')[0] || ''),
     dueDate: parseDate(new Date().toISOString().split('T')[0] || ''),
     status: 'not-started',
-    description: '',
+    notes: '',
     assignedTo: [],
     expanded: false
   })
@@ -297,7 +291,7 @@ function resetForm() {
   startDate.value = parseDate(today)
   dueDate.value = parseDate(today)
   status.value = 'not-started'
-  description.value = ''
+  notes.value = ''
   subtasks.value = []
   assignedTo.value = []
   errorMessage.value = ''
@@ -309,7 +303,6 @@ function handleCancel() {
   emit('close')
 }
 function handleSuccessOk() {
-  // emit the created task to parent now, then reset and close
   if (createdTask.value) {
     emit('task-created', createdTask.value)
     createdTask.value = null
@@ -325,52 +318,86 @@ async function createTask() {
       return
     }
 
-    // Validate due date
     if (dueDate.value && startDate.value && dueDate.value < startDate.value) {
       errorMessage.value = 'Due date cannot be before start date.'
       return
     }
 
-    // Clear any previous messages
     errorMessage.value = ''
     successMessage.value = ''
     
-    // for multiple assignees:
-    // const assignedTo = ref<string[]>([]) // array of staff IDs
-    // assignee_ids: assignedTo.value.map(id => parseInt(id)), // send array of numbers
-
     const taskData = {
       title: title.value,
       start_date: startDate.value ? startDate.value.toString() : null,
       due_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
-      description: description.value || null,
-      notes: null, // not implemented yet
-      project_id: null,
-      assignee_id: assignedTo.value.length > 0 ? parseInt(assignedTo.value[0]) : null,
-      creator_id: 0, //TODO: owen is default for now, will need to get from session later
-      parent_task_id: null 
+      notes: notes.value || null,
+      project_id: props.project ? Number(props.project) : null,
+      subtasks: subtasks.value.map(subtask => ({
+        title: subtask.title,
+        start_date: startDate.value ? startDate.value.toString() : null, // Use parent task start date
+        due_date: dueDate.value ? dueDate.value.toString() : null, // Use parent task due date
+        status: subtask.status,
+        notes: subtask.notes || null
+      }))
     }
 
-    // Create task via API endpoint
-    const response = await $fetch('/api/tasks', {
+    // create task
+    const taskResp = await $fetch('/api/tasks', {
       method: 'POST',
       body: taskData
     })
 
-    if (!response.success) {
-      throw new Error('Failed to create task')
+    if (!taskResp || !taskResp.success) {
+      throw new Error(taskResp?.statusMessage || 'Failed to create task')
     }
 
-    // Note: Subtasks are not supported in the current database schema
-    // If you want to support subtasks, you'll need to add a parent_task_id column
-    // or store subtasks in a separate table
-    createdTask.value = response.task
+    const created = taskResp.task
+
+    // Assign main task assignees
+    const assigneeIds = assignedTo.value.map(id => Number(id)).filter(Boolean)
+    if (assigneeIds.length > 0) {
+      const mapResp = await $fetch('/api/assignee', {
+        method: 'POST',
+        body: {
+          task_id: created.id,
+          assignee_ids: assigneeIds
+        }
+      })
+
+      if (!mapResp || !mapResp.success) {
+        try { await $fetch(`/api/tasks/${created.id}`, { method: 'DELETE' }) } catch (_) {}
+        throw new Error(mapResp?.statusMessage || 'Failed to assign users to task')
+      }
+    }
+
+    // Assign subtask assignees
+    if (taskResp.subtasks && Array.isArray(taskResp.subtasks)) {
+      for (let i = 0; i < subtasks.value.length; i++) {
+        const subtask = subtasks.value[i]
+        const createdSubtask = taskResp.subtasks[i]
+        
+        if (createdSubtask && subtask.assignedTo.length > 0) {
+          const subtaskAssigneeIds = subtask.assignedTo.map(id => Number(id)).filter(Boolean)
+          
+          if (subtaskAssigneeIds.length > 0) {
+            await $fetch('/api/assignee', {
+              method: 'POST',
+              body: {
+                task_id: createdSubtask.id,
+                assignee_ids: subtaskAssigneeIds
+              }
+            })
+          }
+        }
+      }
+    }
+
+    createdTask.value = created
     successMessage.value = 'Task created successfully!'
-    
   } catch (err: any) {
     console.error('Error creating task:', err)
-    errorMessage.value = err.message || 'Something went wrong. Task was not created.'
+    errorMessage.value = err?.data?.statusMessage || err?.message || 'Something went wrong. Task was not created.'
     successMessage.value = ''
   }
 }

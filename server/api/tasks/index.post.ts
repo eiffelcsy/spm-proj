@@ -1,30 +1,129 @@
-import { serverSupabaseServiceRole } from '#supabase/server'
+import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
   const body = await readBody(event)
 
-  const { data, error } = await supabase
+  // require authenticated user and find staff.id
+  const user = await serverSupabaseUser(event)
+  if (!user || !user.id) {
+    throw createError({ statusCode: 401, statusMessage: 'Not authenticated' })
+  }
+  const { data: staffRow, error: staffError } = await supabase
+    .from('staff')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
+  if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
+
+  const parentTaskPayload = {
+    title: body.title,
+    description: body.description ?? null,
+    notes: body.notes ?? null,
+    start_date: body.start_date ?? null,
+    due_date: body.due_date ?? null,
+    status: body.status ?? null,
+    project_id: body.project_id ?? null,
+    creator_id: staffRow.id,
+    parent_task_id: null
+  }
+
+  const { data: parentTask, error: parentError } = await supabase
     .from('tasks')
-    .insert([{
-      title: body.title,
-      start_date: body.start_date,
-      due_date: body.due_date,
-      status: body.status,
-      description: body.description,
-      project_id: body.project_id,
-      assignee_id: body.assignee_id, // single assignee
-      creator_id: body.creator_id,
-    }])
+    .insert([parentTaskPayload])
     .select('*')
     .single()
 
-  if (error) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: error.message,
-    })
+  if (parentError) {
+    throw createError({ statusCode: 500, statusMessage: parentError.message })
   }
 
-  return { success: true, task: data }
+  const createdTaskId = parentTask.id
+
+  async function rollbackParent() {
+    try {
+      await supabase.from('task_assignees').delete().eq('task_id', createdTaskId)
+    } catch (_) {}
+    try {
+      await supabase.from('tasks').delete().eq('id', createdTaskId)
+    } catch (_) {}
+  }
+
+  try {
+    const parentAssigneeIds: number[] = Array.isArray(body.assignee_ids)
+      ? body.assignee_ids.map((v: any) => Number(v)).filter(Boolean)
+      : []
+
+    if (parentAssigneeIds.length > 0) {
+      const parentMappings = parentAssigneeIds.map((staffId) => ({
+        task_id: createdTaskId,
+        assigned_to_staff_id: staffId,
+        assigned_by_staff_id: body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : staffRow.id
+      }))
+      const { error: pmError } = await supabase.from('task_assignees').insert(parentMappings)
+      if (pmError) {
+        await rollbackParent()
+        throw pmError
+      }
+    }
+
+    const subtasksInput = Array.isArray(body.subtasks) ? body.subtasks : []
+    if (subtasksInput.length > 0) {
+      const subtaskRows = subtasksInput.map((s: any) => ({
+        title: s.title,
+        notes: s.notes ?? null,
+        start_date: s.start_date ?? null,
+        due_date: s.due_date ?? null,
+        status: s.status ?? null,
+        project_id: s.project_id ?? null,
+        creator_id: staffRow.id,
+        parent_task_id: createdTaskId
+      }))
+
+      const { data: insertedSubtasks, error: subError } = await supabase
+        .from('tasks')
+        .insert(subtaskRows)
+        .select('*')
+
+      if (subError) {
+        await rollbackParent()
+        throw subError
+      }
+
+      const subtaskMappings: any[] = []
+      for (let i = 0; i < subtasksInput.length; i++) {
+        const s = subtasksInput[i]
+        const inserted = insertedSubtasks[i]
+        if (!inserted) continue
+        const assigneeIdsForSub = Array.isArray(s.assignee_ids) ? s.assignee_ids.map((v: any) => Number(v)).filter(Boolean) : []
+        for (const staffId of assigneeIdsForSub) {
+          subtaskMappings.push({
+            task_id: inserted.id,
+            assigned_to_staff_id: staffId,
+            assigned_by_staff_id: body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : staffRow.id
+          })
+        }
+      }
+
+      if (subtaskMappings.length > 0) {
+        const { error: smError } = await supabase.from('task_assignees').insert(subtaskMappings)
+        if (smError) {
+          try {
+            const insertedIds = insertedSubtasks.map((r: any) => r.id)
+            await supabase.from('task_assignees').delete().in('task_id', insertedIds)
+            await supabase.from('tasks').delete().in('id', insertedIds)
+          } catch (_) {}
+          await rollbackParent()
+          throw smError
+        }
+      }
+      return { success: true, task: parentTask, subtasks: insertedSubtasks }
+    }
+
+    return { success: true, task: parentTask }
+  } catch (err: any) {
+    await rollbackParent()
+    throw createError({ statusCode: 500, statusMessage: err.message || 'Failed to create task/subtasks' })
+  }
 })
