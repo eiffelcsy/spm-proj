@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
         description: body.description?.trim() || null,
         due_date: body.due_date || null,
         owner_id: staffRow.id,
-        status: "active",
+        status: body.status || "active",
     };
 
     const { data: project, error: projectError } = (await supabase
