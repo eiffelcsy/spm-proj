@@ -95,10 +95,10 @@
                 <!-- Created and Due Dates -->
                 <div class="space-y-1">
                   <div class="text-xs text-gray-400">
-                    Created: {{ getProjectCreatedDate(project) }}
+                    <span class="inline-block w-16 text-left">Created on:</span> {{ getProjectCreatedDate(project) }}
                   </div>
                   <div class="text-xs text-gray-400">
-                    Due: {{ getProjectDueDate(project) }}
+                    <span class="inline-block w-16 text-left">Due date:</span> {{ getProjectDueDate(project) }}
                   </div>
                 </div>
               </div>
