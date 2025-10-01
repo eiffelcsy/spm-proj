@@ -23,51 +23,9 @@
     },
     {
       "id": "proj-004",
-      "name": "Backend API",
-      "description": "RESTful API development project",
-      "createdAt": "2025-08-18T11:45:00Z",
-      "status": "active"
-    },
-    {
-      "id": "proj-005",
-      "name": "UX Research Study",
-      "description": "User experience research and analysis",
-      "createdAt": "2025-08-22T16:20:00Z",
-      "status": "active"
-    },
-    {
-      "id": "proj-006",
       "name": "DevOps Infrastructure",
       "description": "CI/CD and infrastructure automation",
       "createdAt": "2025-08-12T08:30:00Z",
-      "status": "active"
-    },
-    {
-      "id": "proj-007",
-      "name": "Personal Portfolio",
-      "description": "Personal development and learning projects",
-      "createdAt": "2025-08-10T12:00:00Z",
-      "status": "active"
-    },
-    {
-      "id": "proj-008",
-      "name": "Web Development",
-      "description": "Frontend web development projects",
-      "createdAt": "2025-08-14T15:45:00Z",
-      "status": "active"
-    },
-    {
-      "id": "proj-009",
-      "name": "Data Analytics Platform",
-      "description": "Data processing and analytics tools",
-      "createdAt": "2025-08-28T13:10:00Z",
-      "status": "active"
-    },
-    {
-      "id": "proj-010",
-      "name": "Security Audit",
-      "description": "System security assessment and improvements",
-      "createdAt": "2025-08-30T09:20:00Z",
       "status": "active"
     }
   ],
@@ -84,47 +42,47 @@
       "status": "not-started",
       "creator": "alice.smith",
       "assignee": "john.doe",
-      "subtasks": [
-        {
-          "id": "1-1",
-          "title": "Outline proposal sections",
-          "description": "Create an outline for all proposal sections.",
-          "notes": "Refer to previous proposals for structure.",
-          "startDate": "2025-09-01",
-          "dueDate": "2025-09-03",
-          "status": "completed",
-          "creator": "alice.smith",
-          "assignee": "john.doe",
-          "history": [
-            { "timestamp": "2025-09-01T09:00:00Z", "action": "Subtask created", "user": "alice.smith" },
-            { "timestamp": "2025-09-03T17:00:00Z", "action": "Outline completed", "user": "john.doe" },
-            { "timestamp": "2025-09-03T18:00:00Z", "action": "Subtask marked as completed", "user": "john.doe" }
-          ]
-        },
-        {
-          "id": "1-2",
-          "title": "Gather requirements",
-          "description": "Collect all requirements from stakeholders.",
-          "notes": "Schedule meetings with stakeholders.",
-          "startDate": "2025-09-02",
-          "dueDate": "2025-09-05",
-          "status": "in-progress",
-          "creator": "john.doe",
-          "assignee": "alice.smith",
-          "subtasks": [],
-          "history": [
-            { "timestamp": "2025-09-02T10:00:00Z", "action": "Subtask created", "user": "john.doe" },
-            { "timestamp": "2025-09-04T15:00:00Z", "action": "Requirements meeting held", "user": "alice.smith" }
-          ]
-        }
-      ],
+      "subtasks": [],
       "history": [
-        { "timestamp": "2025-09-01T09:00:00Z", "action": "Task created", "user": "alice.smith" },
-        { "timestamp": "2025-09-05T14:00:00Z", "action": "Requirements gathered", "user": "john.doe" }
+        { "timestamp": "2025-09-01T09:00:00Z", "action": "Task created", "user": "alice.smith" }
       ]
     },
     {
       "id": "2",
+      "title": "Design system architecture",
+      "description": "Create detailed system architecture diagrams.",
+      "notes": "Include database schema and API endpoints.",
+      "startDate": "2025-09-02",
+      "dueDate": "2025-09-25",
+      "projectId": "proj-001",
+      "project": "SPM Project",
+      "status": "in-progress",
+      "creator": "alice.smith",
+      "assignee": "john.doe",
+      "subtasks": [],
+      "history": [
+        { "timestamp": "2025-09-02T10:00:00Z", "action": "Task created", "user": "alice.smith" }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Setup development environment",
+      "description": "Configure development tools and dependencies.",
+      "notes": "Install Node.js, PostgreSQL, and required packages.",
+      "startDate": "2025-09-03",
+      "dueDate": "2025-09-10",
+      "projectId": "proj-001",
+      "project": "SPM Project",
+      "status": "completed",
+      "creator": "john.doe",
+      "assignee": "alice.smith",
+      "subtasks": [],
+      "history": [
+        { "timestamp": "2025-09-03T09:00:00Z", "action": "Task created", "user": "john.doe" }
+      ]
+    },
+    {
+      "id": "4",
       "title": "Implement user authentication",
       "description": "Build secure user authentication system.",
       "notes": "Use JWT tokens and bcrypt for password hashing.",
@@ -135,30 +93,64 @@
       "status": "in-progress",
       "creator": "alice.smith",
       "assignee": "john.doe",
-      "subtasks": [
-        {
-          "id": "2-1",
-          "title": "Setup JWT middleware",
-          "description": "Configure JWT token middleware for routes.",
-          "notes": "Include token refresh logic.",
-          "startDate": "2025-09-10",
-          "dueDate": "2025-09-15",
-          "status": "completed",
-          "creator": "alice.smith",
-          "assignee": "john.doe",
-          "subtasks": [],
-          "history": [
-            { "timestamp": "2025-09-10T09:00:00Z", "action": "Subtask created", "user": "alice.smith" },
-            { "timestamp": "2025-09-15T16:00:00Z", "action": "JWT middleware completed", "user": "john.doe" }
-          ]
-        }
-      ],
+      "subtasks": [],
       "history": [
         { "timestamp": "2025-09-10T10:00:00Z", "action": "Authentication development started", "user": "john.doe" }
       ]
     },
     {
-      "id": "3",
+      "id": "5",
+      "title": "Create product catalog API",
+      "description": "Develop REST API for product management.",
+      "notes": "Include CRUD operations and search functionality.",
+      "startDate": "2025-09-12",
+      "dueDate": "2025-09-30",
+      "projectId": "proj-002",
+      "project": "E-commerce Platform",
+      "status": "not-started",
+      "creator": "john.doe",
+      "assignee": "alice.smith",
+      "subtasks": [],
+      "history": [
+        { "timestamp": "2025-09-12T09:00:00Z", "action": "Task created", "user": "john.doe" }
+      ]
+    },
+    {
+      "id": "6",
+      "title": "Design shopping cart functionality",
+      "description": "Build shopping cart with session management.",
+      "notes": "Support guest checkout and user accounts.",
+      "startDate": "2025-09-15",
+      "dueDate": "2025-10-05",
+      "projectId": "proj-002",
+      "project": "E-commerce Platform",
+      "status": "not-started",
+      "creator": "alice.smith",
+      "assignee": "john.doe",
+      "subtasks": [],
+      "history": [
+        { "timestamp": "2025-09-15T11:00:00Z", "action": "Task created", "user": "alice.smith" }
+      ]
+    },
+    {
+      "id": "7",
+      "title": "Integrate payment gateway",
+      "description": "Connect Stripe API for payment processing.",
+      "notes": "Support credit cards and digital wallets.",
+      "startDate": "2025-09-20",
+      "dueDate": "2025-10-10",
+      "projectId": "proj-002",
+      "project": "E-commerce Platform",
+      "status": "not-started",
+      "creator": "john.doe",
+      "assignee": "alice.smith",
+      "subtasks": [],
+      "history": [
+        { "timestamp": "2025-09-20T10:00:00Z", "action": "Task created", "user": "john.doe" }
+      ]
+    },
+    {
+      "id": "8",
       "title": "Design mobile app wireframes",
       "description": "Create wireframes for mobile banking interface.",
       "notes": "Focus on user journey and navigation flow.",
@@ -169,104 +161,53 @@
       "status": "completed",
       "creator": "john.doe",
       "assignee": "alice.smith",
-      "subtasks": [
-        {
-          "id": "3-1",
-          "title": "Design login screen wireframe",
-          "description": "Create wireframe for secure login interface.",
-          "notes": "Include biometric authentication options.",
-          "startDate": "2025-09-05",
-          "dueDate": "2025-09-08",
-          "status": "completed",
-          "creator": "john.doe",
-          "assignee": "alice.smith",
-          "subtasks": [],
-          "history": [
-            { "timestamp": "2025-09-05T09:00:00Z", "action": "Subtask created", "user": "john.doe" },
-            { "timestamp": "2025-09-08T17:00:00Z", "action": "Login wireframe completed", "user": "alice.smith" }
-          ]
-        }
-      ],
+      "subtasks": [],
       "history": [
         { "timestamp": "2025-09-05T10:00:00Z", "action": "Wireframe design started", "user": "alice.smith" }
       ]
     },
     {
-      "id": "4",
-      "title": "Write unit tests for authentication",
-      "description": "Write and run unit tests for authentication endpoints.",
-      "notes": "Focus on edge cases and security scenarios.",
-      "startDate": "2025-09-11",
-      "dueDate": "2025-09-17",
-      "projectId": "proj-004",
-      "project": "Backend API",
+      "id": "9",
+      "title": "Implement biometric authentication",
+      "description": "Add fingerprint and face ID login options.",
+      "notes": "Ensure compliance with security standards.",
+      "startDate": "2025-09-08",
+      "dueDate": "2025-09-22",
+      "projectId": "proj-003",
+      "project": "Mobile Banking App",
       "status": "in-progress",
       "creator": "alice.smith",
       "assignee": "john.doe",
-      "subtasks": [
-        {
-          "id": "4-1",
-          "title": "Test login endpoint",
-          "description": "Write and execute unit tests for login endpoint.",
-          "notes": "Test with valid and invalid credentials.",
-          "startDate": "2025-09-11",
-          "dueDate": "2025-09-12",
-          "status": "completed",
-          "creator": "alice.smith",
-          "assignee": "john.doe",
-          "subtasks": [],
-          "history": [
-            { "timestamp": "2025-09-11T10:00:00Z", "action": "Subtask created", "user": "alice.smith" },
-            { "timestamp": "2025-09-12T16:00:00Z", "action": "Tests completed", "user": "john.doe" }
-          ]
-        }
-      ],
+      "subtasks": [],
       "history": [
-        { "timestamp": "2025-09-12T10:00:00Z", "action": "Tests started", "user": "john.doe" }
+        { "timestamp": "2025-09-08T09:00:00Z", "action": "Biometric auth development started", "user": "john.doe" }
       ]
     },
     {
-      "id": "5",
-      "title": "Conduct user interviews",
-      "description": "Interview users to understand their pain points.",
-      "notes": "Prepare structured interview questions.",
-      "startDate": "2025-09-14",
+      "id": "10",
+      "title": "Build transaction history feature",
+      "description": "Display user transaction history with filters.",
+      "notes": "Include export functionality for statements.",
+      "startDate": "2025-09-12",
       "dueDate": "2025-09-28",
-      "projectId": "proj-005",
-      "project": "UX Research Study",
-      "status": "in-progress",
-      "creator": "alice.smith",
-      "assignee": "john.doe",
-      "subtasks": [
-        {
-          "id": "5-1",
-          "title": "Schedule user interviews",
-          "description": "Coordinate with participants and set meeting times.",
-          "notes": "Target 8-10 participants from different demographics.",
-          "startDate": "2025-09-14",
-          "dueDate": "2025-09-18",
-          "status": "completed",
-          "creator": "alice.smith",
-          "assignee": "john.doe",
-          "subtasks": [],
-          "history": [
-            { "timestamp": "2025-09-14T09:00:00Z", "action": "Subtask created", "user": "alice.smith" },
-            { "timestamp": "2025-09-18T15:00:00Z", "action": "All interviews scheduled", "user": "john.doe" }
-          ]
-        }
-      ],
+      "projectId": "proj-003",
+      "project": "Mobile Banking App",
+      "status": "not-started",
+      "creator": "john.doe",
+      "assignee": "alice.smith",
+      "subtasks": [],
       "history": [
-        { "timestamp": "2025-09-14T10:00:00Z", "action": "Interview process started", "user": "john.doe" }
+        { "timestamp": "2025-09-12T11:00:00Z", "action": "Task created", "user": "john.doe" }
       ]
     },
     {
-      "id": "6",
+      "id": "11",
       "title": "Setup CI/CD pipeline",
       "description": "Configure automated deployment pipeline.",
       "notes": "Use GitHub Actions for automation.",
       "startDate": "2025-09-07",
       "dueDate": "2025-09-18",
-      "projectId": "proj-006",
+      "projectId": "proj-004",
       "project": "DevOps Infrastructure",
       "status": "completed",
       "creator": "alice.smith",
@@ -278,88 +219,54 @@
       ]
     },
     {
-      "id": "7",
-      "title": "Update portfolio website",
-      "description": "Refresh personal portfolio with recent projects.",
-      "notes": "Add new sections for mobile and web projects.",
-      "startDate": "2025-09-06",
-      "dueDate": "2025-09-24",
-      "projectId": "proj-007",
-      "project": "Personal Portfolio",
+      "id": "12",
+      "title": "Configure monitoring and logging",
+      "description": "Setup application monitoring and log aggregation.",
+      "notes": "Use Prometheus and Grafana for monitoring.",
+      "startDate": "2025-09-10",
+      "dueDate": "2025-09-25",
+      "projectId": "proj-004",
+      "project": "DevOps Infrastructure",
       "status": "in-progress",
       "creator": "john.doe",
       "assignee": "alice.smith",
       "subtasks": [],
       "history": [
-        { "timestamp": "2025-09-06T10:00:00Z", "action": "Portfolio update started", "user": "alice.smith" }
+        { "timestamp": "2025-09-10T10:00:00Z", "action": "Monitoring setup started", "user": "alice.smith" }
       ]
     },
     {
-      "id": "8",
-      "title": "Set up development environment",
-      "description": "Prepare the dev environment for web development.",
-      "notes": "Install dependencies and configure IDE.",
-      "startDate": "2025-09-02",
-      "dueDate": "2025-09-08",
-      "projectId": "proj-008",
-      "project": "Web Development",
-      "status": "completed",
-      "creator": "alice.smith",
-      "assignee": "john.doe",
-      "subtasks": [],
-      "history": [
-        { "timestamp": "2025-09-02T08:00:00Z", "action": "Environment setup started", "user": "john.doe" }
-      ]
-    },
-    {
-      "id": "9",
-      "title": "Build data pipeline",
-      "description": "Create ETL pipeline for processing user analytics.",
-      "notes": "Use Apache Airflow for orchestration.",
-      "startDate": "2025-09-12",
-      "dueDate": "2025-10-02",
-      "projectId": "proj-009",
-      "project": "Data Analytics Platform",
-      "status": "in-progress",
-      "creator": "john.doe",
-      "assignee": "alice.smith",
-      "subtasks": [
-        {
-          "id": "9-1",
-          "title": "Setup data warehouse",
-          "description": "Configure PostgreSQL data warehouse.",
-          "notes": "Optimize for analytical queries.",
-          "startDate": "2025-09-12",
-          "dueDate": "2025-09-18",
-          "status": "completed",
-          "creator": "john.doe",
-          "assignee": "alice.smith",
-          "subtasks": [],
-          "history": [
-            { "timestamp": "2025-09-12T09:00:00Z", "action": "Subtask created", "user": "john.doe" },
-            { "timestamp": "2025-09-18T14:00:00Z", "action": "Data warehouse setup completed", "user": "alice.smith" }
-          ]
-        }
-      ],
-      "history": [
-        { "timestamp": "2025-09-12T10:00:00Z", "action": "Data pipeline development started", "user": "alice.smith" }
-      ]
-    },
-    {
-      "id": "10",
-      "title": "Perform security audit",
-      "description": "Conduct comprehensive security audit for the system.",
-      "notes": "Check for vulnerabilities and compliance issues.",
+      "id": "13",
+      "title": "Implement automated testing",
+      "description": "Setup automated testing in CI/CD pipeline.",
+      "notes": "Include unit, integration, and e2e tests.",
       "startDate": "2025-09-15",
-      "dueDate": "2025-09-29",
-      "projectId": "proj-010",
-      "project": "Security Audit",
+      "dueDate": "2025-10-01",
+      "projectId": "proj-004",
+      "project": "DevOps Infrastructure",
       "status": "not-started",
       "creator": "alice.smith",
       "assignee": "john.doe",
       "subtasks": [],
       "history": [
-        { "timestamp": "2025-09-15T09:00:00Z", "action": "Audit started", "user": "john.doe" }
+        { "timestamp": "2025-09-15T09:00:00Z", "action": "Task created", "user": "alice.smith" }
+      ]
+    },
+    {
+      "id": "14",
+      "title": "Setup container orchestration",
+      "description": "Deploy applications using Kubernetes.",
+      "notes": "Configure auto-scaling and load balancing.",
+      "startDate": "2025-09-18",
+      "dueDate": "2025-10-08",
+      "projectId": "proj-004",
+      "project": "DevOps Infrastructure",
+      "status": "not-started",
+      "creator": "john.doe",
+      "assignee": "alice.smith",
+      "subtasks": [],
+      "history": [
+        { "timestamp": "2025-09-18T11:00:00Z", "action": "Task created", "user": "john.doe" }
       ]
     }
   ]

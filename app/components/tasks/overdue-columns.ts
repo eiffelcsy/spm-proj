@@ -56,20 +56,21 @@ export const overdueColumns = computed(() => [
         return h('div', { class: 'text-red-600 font-semibold' }, formatted)
       },
     },
-    {
-      accessorKey: 'project',
-      header: ({ column }: any) => h(DataTableColumnHeader, { 
-          column: column,
-          title: 'Project'
-      }),
-      cell: ({ row }: any) => {
-        const project = row.getValue('project') as string
-        const projectClass = project === 'personal' ? 'text-gray-500 italic' : 'text-blue-600'
-        return h('div', { 
-          class: `flex max-w-32 truncate w-32 items-center ${projectClass}` 
-        }, project)
-      },
+  // Find the project column in this file and replace it with:
+{
+    accessorKey: 'project',
+    header: ({ column }) => h(DataTableColumnHeader, { 
+        column: column,
+        title: 'Project'
+    }),
+    cell: ({ row }) => {
+      const project = row.getValue('project') as string
+      const projectClass = project === 'personal' ? 'text-gray-500 italic' : 'text-blue-600'
+      return h('div', { 
+        class: `whitespace-normal break-words min-w-[120px] max-w-[180px] leading-tight py-1 ${projectClass}` 
+      }, project)
     },
+},
     {
       accessorKey: 'status',
       header: ({ column }: any) => h(DataTableColumnHeader, { 

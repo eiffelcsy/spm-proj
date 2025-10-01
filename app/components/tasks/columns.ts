@@ -58,7 +58,7 @@ export const columns: ColumnDef<Task>[] = [
       return h('div', formatted)
     },
   },
-  {
+{
     accessorKey: 'project',
     header: ({ column }) => h(DataTableColumnHeader, { 
         column: column,
@@ -68,10 +68,10 @@ export const columns: ColumnDef<Task>[] = [
       const project = row.getValue('project') as string
       const projectClass = project === 'personal' ? 'text-gray-500 italic' : 'text-blue-600'
       return h('div', { 
-        class: `flex max-w-32 truncate w-32 items-center ${projectClass}` 
+        class: `whitespace-normal break-words min-w-[120px] max-w-[180px] leading-tight py-1 ${projectClass}` 
       }, project)
     },
-  },
+},
   {
     accessorKey: 'status',
     header: ({ column }) => h(DataTableColumnHeader, { 
