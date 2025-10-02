@@ -85,7 +85,7 @@
                       'bg-gray-100 text-gray-800': project.status === 'archived'
                     }"
                   >
-                    {{ project.status }}
+                    {{ capitalizeStatus(project.status) }}
                   </span>
                   <span class="text-gray-500">
                     {{ getProjectTaskCount(project.id) }} tasks
@@ -298,26 +298,27 @@ const isEditProjectModalOpen = ref(false)
 const selectedProjectForEdit = ref(null)
 
 
-// Use the example data with fake data markers
-const projects = ref(exampleData.projects.map((project: any) => ({
-  ...project,
-  isRealData: false // Mark as fake data
-})))
-const rawTasks = ref(exampleData.tasks)
+// Initialize with empty array - will be populated with real data
+const projects = ref<any[]>([])
+const rawTasks = ref<any[]>([])
 
 // Transform tasks to match expected format
 function transformTask(task: any): Task {
   return {
     id: task.id,
     title: task.title,
-    startDate: new Date(task.startDate),
-    dueDate: new Date(task.dueDate),
+    startDate: new Date(task.start_date),
+    dueDate: new Date(task.due_date),
     project: task.project,
     status: task.status
   }
 }
 
 const allTasks = computed(() => {
+  // Ensure rawTasks.value is an array before calling map
+  if (!Array.isArray(rawTasks.value)) {
+    return []
+  }
   return rawTasks.value.map(transformTask)
 })
 
@@ -350,7 +351,7 @@ const filteredTasks = computed(() => {
   }
   return tasksToFilter.filter(task => {
     const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.projectId === selectedProjectId.value
+    return rawTask?.project_id === parseInt(selectedProjectId.value)
   })
 })
 
@@ -361,12 +362,24 @@ const filteredOverdueTasks = computed(() => {
   }
   return overdueTasks.value.filter(task => {
     const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.projectId === selectedProjectId.value
+    return rawTask?.project_id === parseInt(selectedProjectId.value)
   })
 })
 
 function getProjectTaskCount(projectId: string): number {
-  return rawTasks.value.filter(task => task.projectId === projectId).length
+  // Ensure rawTasks.value is an array before calling filter
+  if (!Array.isArray(rawTasks.value)) {
+    console.log('rawTasks.value is not an array:', rawTasks.value)
+    return 0
+  }
+  
+  console.log('Getting task count for project:', projectId)
+  console.log('All raw tasks:', rawTasks.value)
+  console.log('Tasks with project_id:', rawTasks.value.map(t => ({ id: t.id, project_id: t.project_id, title: t.title })))
+  
+  const count = rawTasks.value.filter(task => task.project_id === parseInt(projectId)).length
+  console.log(`Task count for project ${projectId}:`, count)
+  return count
 }
 
 
@@ -415,9 +428,34 @@ function openCreateModal() {
   isModalOpen.value = true
 }
 
-function fetchData() {
-  isLoading.value = false
-  error.value = null
+async function fetchData() {
+  try {
+    isLoading.value = true
+    error.value = null
+    
+    // Fetch real tasks from Supabase
+    const fetchedTasks = await $fetch('/api/tasks')
+    console.log('Raw fetched tasks from API:', fetchedTasks)
+    
+    // Handle the API response structure { tasks: [...], count: number }
+    if (fetchedTasks && Array.isArray(fetchedTasks.tasks)) {
+      rawTasks.value = fetchedTasks.tasks
+      console.log('Set rawTasks.value to fetchedTasks.tasks array:', fetchedTasks.tasks.length, 'tasks')
+    } else if (Array.isArray(fetchedTasks)) {
+      rawTasks.value = fetchedTasks
+      console.log('Set rawTasks.value to fetchedTasks array:', fetchedTasks.length, 'tasks')
+    } else {
+      rawTasks.value = []
+      console.log('Set rawTasks.value to empty array - no valid task data found')
+    }
+    
+  } catch (err) {
+    console.error('Failed to fetch tasks:', err)
+    error.value = 'Failed to load tasks. Please try again.'
+    rawTasks.value = []
+  } finally {
+    isLoading.value = false
+  }
 }
 
 async function addTask(newTask: Task) {
@@ -540,6 +578,12 @@ async function createProject() {
     }
 
     projectSuccessMessage.value = 'Project created successfully!'
+    
+    // Auto-close success message after 1000ms
+    setTimeout(() => {
+      projectSuccessMessage.value = ''
+      isCreateProjectModalOpen.value = false
+    }, 1000)
   } catch (err: any) {
     console.error('Error creating project:', err)
     projectErrorMessage.value = err?.data?.statusMessage || err?.message || 'Something went wrong. Project was not created.'
@@ -567,9 +611,16 @@ function formatDate(date: any): string {
   return ''
 }
 
+function capitalizeStatus(status: string): string {
+  return status.charAt(0).toUpperCase() + status.slice(1)
+}
+
 async function fetchProjects() {
   try {
     const fetchedProjects = await $fetch('/api/projects')
+    console.log('Fetched projects:', fetchedProjects) // Debug log
+    console.log('Number of projects:', fetchedProjects?.length) // Debug log
+    
     projects.value = fetchedProjects.map((project: any) => ({
       id: String(project.id),
       name: project.name || '',
@@ -581,6 +632,8 @@ async function fetchProjects() {
     }))
   } catch (err) {
     console.error('Failed to fetch projects:', err)
+    // If fetch fails, show empty array instead of example data
+    projects.value = []
   }
 }
 
