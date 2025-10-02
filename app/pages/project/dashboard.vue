@@ -19,54 +19,23 @@
         <div class="mb-8">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-2xl font-semibold">Projects Overview</h2>
-            <div class="flex gap-2">
-              <!-- Clear filter button - always rendered to prevent layout shift -->
-              <button 
-                :class="[
-                  'px-4 py-2 text-sm rounded-md transition-all duration-200',
-                  selectedProjectId 
-                    ? 'bg-gray-100 hover:bg-gray-200 opacity-100' 
-                    : 'opacity-0 pointer-events-none'
-                ]"
-                @click="clearProjectFilter"
-              >
-                Show All Projects
-              </button>
-              
-              <!-- Edit Project Button - only shown when project is selected -->
-              <Button 
-                v-if="selectedProjectId"
-                variant="default"
-                size="sm"
-                class="h-8"
-                @click="openEditProjectModal(getSelectedProject())"
-              >
-                <svg class="md:mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                <span class="hidden md:block">Edit Project</span>
-              </Button>
-              
-              <!-- Create Project Button - only shown when no project is selected -->
-              <Button 
-                v-if="!selectedProjectId"
-                variant="default"
-                size="sm"
-                class="h-8"
-                @click="openCreateProjectModal"
-              >
-                <FolderPlus class="md:mr-2 h-4 w-4" />
-                <span class="hidden md:block">Create New Project</span>
-              </Button>
-            </div>
+            <Button 
+              variant="default"
+              size="sm"
+              class="h-8"
+              @click="openCreateProjectModal"
+            >
+              <FolderPlus class="md:mr-2 h-4 w-4" />
+              <span class="hidden md:block">Create New Project</span>
+            </Button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div v-for="project in projects" :key="project.id"
-              class="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full" :class="{
-                'ring-2 ring-blue-500 bg-blue-50 scale-[1.02]': selectedProjectId === project.id,
-                'hover:border-gray-300 hover:scale-[1.01]': selectedProjectId !== project.id
-              }" @click="selectProject(project.id)">
-              
+            <div 
+              v-for="project in projects" 
+              :key="project.id"
+              class="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md cursor-pointer flex flex-col h-full transition-all duration-300 ease-in-out hover:border-gray-300 hover:scale-[1.01]"
+              @click="selectProject(project.id)"
+            >
               <!-- Project Info Section -->
               <div class="flex-grow">
                 <h3 class="font-semibold text-lg mb-2">{{ project.name }}</h3>
@@ -107,10 +76,10 @@
         </div>
 
         <!-- Overdue Tasks Section -->
-        <div class="mb-6 transition-all duration-300 ease-in-out">
+        <div class="mb-6">
           <div 
-            v-if="filteredOverdueTasks.length > 0" 
-            class="border-l-4 border-red-500 pl-4 mb-4 bg-red-50/70 p-4 rounded-r-lg animate-in slide-in-from-top-2 duration-300"
+            v-if="overdueTasks.length > 0" 
+            class="border-l-4 border-red-500 pl-4 mb-4 bg-red-50/70 p-4 rounded-r-lg"
           >
             <h3 class="text-lg font-semibold pb-2 text-red-600 flex items-center">
               <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -118,42 +87,31 @@
                   d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                   clip-rule="evenodd" />
               </svg>
-              Overdue Tasks
-              <span v-if="selectedProjectId" class="ml-2 text-sm font-normal">
-                ({{ getSelectedProjectName() }})
-              </span>
-              ({{ filteredOverdueTasks.length }})
+              Overdue Tasks ({{ overdueTasks.length }})
             </h3>
-            <DataTable :columns="overdueColumns" :data="filteredOverdueTasks" @rowClick="goToTask"
+            <DataTable :columns="overdueColumns" :data="overdueTasks" @rowClick="goToTask"
               :hideToolbar="true" />
           </div>
         </div>
 
         <!-- All Tasks Section -->
-        <div class="transition-all duration-300 ease-in-out">
-          <h3 class="text-lg font-semibold py-2 flex items-center justify-between transition-all duration-200">
+        <div>
+          <h3 class="text-lg font-semibold py-2 flex items-center justify-between">
             <span>
-              {{ selectedProjectId ? `${getSelectedProjectName()} Tasks` : 'All Tasks' }}
-              ({{ filteredTasks.length }})
+              All Tasks ({{ allTasks.length }})
             </span>
           </h3>
-          <div class="transition-all duration-300 ease-in-out">
-            <DataTable :columns="columns" :data="filteredTasks" @rowClick="goToTask" :showCreateButton="true"
+          <div>
+            <DataTable :columns="columns" :data="allTasks" @rowClick="goToTask" :showCreateButton="true"
               :showRefreshButton="true" @create-task="openCreateModal" @refresh-tasks="fetchData" />
           </div>
         </div>
       </div>
 
       <CreateTaskModal :isOpen="isModalOpen" role="manager" :currentUser="'me@example.com'"
-        :projectId="selectedProjectId" @close="isModalOpen = false" @task-created="addTask" />
+        :projectId="''" @close="isModalOpen = false" @task-created="addTask" />
 
-      <!-- Edit Project Modal -->
-      <EditProjectModal 
-        :isOpen="isEditProjectModalOpen" 
-        :project="selectedProjectForEdit"
-        @close="closeEditProjectModal" 
-        @project-updated="handleProjectUpdated" 
-      />
+      <!-- Edit Project Modal removed - editing now happens on project detail pages -->
 
       <!-- Create Project Modal -->
       <div v-if="isCreateProjectModalOpen"
@@ -261,7 +219,6 @@ import { overdueColumns } from '@/components/tasks/overdue-columns'
 import type { Task } from '@/components/tasks/data/schema'
 import DataTable from '@/components/tasks/data-table.vue'
 import CreateTaskModal from '~/components/task-modals/create-task-modal.vue'
-import EditProjectModal from '~/components/project-modals/edit-project-modal.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -279,7 +236,7 @@ import exampleData from '@/components/tasks/data/example.json'
 const router = useRouter()
 
 const isModalOpen = ref(false)
-const selectedProjectId = ref('')
+// Removed selectedProjectId as projects now navigate to detail pages
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
@@ -293,9 +250,7 @@ const projectSuccessMessage = ref('')
 const projectErrorMessage = ref('')
 const isCreatingProject = ref(false)
 
-// Project editing modal state
-const isEditProjectModalOpen = ref(false)
-const selectedProjectForEdit = ref(null)
+// Removed project editing modal state as editing now happens on detail pages
 
 
 // Initialize with empty array - will be populated with real data
@@ -342,66 +297,28 @@ const nonOverdueTasks = computed(() => {
   return allTasks.value.filter(task => !isTaskOverdue(task))
 })
 
-// Filtered tasks based on selected project (excluding overdue tasks)
-const filteredTasks = computed(() => {
-  const tasksToFilter = nonOverdueTasks.value
-
-  if (!selectedProjectId.value) {
-    return tasksToFilter
-  }
-  return tasksToFilter.filter(task => {
-    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.project_id === parseInt(selectedProjectId.value)
-  })
-})
-
-// Filtered overdue tasks based on selected project
-const filteredOverdueTasks = computed(() => {
-  if (!selectedProjectId.value) {
-    return overdueTasks.value
-  }
-  return overdueTasks.value.filter(task => {
-    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.project_id === parseInt(selectedProjectId.value)
-  })
-})
+// Removed filtered tasks as main dashboard now shows all tasks
 
 function getProjectTaskCount(projectId: string): number {
   // Ensure rawTasks.value is an array before calling filter
   if (!Array.isArray(rawTasks.value)) {
-    console.log('rawTasks.value is not an array:', rawTasks.value)
     return 0
   }
   
-  console.log('Getting task count for project:', projectId)
-  console.log('All raw tasks:', rawTasks.value)
-  console.log('Tasks with project_id:', rawTasks.value.map(t => ({ id: t.id, project_id: t.project_id, title: t.title })))
+  // Count tasks for the specified project
   
   const count = rawTasks.value.filter(task => task.project_id === parseInt(projectId)).length
-  console.log(`Task count for project ${projectId}:`, count)
+  // Return task count for project
   return count
 }
 
 
 function selectProject(projectId: string) {
-  // Toggle selection - if same project clicked, deselect it
-  selectedProjectId.value = selectedProjectId.value === projectId ? '' : projectId
+  // Navigate to project detail page
+  router.push(`/project/${projectId}`)
 }
 
-function clearProjectFilter() {
-  selectedProjectId.value = ''
-}
-
-function getSelectedProjectName(): string {
-  if (!selectedProjectId.value) return ''
-  const project = projects.value.find(p => p.id === selectedProjectId.value)
-  return project?.name || ''
-}
-
-function getSelectedProject(): any {
-  if (!selectedProjectId.value) return null
-  return projects.value.find(p => p.id === selectedProjectId.value) || null
-}
+// Removed selected project functions as they're no longer needed
 
 function getProjectCreatedDate(project: any): string {
   if (!project.isRealData) {
@@ -469,7 +386,7 @@ async function addTask(newTask: Task) {
     notes: '',
     startDate: startDateStr,
     dueDate: dueDateStr,
-    projectId: selectedProjectId.value || 'proj-001',
+    projectId: 'proj-001', // Default project for tasks created from main dashboard
     project: newTask.project,
     status: newTask.status,
     creator: 'me@example.com',
@@ -509,31 +426,9 @@ function handleProjectSuccessOk() {
 }
 
 // Project editing functions
-function openEditProjectModal(project: any) {
-  selectedProjectForEdit.value = project
-  isEditProjectModalOpen.value = true
-}
+// Removed edit project modal functions as editing now happens on detail pages
 
-function closeEditProjectModal() {
-  isEditProjectModalOpen.value = false
-  selectedProjectForEdit.value = null
-}
-
-function handleProjectUpdated(updatedProject: any) {
-  // Update the projects array with the updated project
-  const index = projects.value.findIndex(p => p.id === updatedProject.id)
-  if (index !== -1) {
-    projects.value[index] = {
-      ...projects.value[index],
-      name: updatedProject.name,
-      description: updatedProject.description,
-      dueDate: updatedProject.due_date,
-      status: updatedProject.status
-    } as any
-  }
-  
-  // Don't close modal immediately - let it close after success message timeout
-}
+// Removed handleProjectUpdated function as project editing now happens on detail pages
 
 
 async function createProject() {
@@ -655,6 +550,73 @@ onMounted(() => {
 @supports not (backdrop-filter: blur(8px)) {
   .modal-backdrop {
     background: rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Custom animations for project cards */
+.project-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.selected-project-card {
+  animation: slideInFromTop 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInFromTop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1.02);
+  }
+}
+
+/* Smooth transitions for tasks section */
+.tasks-section {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced slide-in animation */
+.slide-in-from-top-2 {
+  animation: slideInFromTop2 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInFromTop2 {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth grid transitions */
+.grid-transition {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fade out animation for disappearing cards */
+.fade-out {
+  animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95);
   }
 }
 </style>
