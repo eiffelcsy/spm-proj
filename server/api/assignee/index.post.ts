@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
 
   const taskId = Number(body.task_id)
   const assigneeIds: number[] = Array.isArray(body.assignee_ids)
-    ? body.assignee_ids.map((v: any) => Number(v)).filter(Boolean)
+    ? body.assignee_ids.map((v: any) => Number(v))
     : []
 
   if (!taskId || assigneeIds.length === 0) {
@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
     if (!staffRow) {
       throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
     }
+    //@ts-ignore
     assignedBy = Number(staffRow.id)
   }
 
@@ -42,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   const { data, error } = await supabase
     .from('task_assignees')
-    .insert(mappings)
+    .insert(mappings as any)
 
   if (error) {
     throw createError({ statusCode: 500, statusMessage: error.message })

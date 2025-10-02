@@ -4,21 +4,22 @@
         <DropdownMenu>
             <DropdownMenuTrigger as-child>
                 <Button variant="outline" :class="buttonClass" class="w-[13vw]">
-                    <span :class="{ 'text-muted-foreground': !selectedStatus }">
-                        {{ selectedStatusLabel || placeholder }}
+                    <span :class="{ 'text-muted-foreground': !selectedFrequency }">
+                        {{ selectedFrequencyLabel || placeholder }}
                     </span>
                     <ChevronDownIcon :class="iconClass" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent class="w-56" align="start">
-                <DropdownMenuLabel>Task Status</DropdownMenuLabel>
+                <DropdownMenuLabel>Repeat Frequency</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem v-for="status in statusOptions" :key="status.value" @click="selectStatus(status)"
-                        :class="{ 'bg-accent': selectedStatus === status.value }">
+                    <DropdownMenuItem v-for="frequency in frequencyOptions" :key="frequency.value" 
+                        @click="selectFrequency(frequency)"
+                        :class="{ 'bg-accent': selectedFrequency === frequency.value }">
                         <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full" :class="status.colorClass"></div>
-                            {{ status.label }}
+                            <div class="w-2 h-2 rounded-full" :class="frequency.colorClass"></div>
+                            {{ frequency.label }}
                         </div>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -41,7 +42,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-interface StatusOption {
+interface FrequencyOption {
     value: string
     label: string
     colorClass: string
@@ -55,8 +56,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    placeholder: 'Select status',
-    label: 'Status',
+    placeholder: 'Select frequency',
+    label: 'Repeat',
     compact: false
 })
 
@@ -76,35 +77,45 @@ const emit = defineEmits<{
     'update:modelValue': [value: string]
 }>()
 
-const statusOptions: StatusOption[] = [
+const frequencyOptions: FrequencyOption[] = [
     {
-        value: 'not-started',
-        label: 'Not Started',
-        colorClass: 'bg-red-500'
+        value: 'never',
+        label: 'Never',
+        colorClass: 'bg-gray-400'
     },
     {
-        value: 'in-progress',
-        label: 'In Progress',
-        colorClass: 'bg-yellow-500'
+        value: 'daily',
+        label: 'Daily',
+        colorClass: 'bg-blue-400'
     },
     {
-        value: 'completed',
-        label: 'Completed',
-        colorClass: 'bg-green-500'
+        value: 'weekly',
+        label: 'Weekly',
+        colorClass: 'bg-green-400'
+    },
+    {
+        value: 'monthly',
+        label: 'Monthly',
+        colorClass: 'bg-yellow-400'
+    },
+    {
+        value: 'yearly',
+        label: 'Yearly',
+        colorClass: 'bg-purple-400'
     }
 ]
 
-const selectedStatus = computed({
+const selectedFrequency = computed({
     get: () => props.modelValue,
     set: (value: string) => emit('update:modelValue', value)
 })
 
-const selectedStatusLabel = computed(() => {
-    const status = statusOptions.find(s => s.value === selectedStatus.value)
-    return status?.label
+const selectedFrequencyLabel = computed(() => {
+    const frequency = frequencyOptions.find(f => f.value === selectedFrequency.value)
+    return frequency?.label
 })
 
-function selectStatus(status: StatusOption) {
-    selectedStatus.value = status.value
+function selectFrequency(frequency: FrequencyOption) {
+    selectedFrequency.value = frequency.value
 }
 </script>

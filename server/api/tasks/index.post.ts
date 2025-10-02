@@ -24,6 +24,8 @@ export default defineEventHandler(async (event) => {
     start_date: body.start_date ?? null,
     due_date: body.due_date ?? null,
     status: body.status ?? null,
+    priority: body.priority ?? null,
+    repeat_frequency: body.repeat_frequency ?? null,
     project_id: body.project_id ?? null,
     creator_id: staffRow.id,
     parent_task_id: null
@@ -31,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: parentTask, error: parentError } = await supabase
     .from('tasks')
-    .insert([parentTaskPayload])
+    .insert([parentTaskPayload] as any)
     .select('*')
     .single()
 
@@ -52,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const parentAssigneeIds: number[] = Array.isArray(body.assignee_ids)
-      ? body.assignee_ids.map((v: any) => Number(v)).filter(Boolean)
+      ? body.assignee_ids.map((v: any) => Number(v))
       : []
 
     if (parentAssigneeIds.length > 0) {
@@ -61,7 +63,7 @@ export default defineEventHandler(async (event) => {
         assigned_to_staff_id: staffId,
         assigned_by_staff_id: body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : staffRow.id
       }))
-      const { error: pmError } = await supabase.from('task_assignees').insert(parentMappings)
+      const { error: pmError } = await supabase.from('task_assignees').insert(parentMappings as any)
       if (pmError) {
         await rollbackParent()
         throw pmError
@@ -76,6 +78,8 @@ export default defineEventHandler(async (event) => {
         start_date: s.start_date ?? null,
         due_date: s.due_date ?? null,
         status: s.status ?? null,
+        priority: body.priority ?? null,
+        repeat_frequency: body.repeat_frequency ?? null,
         project_id: s.project_id ?? null,
         creator_id: staffRow.id,
         parent_task_id: createdTaskId
@@ -96,7 +100,7 @@ export default defineEventHandler(async (event) => {
         const s = subtasksInput[i]
         const inserted = insertedSubtasks[i]
         if (!inserted) continue
-        const assigneeIdsForSub = Array.isArray(s.assignee_ids) ? s.assignee_ids.map((v: any) => Number(v)).filter(Boolean) : []
+        const assigneeIdsForSub = Array.isArray(s.assignee_ids) ? s.assignee_ids.map((v: any) => Number(v)) : []
         for (const staffId of assigneeIdsForSub) {
           subtaskMappings.push({
             task_id: inserted.id,
@@ -107,7 +111,7 @@ export default defineEventHandler(async (event) => {
       }
 
       if (subtaskMappings.length > 0) {
-        const { error: smError } = await supabase.from('task_assignees').insert(subtaskMappings)
+        const { error: smError } = await supabase.from('task_assignees').insert(subtaskMappings as any)
         if (smError) {
           try {
             const insertedIds = insertedSubtasks.map((r: any) => r.id)
