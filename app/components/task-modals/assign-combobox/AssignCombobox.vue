@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-col gap-1 w-full">
     <label v-if="label" :class="labelClass">{{ label }}</label>
-    <Combobox v-model="selectedIds" v-model:open="open" :ignore-filter="true">
-      <ComboboxAnchor as-child>
-        <TagsInput v-model="selectedIds" class="px-2 gap-2 w-full min-w-[200px] max-w-full py-1">
+    <Combobox v-model="selectedIds" v-model:open="open" :ignore-filter="true" class="w-full">
+      <ComboboxAnchor class="w-full py-0" as-child>
+        <TagsInput v-model="selectedIds" class="w-full min-w-[200px] max-w-full py-1">
           <div class="flex gap-2 flex-wrap items-center w-full py-1">
             <TagsInputItem
             v-for="staff in selectedStaffMembers"
@@ -15,7 +15,7 @@
             <TagsInputItemDelete />
             </TagsInputItem>
           </div>
-          <ComboboxInput v-model="searchTerm" as-child>
+          <ComboboxInput v-model="searchTerm" class="w-full" as-child>
             <TagsInputInput
               :placeholder="placeholder"
               class="min-w-[120px] w-full p-0 border-none focus-visible:ring-0 h-auto"
@@ -23,8 +23,8 @@
             />
           </ComboboxInput>
         </TagsInput>
-        <ComboboxList class="w-[--reka-popper-anchor-width] max-h-60 overflow-auto">
-        <ComboboxEmpty class="w-full px-2 py-2 text-center text-muted-foreground">
+        <ComboboxList class="w-[--reka-popper-anchor-width] max-h-60 overflow-y-auto left-0" align="start">
+        <ComboboxEmpty class="w-full p-2 pt-3 text-center text-muted-foreground">
             No staff found
         </ComboboxEmpty>
           <ComboboxGroup>

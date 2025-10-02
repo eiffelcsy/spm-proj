@@ -4,7 +4,7 @@
 
     <!-- Modal content -->
     <div
-      class="relative bg-white rounded-xl shadow-lg w-full max-w-5xl p-6 h-[70vh] overflow-y-auto z-10"
+      class="relative bg-white rounded-xl shadow-lg w-full max-w-[45vw] p-6 h-[70vh] overflow-y-auto z-10"
       @click.stop>
       <h2 class="text-xl font-semibold mb-4">Create New Task</h2>
 
@@ -18,125 +18,125 @@
       </div>
       <form v-if="!successMessage" @submit.prevent="createTask" class="space-y-4">
         
-          <!-- Title -->
-          <div>
-            <label class="block text-sm font-medium mb-1">Task Title</label>
-            <Input v-model="title" type="text" required
-              class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+        <!-- Title -->
+        <div>
+          <label class="block text-sm font-medium mb-1">Task Title</label>
+          <Input v-model="title" type="text" required
+            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
 
-          <!-- Start Date & Due Date -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Start Date -->
-            <div class="flex flex-col">
-              <Label class="mb-1">
-                Start Date
-              </Label>
-              <Popover>
-                <PopoverTrigger as-child>
-                  <Button variant="outline" :class="cn(
-                    'w-[280px] justify-start text-left font-normal',
-                    !startDate && 'text-muted-foreground',
-                  )">
-                    <CalendarIcon class="mr-2 h-4 w-4" />
-                    {{ startDate ? formatDate(startDate) : "Select start date" }}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent class="w-auto p-0">
-                  <Calendar v-model="startDate" initial-focus />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <!-- Due Date -->
-            <div class="flex flex-col">
-              <Label class="mb-1">
-                Due Date
-              </Label>
-              <Popover>
-                <PopoverTrigger as-child>
-                  <Button variant="outline" :class="cn(
-                    'w-[280px] justify-start text-left font-normal',
-                    !dueDate && 'text-muted-foreground',
-                  )">
-                    <CalendarIcon class="mr-2 h-4 w-4" />
-                    {{ dueDate ? formatDate(dueDate) : "Select due date" }}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent class="w-auto p-0">
-                  <Calendar v-model="dueDate" initial-focus :min-value="startDate" />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          <!-- Status & Assignee -->
-          <div class="grid grid-cols-2 gap-4">
-            <StatusDropdown v-model="status" label="Status" placeholder="Select status" />
-            <AssignCombobox v-model="assignedTo" label="Assign To" placeholder="Select assignees"
-              :staff-members="staffMembers" />
-          </div>
-
-          <!-- Notes -->
-          <div>
-            <Label>
-              Notes
+        <!-- Start Date & Due Date -->
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Start Date -->
+          <div class="flex flex-col gap-1 justify-end">
+            <Label class="mb-1">
+              Start Date
             </Label>
-            <textarea v-model="notes" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+            <Popover>
+              <PopoverTrigger as-child>
+                <Button variant="outline" :class="cn(
+                  'w-[13vw] justify-start text-left font-normal',
+                  !startDate && 'text-muted-foreground',
+                )">
+                  <CalendarIcon class="mr-2 h-4 w-4" />
+                  {{ startDate ? formatDate(startDate) : "Select start date" }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0">
+                <Calendar v-model="startDate" initial-focus />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <!-- Due Date -->
+          <div class="flex flex-col gap-1 justify-end">
+            <Label class="mb-1">
+              Due Date
+            </Label>
+            <Popover>
+              <PopoverTrigger as-child>
+                <Button variant="outline" :class="cn(
+                  'w-[13vw] justify-start text-left font-normal',
+                  !dueDate && 'text-muted-foreground',
+                )">
+                  <CalendarIcon class="mr-2 h-4 w-4" />
+                  {{ dueDate ? formatDate(dueDate) : "Select due date" }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0">
+                <Calendar v-model="dueDate" initial-focus :min-value="startDate" />
+              </PopoverContent>
+            </Popover>
           </div>
 
-          <!-- Subtasks -->
-          <div>
-            <label class="block text-sm font-medium mb-2">Subtasks</label>
-            <div v-for="(subtask, index) in subtasks" :key="index" class="border rounded-lg p-3 mb-3 bg-gray-50">
-              <!-- Subtask Header -->
-              <div class="flex gap-2 mb-2">
-                <input v-model="subtask.title" type="text" placeholder="Subtask Title"
-                  class="flex-1 border rounded-lg px-3 py-2" required />
-                <button type="button" @click="toggleSubtaskExpanded(index)"
-                  class="px-3 py-2 bg-white border border-gray-300 text-black rounded-lg hover:bg-gray-50 text-sm"
-                  :title="subtask.expanded ? 'Collapse details' : 'Expand details'">
-                  <span class="inline-block transition-transform duration-200"
-                    :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
-                </button>
-                <button type="button" @click="removeSubtask(index)"
-                  class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
-                  ✕
-                </button>
-              </div>
+        <!-- Status, Priority -->
+          <StatusDropdown v-model="status" label="Status" placeholder="Select status" />
+          <PriorityDropdown v-model="priority" label="Priority" placeholder="Select priority" />
+          <RepeatFrequencyDropdown v-model="repeatFrequency" label="Repeat" placeholder="Select frequency" />
+        </div>
+        <div>
+          <AssignCombobox 
+            v-model="assignedTo" 
+            label="Assign To" 
+            placeholder="Select assignees"
+            :staff-members="staffMembers" 
+          />
+        </div>
+        <!-- Notes -->
+        <div>
+          <Label>
+            Notes
+          </Label>
+          <textarea v-model="notes" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+        </div>
 
-              <!-- Expanded Subtask Details -->
-              <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4 border-l-2 border-blue-200">
+        <!-- Subtasks -->
+        <div>
+          <label class="block text-sm font-medium mb-2">Subtasks</label>
+          <div v-for="(subtask, index) in subtasks" :key="index" class="border rounded-lg p-3 mb-3 bg-gray-50">
+            <!-- Subtask Header -->
+            <div class="flex gap-2 mb-2">
+              <Input v-model="subtask.title" type="text" placeholder="Subtask Title"
+                class="flex-1 border rounded-lg px-3 py-2 bg-white" required />
+              <Button type="button" @click="toggleSubtaskExpanded(index)"
+                class="px-3 py-2 bg-white border border-gray-300 text-black rounded-lg hover:bg-gray-50 text-sm"
+                :title="subtask.expanded ? 'Collapse details' : 'Expand details'">
+                <span class="inline-block transition-transform duration-200"
+                  :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
+              </Button>
+              <Button type="button" @click="removeSubtask(index)"
+                class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                ✕
+              </Button>
+            </div>
 
-                <!-- Status & Assignee -->
-                <div class="grid grid-cols-2 gap-3">
-                  <StatusDropdown v-model="subtask.status" label="Status" placeholder="Select status" compact />
-                  <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
-                    :staff-members="staffMembers" compact />
-                </div>
-
-                <!-- Notes -->
-                <div>
-                  <label class="block text-xs font-medium mb-1">Notes</label>
-                  <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
-                    class="w-full border rounded-lg px-2 py-1 text-sm"></textarea>
-                </div>
+            <!-- Expanded Subtask Details -->
+            <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4 border-l-2 border-blue-200">
+              <!-- Status & Assignee -->
+              <StatusDropdown v-model="subtask.status" label="Status" placeholder="Select status" compact />
+              <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee" :staff-members="staffMembers" compact/>
+              <!-- Notes -->
+              <div>
+                <label class="block text-xs font-medium mb-1">Notes</label>
+                <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
+                  class="w-full border rounded-lg px-2 py-1 text-sm bg-white"></textarea>
               </div>
             </div>
-            <Button variant="outline" @click="addSubtask" class="bg-gray-100 hover:bg-gray-200 text-sm">
-              + Add Subtask
-            </Button>
           </div>
+          <Button variant="outline" @click="addSubtask" class="bg-gray-100 hover:bg-gray-200 text-sm">
+            + Add Subtask
+          </Button>
+        </div>
 
-          <div class="flex justify-end gap-2">
-            <Button variant="outline" @click="handleCancel">
-              Cancel
-            </Button>
-            <Button type="submit">
-              Create Task
-            </Button>
-          </div>
-       
+        <div class="flex justify-end gap-2">
+          <Button variant="outline" @click="handleCancel">
+            Cancel
+          </Button>
+          <Button type="submit">
+            Create Task
+          </Button>
+        </div>
       </form>
+      
       <!-- Confirmation Dialog -->
       <div v-if="showDeleteConfirmation"
         class="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-50" @click="cancelDelete">
@@ -162,6 +162,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { StatusDropdown } from '@/components/task-modals/status-dropdown'
+import PriorityDropdown from './priority-dropdown.vue'
+import RepeatFrequencyDropdown from './repeat-freq-dropdown.vue'
 import { AssignCombobox } from '@/components/task-modals/assign-combobox'
 import { Input } from '@/components/ui/input'
 import type { CalendarDate } from '@internationalized/date'
@@ -196,12 +198,15 @@ const title = ref('')
 const startDate = ref<CalendarDate>(parseDate(today))
 const dueDate = ref<CalendarDate>(parseDate(today))
 const status = ref('not-started')
+const priority = ref('1') // New priority field
+const repeatFrequency = ref('never') // New repeat frequency field
 const notes = ref('')
 const subtasks = ref<{
   title: string;
   startDate: CalendarDate;
   dueDate: CalendarDate;
   status: string;
+  priority: string; // New subtask priority
   notes: string;
   assignedTo: string[];
   expanded: boolean;
@@ -219,6 +224,8 @@ watch(() => props.isOpen, async (isOpen) => {
     dueDate.value = parseDate(today)
     title.value = ''
     status.value = 'not-started'
+    priority.value = '1'
+    repeatFrequency.value = 'never'
     notes.value = ''
     assignedTo.value = []
     subtasks.value = []
@@ -256,6 +263,7 @@ function addSubtask() {
     startDate: parseDate(new Date().toISOString().split('T')[0] || ''),
     dueDate: parseDate(new Date().toISOString().split('T')[0] || ''),
     status: 'not-started',
+    priority: '1', // Default priority for new subtasks
     notes: '',
     assignedTo: [],
     expanded: false
@@ -291,6 +299,8 @@ function resetForm() {
   startDate.value = parseDate(today)
   dueDate.value = parseDate(today)
   status.value = 'not-started'
+  priority.value = '1'
+  repeatFrequency.value = 'never'
   notes.value = ''
   subtasks.value = []
   assignedTo.value = []
@@ -302,6 +312,7 @@ function handleCancel() {
   resetForm()
   emit('close')
 }
+
 function handleSuccessOk() {
   if (createdTask.value) {
     emit('task-created', createdTask.value)
@@ -331,14 +342,17 @@ async function createTask() {
       start_date: startDate.value ? startDate.value.toString() : null,
       due_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
+      priority: priority.value,
+      repeat_frequency: repeatFrequency.value,
       notes: notes.value || null,
       project_id: props.project ? Number(props.project) : null,
       subtasks: subtasks.value.map(subtask => ({
         title: subtask.title,
-        start_date: startDate.value ? startDate.value.toString() : null, // Use parent task start date
-        due_date: dueDate.value ? dueDate.value.toString() : null, // Use parent task due date
+        start_date: startDate.value ? startDate.value.toString() : null,
+        due_date: dueDate.value ? dueDate.value.toString() : null,
         status: subtask.status,
-        notes: subtask.notes || null
+        priority: subtask.priority,
+        notes: subtask.notes || null,
       }))
     }
 
@@ -355,43 +369,47 @@ async function createTask() {
     const created = taskResp.task
 
     // Assign main task assignees
-    const assigneeIds = assignedTo.value.map(id => Number(id)).filter(Boolean)
-    if (assigneeIds.length > 0) {
-      const mapResp = await $fetch('/api/assignee', {
-        method: 'POST',
-        body: {
-          task_id: created.id,
-          assignee_ids: assigneeIds
-        }
-      })
+    const assigneeIds = assignedTo.value.map(id => Number(id))
 
-      if (!mapResp || !mapResp.success) {
-        try { await $fetch(`/api/tasks/${created.id}`, { method: 'DELETE' }) } catch (_) {}
-        throw new Error(mapResp?.statusMessage || 'Failed to assign users to task')
+    if (assigneeIds.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 150))
+      
+      try {
+        const mapResp = await $fetch('/api/assignee', {
+          method: 'POST',
+          body: {
+            task_id: created.id,
+            assignee_ids: assigneeIds
+          }
+        })
+      } catch (error: any) {
+        throw new Error('Failed to assign users to task')
       }
     }
-
     // Assign subtask assignees
-    if (taskResp.subtasks && Array.isArray(taskResp.subtasks)) {
-      for (let i = 0; i < subtasks.value.length; i++) {
-        const subtask = subtasks.value[i]
-        const createdSubtask = taskResp.subtasks[i]
-        
-        if (createdSubtask && subtask.assignedTo.length > 0) {
-          const subtaskAssigneeIds = subtask.assignedTo.map(id => Number(id)).filter(Boolean)
+      if (taskResp.subtasks && Array.isArray(taskResp.subtasks)) {
+        for (let i = 0; i < subtasks.value.length; i++) {
+          const localSubtask = subtasks.value[i]
+          const createdSubtask = taskResp.subtasks[i]
           
-          if (subtaskAssigneeIds.length > 0) {
-            await $fetch('/api/assignee', {
+          
+        const subtaskAssigneeIds = localSubtask.assignedTo.map(id => Number(id))
+          try {
+            const assigneeResp = await $fetch('/api/assignee', {
               method: 'POST',
               body: {
                 task_id: createdSubtask.id,
                 assignee_ids: subtaskAssigneeIds
               }
             })
+          } catch (error: any) {
+            console.error(`Failed to assign users to subtask ${createdSubtask.id}:`, error.data || error.message)
           }
+          
+          // Small delay to prevent race conditions
+          await new Promise(resolve => setTimeout(resolve, 50))
         }
       }
-    }
 
     createdTask.value = created
     successMessage.value = 'Task created successfully!'
@@ -409,8 +427,6 @@ function formatDate(date: CalendarDate) {
   const year = jsDate.getFullYear()
   return `${day}/${month}/${year}`
 }
-
-
 </script>
 
 <style scoped>
