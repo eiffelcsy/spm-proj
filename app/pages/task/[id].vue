@@ -278,8 +278,21 @@ const route = useRoute()
 const router = useRouter()
 const taskId = route.params.id
 
+// Debug logging
+console.log('Task detail page loaded')
+console.log('Route params:', route.params)
+console.log('Task ID:', taskId)
+console.log('Task ID type:', typeof taskId)
+
 const { data, pending, error, refresh } = await useFetch(`/api/tasks/${taskId}`)
-const task = computed(() => data.value?.task || null)
+console.log('API response data:', data.value)
+console.log('API response error:', error.value)
+console.log('API pending:', pending.value)
+
+const task = computed(() => {
+  console.log('Task computed - data.value:', data.value)
+  return data.value?.task || null
+})
 const isSubtask = computed(() => {
   if (!task.value) return false
   // A task is a subtask if it has a parent_task_id

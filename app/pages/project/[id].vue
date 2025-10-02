@@ -260,6 +260,8 @@ function goBack() {
 }
 
 function goToTask(task: Task) {
+  console.log('goToTask called with task (from project detail):', task)
+  console.log('Task ID:', task.id, 'Type:', typeof task.id)
   router.push(`/task/${task.id}?from=project&projectId=${projectId.value}`)
 }
 

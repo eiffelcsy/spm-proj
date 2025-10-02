@@ -5,6 +5,9 @@ export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event)
   const taskId = Number(getRouterParam(event, 'id'))
 
+  console.log('API: Fetching task with ID:', taskId, 'Type:', typeof taskId)
+  console.log('API: User authenticated:', !!user)
+
   if (!user) {
     throw createError({
       statusCode: 401,
@@ -20,15 +23,17 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Main task (no assignee join)
+    // Main task (fetch without join first)
     const { data: task, error } = await supabase
       .from('tasks')
-      .select(`*, creator:creator_id (id, fullname)`)
+      .select('*')
       .eq('id', taskId)
       .single()
 
+    console.log('API: Task query result:', { task, error })
 
     if (error) {
+      console.log('API: Task query error:', error)
       if (error.code === 'PGRST116') {
         throw createError({
           statusCode: 404,
@@ -40,6 +45,17 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Failed to fetch task',
         data: error
       })
+    }
+
+    // Fetch creator information separately
+    let creator = null
+    if (task && task.creator_id) {
+      const { data: creatorData } = await supabase
+        .from('staff')
+        .select('id, fullname')
+        .eq('id', task.creator_id)
+        .single()
+      creator = creatorData
     }
     
     // Fetch all active assignees for main task
@@ -94,7 +110,7 @@ export default defineEventHandler(async (event) => {
     if (parentTask && !parentTask.parent_task_id) {
       const { data: subtaskData, error: subtaskError } = await supabase
         .from('tasks')
-        .select(`*, creator:creator_id (id, fullname)`)
+        .select('*')
         .eq('parent_task_id', parentTask.id)
         .order('start_date', { ascending: true });
 
@@ -106,6 +122,17 @@ export default defineEventHandler(async (event) => {
         // For each subtask, fetch all its assignees from task_assignees and staff
         subtasks = await Promise.all(
           (subtaskData || []).map(async (subtask: any) => {
+            // Fetch creator for subtask
+            let subtaskCreator = null
+            if (subtask.creator_id) {
+              const { data: subtaskCreatorData } = await supabase
+                .from('staff')
+                .select('id, fullname')
+                .eq('id', subtask.creator_id)
+                .single()
+              subtaskCreator = subtaskCreatorData
+            }
+
             let subtaskAssignees: any[] = []
             const { data: subAssigneeRows } = await supabase
               .from('task_assignees')
@@ -132,24 +159,32 @@ export default defineEventHandler(async (event) => {
             } else {
               subtaskAssignees = [{ assigned_to: { id: null, fullname: 'Unassigned' }, assigned_by: null }]
             }
-            return { ...subtask, assignees: subtaskAssignees }
+            return { ...subtask, creator: subtaskCreator, assignees: subtaskAssignees }
           })
         )
       }
     }
 
-    // Attach history, subtasks, and assignees to the task object
+    // Attach history, subtasks, assignees, and creator to the task object
     if (task) {
       parentTask.history = history || [];
       parentTask.subtasks = subtasks;
       parentTask.assignees = assignees;
+      parentTask.creator = creator;
     }
 
     return { task }
   } catch (error: any) {
+    console.log('API: Caught error:', error)
+    console.log('API: Error type:', typeof error)
+    console.log('API: Error message:', error.message)
+    console.log('API: Error stack:', error.stack)
+    
     if (error.statusCode) {
+      console.log('API: Re-throwing error with status code:', error.statusCode)
       throw error
     }
+    console.log('API: Creating generic 500 error')
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

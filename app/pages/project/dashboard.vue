@@ -338,6 +338,8 @@ function getProjectDueDate(project: any): string {
 }
 
 function goToTask(task: Task) {
+  console.log('goToTask called with task:', task)
+  console.log('Task ID:', task.id, 'Type:', typeof task.id)
   router.push(`/task/${task.id}?from=project`)
 }
 
