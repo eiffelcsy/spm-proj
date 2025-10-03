@@ -128,6 +128,20 @@
               </div>
             </div>
 
+            <!-- Priority -->
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <AlertCircle class="h-4 w-4" />
+                  <span>Priority</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="w-3 h-3 rounded-full" :class="getPriorityColorClass(task.priority)"></div>
+                  <span class="text-sm font-medium">{{ getPriorityDisplay(task.priority) }}</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Notes -->
             <div class="md:col-span-2">
               <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
@@ -241,6 +255,10 @@
 
 <script setup lang="ts">
 
+definePageMeta({
+  layout: 'task-detail'
+})
+
 // ...existing code...
 import DataTable from '@/components/tasks/data-table.vue'
 import EditTaskModal from '~/components/task-modals/edit-task-modal.vue'
@@ -256,7 +274,8 @@ import {
   User, 
   FileText, 
   ChevronRight, 
-  Trash2 
+  Trash2,
+  AlertCircle
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -335,6 +354,51 @@ function isOverdue(dueDate: string | Date | undefined | null): boolean {
   const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate;
   if (!(due instanceof Date) || isNaN(due.getTime())) return false;
   return due < new Date() && task.value?.status !== 'completed';
+}
+
+function getPriorityDisplay(priority: number | string | undefined | null): string {
+  if (!priority) return 'Not Set';
+  
+  const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+  if (isNaN(priorityNum) || priorityNum < 1 || priorityNum > 10) return 'Not Set';
+  
+  const priorityOptions = [
+    { level: 1, label: 'Lowest' },
+    { level: 2, label: 'Very Low' },
+    { level: 3, label: 'Low' },
+    { level: 4, label: 'Medium Low' },
+    { level: 5, label: 'Medium' },
+    { level: 6, label: 'Medium High' },
+    { level: 7, label: 'High' },
+    { level: 8, label: 'Very High' },
+    { level: 9, label: 'Critical' },
+    { level: 10, label: 'Emergency' }
+  ];
+  
+  const option = priorityOptions.find(p => p.level === priorityNum);
+  return option ? `Level ${option.level} (${option.label})` : 'Not Set';
+}
+
+function getPriorityColorClass(priority: number | string | undefined | null): string {
+  if (!priority) return 'bg-gray-400';
+  
+  const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+  if (isNaN(priorityNum) || priorityNum < 1 || priorityNum > 10) return 'bg-gray-400';
+  
+  const colorClasses = [
+    'bg-blue-400',    // Level 1 - Lowest
+    'bg-blue-500',    // Level 2 - Very Low
+    'bg-indigo-500',  // Level 3 - Low
+    'bg-green-500',   // Level 4 - Medium Low
+    'bg-yellow-500',  // Level 5 - Medium
+    'bg-orange-500',  // Level 6 - Medium High
+    'bg-red-400',     // Level 7 - High
+    'bg-red-500',     // Level 8 - Very High
+    'bg-red-600',     // Level 9 - Critical
+    'bg-purple-600'   // Level 10 - Emergency
+  ];
+  
+  return colorClasses[priorityNum - 1] || 'bg-gray-400';
 }
 
 
@@ -486,6 +550,22 @@ const subtaskColumns = [
     header: 'Due Date',
     cell: ({ row }: any) => formatDate(row.original?.due_date || row.original?.dueDate),
     enableSorting: true,
+  },
+  {
+    accessorKey: 'priority',
+    header: 'Priority',
+    cell: ({ row }: any) => h(
+      'div',
+      { class: 'flex items-center space-x-2' },
+      [
+        h('div', {
+          class: `w-2 h-2 rounded-full ${getPriorityColorClass(row.original?.priority)}`
+        }),
+        h('span', { class: 'text-sm' }, getPriorityDisplay(row.original?.priority))
+      ]
+    ),
+    enableSorting: true,
+    enableFiltering: true,
   },
   {
     accessorKey: 'status',
