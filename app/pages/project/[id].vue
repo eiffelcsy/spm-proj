@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-5xl xl:max-w-7xl">
+  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-6xl xl:max-w-7xl">
 
     <!-- Back Button -->
     <div class="mb-6">
@@ -153,7 +153,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getLocalTimeZone } from '@internationalized/date'
 
-// Page meta not needed for this route
+definePageMeta({
+  layout: 'dashboard'
+})
 import { columns } from '@/components/tasks/columns'
 import { overdueColumns } from '@/components/tasks/overdue-columns'
 import type { Task } from '@/components/tasks/data/schema'

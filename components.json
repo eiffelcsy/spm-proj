@@ -3,7 +3,7 @@
   "style": "new-york",
   "typescript": true,
   "tailwind": {
-    "config": "",
+    "config": "nuxt.config.ts",
     "css": "app/assets/css/tailwind.css",
     "baseColor": "zinc",
     "cssVariables": true,
