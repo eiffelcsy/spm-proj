@@ -6,15 +6,15 @@
         <button @click="goToDashboard" class="hover:text-foreground transition-colors">
           Dashboard
         </button>
-        <ChevronRightIcon class="h-4 w-4" />
+        <ChevronRight class="h-4 w-4" />
         <span v-if="isSubtask && task?.parentTask" class="hover:text-foreground transition-colors cursor-pointer" @click="goToParentTask(task.parentId)">
           {{ task.parentTask }}
         </span>
-        <ChevronRightIcon v-if="isSubtask && task?.parentTask" class="h-4 w-4" />
+        <ChevronRight v-if="isSubtask && task?.parentTask" class="h-4 w-4" />
         <span class="text-foreground font-medium">{{ task?.title || 'Task Details' }}</span>
       </div>
       <Button variant="ghost" size="icon" @click="goToDashboard">
-        <Cross2Icon class="h-4 w-4" />
+        <X class="h-4 w-4" />
       </Button>
     </div>
 
@@ -43,7 +43,7 @@
                 size="sm"
                 @click="openEditModal"
               >
-                <Pencil1Icon class="mr-2 h-4 w-4" />
+                <Pencil class="mr-2 h-4 w-4" />
                 Edit {{ isSubtask ? 'Subtask' : 'Task' }}
               </Button>
               <Button
@@ -52,7 +52,7 @@
                 @click="openDeleteModal"
                 class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
               >
-                <TrashIcon class="mr-2 h-4 w-4" />
+                <Trash2 class="mr-2 h-4 w-4" />
                 Delete {{ isSubtask ? 'Subtask' : 'Task' }}
               </Button>
             </div>
@@ -63,16 +63,16 @@
             <!-- Dates -->
             <div class="space-y-4">
               <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <CalendarIcon class="h-4 w-4" />
-                  Start Date
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <Calendar class="h-4 w-4" />
+                  <span>Start Date</span>
                 </div>
                 <div class="text-sm">{{ formatDate(task.start_date) }}</div>
               </div>
               <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <CalendarIcon class="h-4 w-4" />
-                  Due Date
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <Calendar class="h-4 w-4" />
+                  <span>Due Date</span>
                 </div>
                 <div class="text-sm" :class="{ 'text-red-600': isOverdue(task.due_date) }">
                   {{ formatDate(task.due_date) }}
@@ -86,9 +86,9 @@
             <!-- People -->
             <div class="space-y-4">
               <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <PersonIcon class="h-4 w-4" />
-                  Creator
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <User class="h-4 w-4" />
+                  <span>Creator</span>
                 </div>
                 <div class="flex items-center space-x-2">
                   <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
@@ -98,9 +98,9 @@
                 </div>
               </div>
                <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <PersonIcon class="h-4 w-4" />
-                  Assignee
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <User class="h-4 w-4" />
+                  <span>Assignee</span>
                 </div>
                 <div v-if="task.assignees && task.assignees.length" class="flex flex-col space-y-1">
                   <template v-for="(assignee, idx) in task.assignees" :key="idx">
@@ -130,9 +130,9 @@
 
             <!-- Notes -->
             <div class="md:col-span-2">
-              <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                <FileTextIcon class="h-4 w-4" />
-                Notes
+              <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                <FileText class="h-4 w-4" />
+                <span>Notes</span>
               </div>
               <div class="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
                 {{ task.notes || 'No additional notes' }}
@@ -146,7 +146,7 @@
       <Card v-if="!isSubtask && task.subtasks && task.subtasks.length > 0">
         <CardHeader>
           <CardTitle class="flex items-center space-x-2">
-            <ListBulletIcon class="h-5 w-5" />
+            <List class="h-5 w-5" />
             <span>Subtasks</span>
             <Badge variant="secondary" class="ml-2">{{ task.subtasks.length }}</Badge>
           </CardTitle>
@@ -166,7 +166,7 @@
       <Card>
         <CardHeader>
           <CardTitle class="flex items-center space-x-2">
-            <ClockIcon class="h-5 w-5" />
+            <Clock class="h-5 w-5" />
             <span>Activity Timeline</span>
           </CardTitle>
         </CardHeader>
@@ -200,7 +200,7 @@
 
       <!-- Read-only notice -->
       <div v-if="!canEdit" class="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-        <InfoCircledIcon class="h-4 w-4" />
+        <Info class="h-4 w-4" />
         <span>This view is read-only. Only the creator or assignee can edit this {{ isSubtask ? 'subtask' : 'task' }}.</span>
       </div>
     </div>
@@ -209,7 +209,7 @@
     <Card v-else>
       <CardContent class="pt-6">
         <div class="text-center space-y-2">
-          <ExclamationTriangleIcon class="h-12 w-12 text-muted-foreground mx-auto" />
+          <AlertTriangle class="h-12 w-12 text-muted-foreground mx-auto" />
           <h3 class="text-lg font-semibold">Task Not Found</h3>
           <p class="text-muted-foreground">The task you're looking for doesn't exist or has been removed.</p>
           <Button @click="goToDashboard" class="mt-4">
@@ -245,34 +245,19 @@
 import DataTable from '@/components/tasks/data-table.vue'
 import EditTaskModal from '~/components/task-modals/edit-task-modal.vue'
 import { DeleteTaskModal } from '~/components/task-modals/delete-task-modal'
-import {
-  ListBulletIcon,
-  ClockIcon,
-  InfoCircledIcon,
-  ExclamationTriangleIcon,
-  Cross2Icon,
-  Pencil1Icon,
-  CalendarIcon,
-  PersonIcon,
-  FileTextIcon,
-  ChevronRightIcon,
-  TrashIcon
-} from '@radix-icons/vue'
-
-// Register Radix icons for template usage
-const components = {
-  ListBulletIcon,
-  ClockIcon,
-  InfoCircledIcon,
-  ExclamationTriangleIcon,
-  Cross2Icon,
-  Pencil1Icon,
-  CalendarIcon,
-  PersonIcon,
-  FileTextIcon,
-  ChevronRightIcon,
-  TrashIcon
-}
+import { 
+  List, 
+  Clock, 
+  Info, 
+  AlertTriangle, 
+  X, 
+  Pencil, 
+  Calendar, 
+  User, 
+  FileText, 
+  ChevronRight, 
+  Trash2 
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -291,7 +276,7 @@ console.log('API pending:', pending.value)
 
 const task = computed(() => {
   console.log('Task computed - data.value:', data.value)
-  return data.value?.task || null
+  return (data.value as any)?.task || null
 })
 const isSubtask = computed(() => {
   if (!task.value) return false
