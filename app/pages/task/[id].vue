@@ -357,7 +357,13 @@ function isOverdue(dueDate: string | Date | undefined | null): boolean {
 
 function goToDashboard() {
   const from = route.query.from
-  if (from === 'project') {
+  const projectId = route.query.projectId
+  
+  if (from === 'project' && projectId) {
+    // Return to specific project page
+    router.push(`/project/${projectId}`)
+  } else if (from === 'project') {
+    // Return to general project dashboard
     router.push('/project/dashboard')
   } else {
     router.push('/personal/dashboard') // default to personal
@@ -365,7 +371,17 @@ function goToDashboard() {
 }
 
 function goToSubtask(subtaskId: string) {
-  router.push(`/task/${subtaskId}`)
+  // Preserve the project context when navigating to subtasks
+  const from = route.query.from
+  const projectId = route.query.projectId
+  
+  if (from && projectId) {
+    router.push(`/task/${subtaskId}?from=${from}&projectId=${projectId}`)
+  } else if (from) {
+    router.push(`/task/${subtaskId}?from=${from}`)
+  } else {
+    router.push(`/task/${subtaskId}`)
+  }
 }
 
 // edit this when we can verify the current user
@@ -380,7 +396,17 @@ function goToSubtask(subtaskId: string) {
 const canEdit = computed(() => true)
 
 function goToParentTask(parentId: string) {
-  router.push(`/task/${parentId}`)
+  // Preserve the project context when navigating to parent task
+  const from = route.query.from
+  const projectId = route.query.projectId
+  
+  if (from && projectId) {
+    router.push(`/task/${parentId}?from=${from}&projectId=${projectId}`)
+  } else if (from) {
+    router.push(`/task/${parentId}?from=${from}`)
+  } else {
+    router.push(`/task/${parentId}`)
+  }
 }
 
 function openEditModal() {

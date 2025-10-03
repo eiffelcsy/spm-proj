@@ -5,8 +5,7 @@ export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event)
   const taskId = Number(getRouterParam(event, 'id'))
 
-  console.log('API: Fetching task with ID:', taskId, 'Type:', typeof taskId)
-  console.log('API: User authenticated:', !!user)
+
 
   if (!user) {
     throw createError({
@@ -28,9 +27,8 @@ export default defineEventHandler(async (event) => {
       .from('tasks')
       .select('*')
       .eq('id', taskId)
-      .single()
+      .single() as { data: any, error: any }
 
-    console.log('API: Task query result:', { task, error })
 
     if (error) {
       console.log('API: Task query error:', error)
