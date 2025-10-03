@@ -36,9 +36,9 @@
             </div>
             <div class="flex gap-2">
               <Button 
-                variant="default"
+                variant="outline"
                 size="sm"
-                class="h-8"
+                class="h-8 bg-white text-black border-gray-300 hover:bg-gray-50 hover:text-black"
                 @click="openEditProjectModal"
               >
                 <svg class="md:mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

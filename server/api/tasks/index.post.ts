@@ -19,7 +19,6 @@ export default defineEventHandler(async (event) => {
 
   const parentTaskPayload = {
     title: body.title,
-    description: body.description ?? null,
     notes: body.notes ?? null,
     start_date: body.start_date ?? null,
     due_date: body.due_date ?? null,

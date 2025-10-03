@@ -33,8 +33,8 @@
                 </Badge>
               </div>
               <CardTitle class="text-2xl">{{ task.title }}</CardTitle>
-              <CardDescription v-if="task.description">
-                {{ task.description }}
+              <CardDescription v-if="task.notes">
+                {{ task.notes }}
               </CardDescription>
             </div>
             <div v-if="canEdit" class="ml-4 flex flex-col gap-2">

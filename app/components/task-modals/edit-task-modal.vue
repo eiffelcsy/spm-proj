@@ -78,7 +78,7 @@
 
         <!-- Notes -->
         <div>
-          <label class="block text-sm font-medium mb-1">Notes / Description</label>
+          <label class="block text-sm font-medium mb-1">Notes</label>
           <textarea v-model="description" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
         </div>
 
@@ -152,10 +152,10 @@
                   :staff-members="staffMembers" compact />
               </div>
 
-              <!-- Description -->
+              <!-- Notes -->
               <div>
-                <label class="block text-xs font-medium mb-1">Description</label>
-                <textarea v-model="subtask.description" rows="2" placeholder="Subtask description..."
+                <label class="block text-xs font-medium mb-1">Notes</label>
+                <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
                   class="w-full border rounded-lg px-2 py-1 text-sm"></textarea>
               </div>
             </div>
@@ -217,7 +217,7 @@ interface TaskUpdate {
   start_date: string
   end_date: string | null
   status: string
-  description: string | null
+  notes: string | null
   assignee_id: number | null
 }
 
@@ -246,7 +246,7 @@ const subtasks = ref<{
   startDate: CalendarDate;
   dueDate: CalendarDate;
   status: string;
-  description: string;
+  notes: string;
   assignedTo: string[];
   expanded: boolean;
 }[]>([])
@@ -386,7 +386,7 @@ function populateForm() {
         }
       })() : undefined,
       status: subtask.status || 'not-started',
-      description: subtask.description || '',
+      notes: subtask.notes || subtask.description || '',
       assignedTo: subtask.assignedTo || (subtask.assignee_id ? [String(subtask.assignee_id)] : []),
       expanded: false
     }))
@@ -413,7 +413,7 @@ function addSubtask() {
       startDate: parseDate(today),
       dueDate: parseDate(today),
       status: 'not-started',
-      description: '',
+      notes: '',
       assignedTo: [],
       expanded: false
     })
@@ -470,7 +470,7 @@ async function updateTask() {
       start_date: startDate.value ? startDate.value.toString() : new Date().toISOString().split('T')[0] || '',
       end_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
-      description: description.value || null,
+      notes: description.value || null,
       assignee_id: assignedTo.value.length > 0 && assignedTo.value[0] ? parseInt(assignedTo.value[0]) : null,
     }
 

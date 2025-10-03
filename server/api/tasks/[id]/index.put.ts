@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
     if (body.start_date) updateData.start_date = body.start_date
     if (body.end_date !== undefined) updateData.due_date = body.end_date
     if (body.status) updateData.status = body.status
-    if (body.description !== undefined) updateData.description = body.description
+    if (body.notes !== undefined) updateData.notes = body.notes
     if (body.assignee_id !== undefined) updateData.assignee_id = body.assignee_id
 
     console.log('PUT /api/tasks/[id] - Update data:', updateData)
