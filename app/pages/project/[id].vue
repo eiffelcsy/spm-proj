@@ -34,7 +34,7 @@
               <h1 class="text-3xl font-bold mb-2">{{ project.name }}</h1>
               <p class="text-gray-600 text-lg">{{ project.description }}</p>
             </div>
-            <div class="flex gap-2">
+            <div v-if="isProjectOwner" class="flex gap-2">
               <Button 
                 variant="outline"
                 size="sm"
@@ -45,6 +45,17 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
                 <span class="hidden md:block">Edit Project</span>
+              </Button>
+              <Button 
+                variant="outline"
+                size="sm"
+                class="h-8 bg-white text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
+                @click="openDeleteProjectModal"
+              >
+                <svg class="md:mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span class="hidden md:block">Delete Project</span>
               </Button>
             </div>
           </div>
@@ -145,6 +156,14 @@
       @close="closeEditProjectModal" 
       @project-updated="handleProjectUpdated" 
     />
+
+    <!-- Delete Project Modal -->
+    <DeleteProjectModal 
+      :isOpen="isDeleteProjectModalOpen" 
+      :project="project"
+      @close="closeDeleteProjectModal" 
+      @project-deleted="handleProjectDeleted" 
+    />
   </div>
 </template>
 
@@ -162,6 +181,7 @@ import type { Task } from '@/components/tasks/data/schema'
 import DataTable from '@/components/tasks/data-table.vue'
 import CreateTaskModal from '~/components/task-modals/create-task-modal.vue'
 import EditProjectModal from '~/components/project-modals/edit-project-modal.vue'
+import DeleteProjectModal from '~/components/project-modals/delete-project-modal.vue'
 import { Button } from '@/components/ui/button'
 
 const router = useRouter()
@@ -170,16 +190,16 @@ const route = useRoute()
 // Get project ID from route params
 const projectId = computed(() => route.params.id as string)
 
-// Project detail page initialized
-
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 const project = ref<any>(null)
 const rawTasks = ref<any[]>([])
+const currentUserStaffId = ref<number | null>(null)
 
 // Modal states
 const isModalOpen = ref(false)
 const isEditProjectModalOpen = ref(false)
+const isDeleteProjectModalOpen = ref(false)
 
 // Transform tasks to match expected format
 function transformTask(task: any): Task {
@@ -249,6 +269,13 @@ const filteredOverdueTasks = computed(() => {
   })
 })
 
+// Check if current user is the project owner
+const isProjectOwner = computed(() => {
+  return currentUserStaffId.value !== null && 
+         project.value?.owner_id !== null && 
+         currentUserStaffId.value === project.value.owner_id
+})
+
 function getProjectTaskCount(): number {
   // Ensure rawTasks.value is an array before calling filter
   if (!Array.isArray(rawTasks.value)) {
@@ -262,8 +289,6 @@ function goBack() {
 }
 
 function goToTask(task: Task) {
-  console.log('goToTask called with task (from project detail):', task)
-  console.log('Task ID:', task.id, 'Type:', typeof task.id)
   router.push(`/task/${task.id}?from=project&projectId=${projectId.value}`)
 }
 
@@ -294,6 +319,16 @@ async function fetchData() {
   }
 }
 
+async function fetchCurrentUser() {
+  try {
+    const user = await $fetch('/api/user/me')
+    currentUserStaffId.value = user.id
+  } catch (err) {
+    console.error('Failed to fetch current user:', err)
+    currentUserStaffId.value = null
+  }
+}
+
 async function fetchProject() {
   try {
     error.value = null
@@ -310,6 +345,7 @@ async function fetchProject() {
         status: foundProject.status || 'active',
         createdAt: foundProject.created_at || new Date().toISOString(),
         dueDate: foundProject.due_date || null,
+        owner_id: foundProject.owner_id || null,
         isRealData: true
       }
     } else {
@@ -393,6 +429,23 @@ function closeEditProjectModal() {
   isEditProjectModalOpen.value = false
 }
 
+// Project deletion functions
+function openDeleteProjectModal() {
+  isDeleteProjectModalOpen.value = true
+}
+
+function closeDeleteProjectModal() {
+  isDeleteProjectModalOpen.value = false
+}
+
+async function handleProjectDeleted() {
+  // Close modal first
+  closeDeleteProjectModal()
+  
+  // Redirect to projects dashboard
+  router.push('/project/dashboard')
+}
+
 function handleProjectUpdated(updatedProject: any) {
   // Update the project data
   project.value = {
@@ -409,7 +462,7 @@ function handleProjectUpdated(updatedProject: any) {
 onMounted(async () => {
   isLoading.value = true
   try {
-    await Promise.all([fetchData(), fetchProject()])
+    await Promise.all([fetchData(), fetchProject(), fetchCurrentUser()])
   } finally {
     isLoading.value = false
   }

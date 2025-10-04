@@ -74,14 +74,40 @@ export default defineEventHandler(async (event) => {
       .eq('task_id', numericTaskId)
       .eq('is_active', true)
 
-    // Check if current user is assigned to this task (creators cannot delete)
-    const isAssigned = assigneeRows?.some((row: any) => row.assigned_to_staff_id === currentStaffId) || false
+    // Check if task is assigned to anyone
+    const isTaskAssigned = assigneeRows && assigneeRows.length > 0
+    
+    if (isTaskAssigned) {
+      // If task is assigned, only the assigned person can delete
+      const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
+      
+      if (!isCurrentUserAssigned) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to delete this task. Only assigned staff can delete assigned tasks.'
+        })
+      }
+    } else {
+      // If task is unassigned, only the task creator can delete
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select('creator_id')
+        .eq('id', numericTaskId)
+        .single() as { data: { creator_id: number } | null, error: any }
 
-    if (!isAssigned) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'You do not have permission to delete this task. Only assigned staff can delete it.'
-      })
+      if (taskError || !taskData) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch task creator information'
+        })
+      }
+
+      if (taskData.creator_id !== currentStaffId) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to delete this task. Only the task creator can delete unassigned tasks.'
+        })
+      }
     }
 
     // Check if this task has subtasks
@@ -96,8 +122,21 @@ export default defineEventHandler(async (event) => {
       // Task has subtasks - database should handle cascading
     }
 
+    // Delete activity timeline records first (foreign key constraint)
+    const { error: timelineDeleteError } = await supabase
+      .from('activity_timeline')
+      .delete()
+      .eq('task_id', numericTaskId)
+
+    if (timelineDeleteError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to delete activity timeline records',
+        data: timelineDeleteError
+      })
+    }
+
     // Delete the task
-    
     const { data: deletedData, error: deleteError } = await supabase
       .from('tasks')
       .delete()

@@ -175,8 +175,24 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Check if current user can edit/delete this task (only assigned staff, not creators)
-    const canEdit = assignees.some((assignee: any) => assignee.assigned_to.id === currentStaffId)
+    // Check if current user can edit/delete this task
+    // New logic: assigned users OR task creator (if unassigned)
+    const isAssigned = assignees.some((assignee: any) => assignee.assigned_to.id === currentStaffId)
+    const isTaskAssigned = assignees.some((assignee: any) => assignee.assigned_to.id !== null)
+    const isCreator = creator && (creator as any).id === currentStaffId
+    
+    let canEdit = false
+    let canDelete = false
+    
+    if (isTaskAssigned) {
+      // If task is assigned, only assigned person can edit/delete
+      canEdit = isAssigned
+      canDelete = isAssigned
+    } else {
+      // If task is unassigned, only task creator can edit/delete
+      canEdit = Boolean(isCreator)
+      canDelete = Boolean(isCreator)
+    }
     
     // Attach history, subtasks, assignees, creator, and permissions to the task object
     if (task) {
@@ -186,7 +202,7 @@ export default defineEventHandler(async (event) => {
       parentTask.creator = creator;
       parentTask.permissions = {
         canEdit,
-        canDelete: canEdit // Same permissions for edit and delete
+        canDelete
       };
     }
 

@@ -73,14 +73,40 @@ export default defineEventHandler(async (event) => {
       .eq('task_id', taskId)
       .eq('is_active', true)
 
-    // Check if current user is assigned to this task (creators cannot edit)
-    const isAssigned = assigneeRows?.some((row: any) => row.assigned_to_staff_id === currentStaffId) || false
+    // Check if task is assigned to anyone
+    const isTaskAssigned = assigneeRows && assigneeRows.length > 0
+    
+    if (isTaskAssigned) {
+      // If task is assigned, only the assigned person can edit
+      const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
+      
+      if (!isCurrentUserAssigned) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to edit this task. Only assigned staff can edit assigned tasks.'
+        })
+      }
+    } else {
+      // If task is unassigned, only the task creator can edit
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select('creator_id')
+        .eq('id', taskId)
+        .single() as { data: { creator_id: number } | null, error: any }
 
-    if (!isAssigned) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'You do not have permission to edit this task. Only assigned staff can edit it.'
-      })
+      if (taskError || !taskData) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch task creator information'
+        })
+      }
+
+      if (taskData.creator_id !== currentStaffId) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to edit this task. Only the task creator can edit unassigned tasks.'
+        })
+      }
     }
 
     // Validate and prepare the update data
