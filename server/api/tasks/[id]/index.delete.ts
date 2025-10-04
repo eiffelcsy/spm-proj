@@ -136,6 +136,20 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Delete task assignees (foreign key constraint)
+    const { error: assigneesDeleteError } = await supabase
+      .from('task_assignees')
+      .delete()
+      .eq('task_id', numericTaskId)
+
+    if (assigneesDeleteError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to delete task assignees',
+        data: assigneesDeleteError
+      })
+    }
+
     // Delete the task
     const { data: deletedData, error: deleteError } = await supabase
       .from('tasks')
