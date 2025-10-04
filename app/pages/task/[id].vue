@@ -537,7 +537,13 @@ const subtaskColumns = [
   {
     accessorKey: 'dueDate',
     header: 'Due Date',
-    cell: ({ row }: any) => formatDate(row.original?.due_date || row.original?.dueDate),
+    cell: ({ row }: any) => {
+      const dueDate = row.original?.due_date || row.original?.dueDate;
+      const isOverdueDate = isOverdue(dueDate);
+      return h('div', {
+        class: isOverdueDate ? 'text-red-600 font-semibold' : ''
+      }, formatDate(dueDate));
+    },
     enableSorting: true,
   },
   {
