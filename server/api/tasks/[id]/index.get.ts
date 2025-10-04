@@ -5,14 +5,28 @@ export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event)
   const taskId = Number(getRouterParam(event, 'id'))
 
-
-
   if (!user) {
     throw createError({
       statusCode: 401,
       statusMessage: 'Unauthorized - User not authenticated'
     })
   }
+
+  // Get current user's staff ID
+  const { data: staffIdData, error: staffIdError } = await supabase
+    .from('staff')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (staffIdError || !staffIdData) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to fetch staff ID',
+      data: staffIdError
+    })
+  }
+  const currentStaffId = (staffIdData as { id: number }).id
 
   if (!taskId) {
     throw createError({
@@ -31,7 +45,6 @@ export default defineEventHandler(async (event) => {
 
 
     if (error) {
-      console.log('API: Task query error:', error)
       if (error.code === 'PGRST116') {
         throw createError({
           statusCode: 404,
@@ -114,7 +127,6 @@ export default defineEventHandler(async (event) => {
 
 
       if (subtaskError) {
-        console.error('Failed to fetch subtasks:', subtaskError);
         subtasks = [];
       } else {
         // For each subtask, fetch all its assignees from task_assignees and staff
@@ -163,26 +175,26 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Attach history, subtasks, assignees, and creator to the task object
+    // Check if current user can edit/delete this task (only assigned staff, not creators)
+    const canEdit = assignees.some((assignee: any) => assignee.assigned_to.id === currentStaffId)
+    
+    // Attach history, subtasks, assignees, creator, and permissions to the task object
     if (task) {
       parentTask.history = history || [];
       parentTask.subtasks = subtasks;
       parentTask.assignees = assignees;
       parentTask.creator = creator;
+      parentTask.permissions = {
+        canEdit,
+        canDelete: canEdit // Same permissions for edit and delete
+      };
     }
 
     return { task }
   } catch (error: any) {
-    console.log('API: Caught error:', error)
-    console.log('API: Error type:', typeof error)
-    console.log('API: Error message:', error.message)
-    console.log('API: Error stack:', error.stack)
-    
     if (error.statusCode) {
-      console.log('API: Re-throwing error with status code:', error.statusCode)
       throw error
     }
-    console.log('API: Creating generic 500 error')
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

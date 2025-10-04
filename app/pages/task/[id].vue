@@ -37,8 +37,9 @@
                 {{ task.notes }}
               </CardDescription>
             </div>
-            <div v-if="canEdit" class="ml-4 flex flex-col gap-2">
+            <div v-if="canEdit || canDelete" class="ml-4 flex flex-col gap-2">
               <Button
+                v-if="canEdit"
                 variant="outline"
                 size="sm"
                 @click="openEditModal"
@@ -47,6 +48,7 @@
                 Edit {{ isSubtask ? 'Subtask' : 'Task' }}
               </Button>
               <Button
+                v-if="canDelete"
                 variant="outline"
                 size="sm"
                 @click="openDeleteModal"
@@ -213,9 +215,9 @@
       </Card>
 
       <!-- Read-only notice -->
-      <div v-if="!canEdit" class="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+      <div v-if="!canEdit && !canDelete" class="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
         <Info class="h-4 w-4" />
-        <span>This view is read-only. Only the creator or assignee can edit this {{ isSubtask ? 'subtask' : 'task' }}.</span>
+        <span>This view is read-only. Only assigned staff can edit or delete this {{ isSubtask ? 'subtask' : 'task' }}.</span>
       </div>
     </div>
 
@@ -282,19 +284,9 @@ const route = useRoute()
 const router = useRouter()
 const taskId = route.params.id
 
-// Debug logging
-console.log('Task detail page loaded')
-console.log('Route params:', route.params)
-console.log('Task ID:', taskId)
-console.log('Task ID type:', typeof taskId)
-
 const { data, pending, error, refresh } = await useFetch(`/api/tasks/${taskId}`)
-console.log('API response data:', data.value)
-console.log('API response error:', error.value)
-console.log('API pending:', pending.value)
 
 const task = computed(() => {
-  console.log('Task computed - data.value:', data.value)
   return (data.value as any)?.task || null
 })
 const isSubtask = computed(() => {
@@ -433,16 +425,16 @@ function goToSubtask(subtaskId: string) {
   }
 }
 
-// edit this when we can verify the current user
+// Use permissions from the API response
+const canEdit = computed(() => {
+  if (!task.value || !task.value.permissions) return false
+  return task.value.permissions.canEdit
+})
 
-// const currentUser = 'Alice Smith'
-// const canEdit = computed(() => {
-//   if (!task.value) return false
-//   // User can edit if they are the assignee OR the creator
-//   return task.value.assignee === currentUser || task.value.creator === currentUser
-// })
-
-const canEdit = computed(() => true)
+const canDelete = computed(() => {
+  if (!task.value || !task.value.permissions) return false
+  return task.value.permissions.canDelete
+})
 
 function goToParentTask(parentId: string) {
   // Preserve the project context when navigating to parent task
@@ -495,30 +487,21 @@ async function handleDeleteComplete() {
   try {
     await performDelete()
   } catch (error) {
-    console.error('Error during delete completion:', error)
     // Don't redirect if deletion failed
   }
 }
 
 async function performDelete() {
   try {
-    console.log('performDelete - Starting deletion process')
-    console.log('performDelete - Task:', task.value)
-    
     if (!task.value || !task.value.id) {
       throw new Error('Task ID is missing')
     }
-
-    console.log('performDelete - Deleting task with ID:', task.value.id)
 
     const response = await $fetch<{ success: boolean; message: string }>(`/api/tasks/${task.value.id}`, {
       method: 'DELETE'
     })
 
-    console.log('performDelete - API response:', response)
-
     if (response.success) {
-      console.log('performDelete - Deletion successful, redirecting to dashboard')
       // Close modal and navigate back to dashboard
       closeDeleteModal()
       router.push('/personal/dashboard')
@@ -526,7 +509,6 @@ async function performDelete() {
       throw new Error('Failed to delete task')
     }
   } catch (error) {
-    console.error('Error deleting task:', error)
     closeDeleteModal()
     // You might want to show an error message to the user here
   }
