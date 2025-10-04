@@ -187,7 +187,7 @@
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="space-y-4">
+          <div v-if="task.history && task.history.length > 0" class="space-y-4">
             <div v-for="(log, idx) in task.history" :key="log.timestamp" class="relative flex items-start space-x-3">
               <!-- Timeline dot and line -->
               <div class="flex flex-col items-center">
@@ -209,6 +209,13 @@
                   by {{ log.staff?.fullname || '?' }}
                 </p>
               </div>
+            </div>
+          </div>
+          <div v-else class="flex items-center justify-center py-8">
+            <div class="text-center">
+              <Clock class="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p class="text-sm text-muted-foreground">No activities available</p>
+              <p class="text-xs text-muted-foreground mt-1">Activity timeline will appear here as the task progresses</p>
             </div>
           </div>
         </CardContent>
