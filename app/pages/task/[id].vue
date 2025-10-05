@@ -6,15 +6,15 @@
         <button @click="goToDashboard" class="hover:text-foreground transition-colors">
           Dashboard
         </button>
-        <ChevronRightIcon class="h-4 w-4" />
+        <ChevronRight class="h-4 w-4" />
         <span v-if="isSubtask && task?.parentTask" class="hover:text-foreground transition-colors cursor-pointer" @click="goToParentTask(task.parentId)">
           {{ task.parentTask }}
         </span>
-        <ChevronRightIcon v-if="isSubtask && task?.parentTask" class="h-4 w-4" />
+        <ChevronRight v-if="isSubtask && task?.parentTask" class="h-4 w-4" />
         <span class="text-foreground font-medium">{{ task?.title || 'Task Details' }}</span>
       </div>
       <Button variant="ghost" size="icon" @click="goToDashboard">
-        <Cross2Icon class="h-4 w-4" />
+        <X class="h-4 w-4" />
       </Button>
     </div>
 
@@ -37,22 +37,24 @@
                 {{ task.notes }}
               </CardDescription>
             </div>
-            <div v-if="canEdit" class="ml-4 flex flex-col gap-2">
+            <div v-if="canEdit || canDelete" class="ml-4 flex flex-col gap-2">
               <Button
+                v-if="canEdit"
                 variant="outline"
                 size="sm"
                 @click="openEditModal"
               >
-                <Pencil1Icon class="mr-2 h-4 w-4" />
+                <Pencil class="mr-2 h-4 w-4" />
                 Edit {{ isSubtask ? 'Subtask' : 'Task' }}
               </Button>
               <Button
+                v-if="canDelete"
                 variant="outline"
                 size="sm"
                 @click="openDeleteModal"
                 class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
               >
-                <TrashIcon class="mr-2 h-4 w-4" />
+                <Trash2 class="mr-2 h-4 w-4" />
                 Delete {{ isSubtask ? 'Subtask' : 'Task' }}
               </Button>
             </div>
@@ -63,16 +65,16 @@
             <!-- Dates -->
             <div class="space-y-4">
               <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <CalendarIcon class="h-4 w-4" />
-                  Start Date
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <Calendar class="h-4 w-4" />
+                  <span>Start Date</span>
                 </div>
                 <div class="text-sm">{{ formatDate(task.start_date) }}</div>
               </div>
               <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <CalendarIcon class="h-4 w-4" />
-                  Due Date
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <Calendar class="h-4 w-4" />
+                  <span>Due Date</span>
                 </div>
                 <div class="text-sm" :class="{ 'text-red-600': isOverdue(task.due_date) }">
                   {{ formatDate(task.due_date) }}
@@ -86,9 +88,9 @@
             <!-- People -->
             <div class="space-y-4">
               <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <PersonIcon class="h-4 w-4" />
-                  Creator
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <User class="h-4 w-4" />
+                  <span>Creator</span>
                 </div>
                 <div class="flex items-center space-x-2">
                   <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
@@ -98,9 +100,9 @@
                 </div>
               </div>
                <div>
-                <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                  <PersonIcon class="h-4 w-4" />
-                  Assignee
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <User class="h-4 w-4" />
+                  <span>Assignee</span>
                 </div>
                 <div v-if="task.assignees && task.assignees.length" class="flex flex-col space-y-1">
                   <template v-for="(assignee, idx) in task.assignees" :key="idx">
@@ -128,11 +130,25 @@
               </div>
             </div>
 
+            <!-- Priority -->
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                  <AlertCircle class="h-4 w-4" />
+                  <span>Priority</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="w-3 h-3 rounded-full" :class="getPriorityColorClass(task.priority)"></div>
+                  <span class="text-sm font-medium">{{ getPriorityDisplay(task.priority) }}</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Notes -->
             <div class="md:col-span-2">
-              <div class="flex items-center space-x-2 text-sm font-medium text-muted-foreground mb-1">
-                <FileTextIcon class="h-4 w-4" />
-                Notes
+              <div class="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1">
+                <FileText class="h-4 w-4" />
+                <span>Notes</span>
               </div>
               <div class="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
                 {{ task.notes || 'No additional notes' }}
@@ -146,7 +162,7 @@
       <Card v-if="!isSubtask && task.subtasks && task.subtasks.length > 0">
         <CardHeader>
           <CardTitle class="flex items-center space-x-2">
-            <ListBulletIcon class="h-5 w-5" />
+            <List class="h-5 w-5" />
             <span>Subtasks</span>
             <Badge variant="secondary" class="ml-2">{{ task.subtasks.length }}</Badge>
           </CardTitle>
@@ -166,12 +182,12 @@
       <Card>
         <CardHeader>
           <CardTitle class="flex items-center space-x-2">
-            <ClockIcon class="h-5 w-5" />
+            <Clock class="h-5 w-5" />
             <span>Activity Timeline</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="space-y-4">
+          <div v-if="task.history && task.history.length > 0" class="space-y-4">
             <div v-for="(log, idx) in task.history" :key="log.timestamp" class="relative flex items-start space-x-3">
               <!-- Timeline dot and line -->
               <div class="flex flex-col items-center">
@@ -195,13 +211,20 @@
               </div>
             </div>
           </div>
+          <div v-else class="flex items-center justify-center py-8">
+            <div class="text-center">
+              <Clock class="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p class="text-sm text-muted-foreground">No activities available</p>
+              <p class="text-xs text-muted-foreground mt-1">Activity timeline will appear here as the task progresses</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       <!-- Read-only notice -->
-      <div v-if="!canEdit" class="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-        <InfoCircledIcon class="h-4 w-4" />
-        <span>This view is read-only. Only the creator or assignee can edit this {{ isSubtask ? 'subtask' : 'task' }}.</span>
+      <div v-if="!canEdit && !canDelete" class="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+        <Info class="h-4 w-4" />
+        <span>This view is read-only. Only assigned staff can edit or delete this {{ isSubtask ? 'subtask' : 'task' }}.</span>
       </div>
     </div>
 
@@ -209,7 +232,7 @@
     <Card v-else>
       <CardContent class="pt-6">
         <div class="text-center space-y-2">
-          <ExclamationTriangleIcon class="h-12 w-12 text-muted-foreground mx-auto" />
+          <AlertTriangle class="h-12 w-12 text-muted-foreground mx-auto" />
           <h3 class="text-lg font-semibold">Task Not Found</h3>
           <p class="text-muted-foreground">The task you're looking for doesn't exist or has been removed.</p>
           <Button @click="goToDashboard" class="mt-4">
@@ -241,57 +264,37 @@
 
 <script setup lang="ts">
 
+definePageMeta({
+  layout: 'task-detail'
+})
+
 // ...existing code...
 import DataTable from '@/components/tasks/data-table.vue'
 import EditTaskModal from '~/components/task-modals/edit-task-modal.vue'
 import { DeleteTaskModal } from '~/components/task-modals/delete-task-modal'
-import {
-  ListBulletIcon,
-  ClockIcon,
-  InfoCircledIcon,
-  ExclamationTriangleIcon,
-  Cross2Icon,
-  Pencil1Icon,
-  CalendarIcon,
-  PersonIcon,
-  FileTextIcon,
-  ChevronRightIcon,
-  TrashIcon
-} from '@radix-icons/vue'
-
-// Register Radix icons for template usage
-const components = {
-  ListBulletIcon,
-  ClockIcon,
-  InfoCircledIcon,
-  ExclamationTriangleIcon,
-  Cross2Icon,
-  Pencil1Icon,
-  CalendarIcon,
-  PersonIcon,
-  FileTextIcon,
-  ChevronRightIcon,
-  TrashIcon
-}
+import { 
+  List, 
+  Clock, 
+  Info, 
+  AlertTriangle, 
+  X, 
+  Pencil, 
+  Calendar, 
+  User, 
+  FileText, 
+  ChevronRight, 
+  Trash2,
+  AlertCircle
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const taskId = route.params.id
 
-// Debug logging
-console.log('Task detail page loaded')
-console.log('Route params:', route.params)
-console.log('Task ID:', taskId)
-console.log('Task ID type:', typeof taskId)
-
 const { data, pending, error, refresh } = await useFetch(`/api/tasks/${taskId}`)
-console.log('API response data:', data.value)
-console.log('API response error:', error.value)
-console.log('API pending:', pending.value)
 
 const task = computed(() => {
-  console.log('Task computed - data.value:', data.value)
-  return data.value?.task || null
+  return (data.value as any)?.task || null
 })
 const isSubtask = computed(() => {
   if (!task.value) return false
@@ -352,12 +355,63 @@ function isOverdue(dueDate: string | Date | undefined | null): boolean {
   return due < new Date() && task.value?.status !== 'completed';
 }
 
+function getPriorityDisplay(priority: number | string | undefined | null): string {
+  if (!priority) return 'Not Set';
+  
+  const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+  if (isNaN(priorityNum) || priorityNum < 1 || priorityNum > 10) return 'Not Set';
+  
+  const priorityOptions = [
+    { level: 1, label: 'Lowest' },
+    { level: 2, label: 'Very Low' },
+    { level: 3, label: 'Low' },
+    { level: 4, label: 'Medium Low' },
+    { level: 5, label: 'Medium' },
+    { level: 6, label: 'Medium High' },
+    { level: 7, label: 'High' },
+    { level: 8, label: 'Very High' },
+    { level: 9, label: 'Critical' },
+    { level: 10, label: 'Emergency' }
+  ];
+  
+  const option = priorityOptions.find(p => p.level === priorityNum);
+  return option ? `Level ${option.level} (${option.label})` : 'Not Set';
+}
+
+function getPriorityColorClass(priority: number | string | undefined | null): string {
+  if (!priority) return 'bg-gray-400';
+  
+  const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+  if (isNaN(priorityNum) || priorityNum < 1 || priorityNum > 10) return 'bg-gray-400';
+  
+  const colorClasses = [
+    'bg-blue-400',    // Level 1 - Lowest
+    'bg-blue-500',    // Level 2 - Very Low
+    'bg-indigo-500',  // Level 3 - Low
+    'bg-green-500',   // Level 4 - Medium Low
+    'bg-yellow-500',  // Level 5 - Medium
+    'bg-orange-500',  // Level 6 - Medium High
+    'bg-red-400',     // Level 7 - High
+    'bg-red-500',     // Level 8 - Very High
+    'bg-red-600',     // Level 9 - Critical
+    'bg-purple-600'   // Level 10 - Emergency
+  ];
+  
+  return colorClasses[priorityNum - 1] || 'bg-gray-400';
+}
+
 
 
 
 function goToDashboard() {
   const from = route.query.from
-  if (from === 'project') {
+  const projectId = route.query.projectId
+  
+  if (from === 'project' && projectId) {
+    // Return to specific project page
+    router.push(`/project/${projectId}`)
+  } else if (from === 'project') {
+    // Return to general project dashboard
     router.push('/project/dashboard')
   } else {
     router.push('/personal/dashboard') // default to personal
@@ -365,22 +419,42 @@ function goToDashboard() {
 }
 
 function goToSubtask(subtaskId: string) {
-  router.push(`/task/${subtaskId}`)
+  // Preserve the project context when navigating to subtasks
+  const from = route.query.from
+  const projectId = route.query.projectId
+  
+  if (from && projectId) {
+    router.push(`/task/${subtaskId}?from=${from}&projectId=${projectId}`)
+  } else if (from) {
+    router.push(`/task/${subtaskId}?from=${from}`)
+  } else {
+    router.push(`/task/${subtaskId}`)
+  }
 }
 
-// edit this when we can verify the current user
+// Use permissions from the API response
+const canEdit = computed(() => {
+  if (!task.value || !task.value.permissions) return false
+  return task.value.permissions.canEdit
+})
 
-// const currentUser = 'Alice Smith'
-// const canEdit = computed(() => {
-//   if (!task.value) return false
-//   // User can edit if they are the assignee OR the creator
-//   return task.value.assignee === currentUser || task.value.creator === currentUser
-// })
-
-const canEdit = computed(() => true)
+const canDelete = computed(() => {
+  if (!task.value || !task.value.permissions) return false
+  return task.value.permissions.canDelete
+})
 
 function goToParentTask(parentId: string) {
-  router.push(`/task/${parentId}`)
+  // Preserve the project context when navigating to parent task
+  const from = route.query.from
+  const projectId = route.query.projectId
+  
+  if (from && projectId) {
+    router.push(`/task/${parentId}?from=${from}&projectId=${projectId}`)
+  } else if (from) {
+    router.push(`/task/${parentId}?from=${from}`)
+  } else {
+    router.push(`/task/${parentId}`)
+  }
 }
 
 function openEditModal() {
@@ -420,30 +494,21 @@ async function handleDeleteComplete() {
   try {
     await performDelete()
   } catch (error) {
-    console.error('Error during delete completion:', error)
     // Don't redirect if deletion failed
   }
 }
 
 async function performDelete() {
   try {
-    console.log('performDelete - Starting deletion process')
-    console.log('performDelete - Task:', task.value)
-    
     if (!task.value || !task.value.id) {
       throw new Error('Task ID is missing')
     }
-
-    console.log('performDelete - Deleting task with ID:', task.value.id)
 
     const response = await $fetch<{ success: boolean; message: string }>(`/api/tasks/${task.value.id}`, {
       method: 'DELETE'
     })
 
-    console.log('performDelete - API response:', response)
-
     if (response.success) {
-      console.log('performDelete - Deletion successful, redirecting to dashboard')
       // Close modal and navigate back to dashboard
       closeDeleteModal()
       router.push('/personal/dashboard')
@@ -451,7 +516,6 @@ async function performDelete() {
       throw new Error('Failed to delete task')
     }
   } catch (error) {
-    console.error('Error deleting task:', error)
     closeDeleteModal()
     // You might want to show an error message to the user here
   }
@@ -473,8 +537,30 @@ const subtaskColumns = [
   {
     accessorKey: 'dueDate',
     header: 'Due Date',
-    cell: ({ row }: any) => formatDate(row.original?.due_date || row.original?.dueDate),
+    cell: ({ row }: any) => {
+      const dueDate = row.original?.due_date || row.original?.dueDate;
+      const isOverdueDate = isOverdue(dueDate);
+      return h('div', {
+        class: isOverdueDate ? 'text-red-600 font-semibold' : ''
+      }, formatDate(dueDate));
+    },
     enableSorting: true,
+  },
+  {
+    accessorKey: 'priority',
+    header: 'Priority',
+    cell: ({ row }: any) => h(
+      'div',
+      { class: 'flex items-center space-x-2' },
+      [
+        h('div', {
+          class: `w-2 h-2 rounded-full ${getPriorityColorClass(row.original?.priority)}`
+        }),
+        h('span', { class: 'text-sm' }, getPriorityDisplay(row.original?.priority))
+      ]
+    ),
+    enableSorting: true,
+    enableFiltering: true,
   },
   {
     accessorKey: 'status',

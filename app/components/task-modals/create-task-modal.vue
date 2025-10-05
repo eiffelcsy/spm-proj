@@ -4,14 +4,23 @@
 
     <!-- Modal content -->
     <div
-      class="relative bg-white rounded-xl shadow-lg w-full max-w-[45vw] p-6 h-[70vh] overflow-y-auto z-10"
+      class="relative bg-white rounded-xl shadow-lg w-full max-w-[45vw] p-6 h-[80vh] overflow-y-auto z-10 flex flex-col"
       @click.stop>
       <h2 class="text-xl font-semibold mb-4">Create New Task</h2>
 
       <!-- Feedback Messages -->
-      <div v-if="successMessage" class="mb-4 p-3 rounded bg-green-100 text-green-700">
-        <span>{{ successMessage }}</span>
-        <Button variant="outline" @click="handleSuccessOk" class="ml-4">OK</Button>
+      <div v-if="successMessage" class="flex-1 flex items-center justify-center">
+        <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 text-green-800 rounded-xl p-8 flex flex-col items-center justify-center gap-6 min-w-[320px] min-h-[140px] shadow-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <span class="text-lg font-semibold text-center">{{ successMessage }}</span>
+          </div>
+          <Button variant="outline" @click="handleSuccessOk" class="bg-white hover:bg-green-50 border-green-300 text-green-700 hover:text-green-800 px-6 py-2">OK</Button>
+        </div>
       </div>
       <div v-if="errorMessage" class="mb-4 p-3 rounded bg-red-100 text-red-700">
         {{ errorMessage }}

@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-5xl xl:max-w-7xl">
+  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-6xl xl:max-w-7xl">
     <h1 class="text-3xl font-bold mb-6">Project Dashboard</h1>
 
     <div class="mb-4">
@@ -118,13 +118,22 @@
         class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" @click="$emit('close')">
 
         <!-- Modal content -->
-        <div class="relative bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 overflow-y-auto z-10" @click.stop>
+        <div class="relative bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 overflow-y-auto z-10 flex flex-col h-[65vh]" @click.stop>
           <h2 class="text-xl font-semibold mb-4">Create New Project</h2>
 
           <!-- Feedback Messages -->
-          <div v-if="projectSuccessMessage" class="mb-4 p-3 rounded bg-green-100 text-green-700">
-            <span>{{ projectSuccessMessage }}</span>
-            <Button variant="outline" @click="handleProjectSuccessOk" class="ml-4">OK</Button>
+          <div v-if="projectSuccessMessage" class="flex-1 flex items-center justify-center">
+            <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 text-green-800 rounded-xl p-8 flex flex-col items-center justify-center gap-6 min-w-[320px] min-h-[140px] shadow-lg">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+                <span class="text-lg font-semibold text-center">{{ projectSuccessMessage }}</span>
+              </div>
+              <Button variant="outline" @click="handleProjectSuccessOk" class="bg-white hover:bg-green-50 border-green-300 text-green-700 hover:text-green-800 px-6 py-2">OK</Button>
+            </div>
           </div>
           <div v-if="projectErrorMessage" class="mb-4 p-3 rounded bg-red-100 text-red-700">
             {{ projectErrorMessage }}
@@ -195,15 +204,17 @@
               </Select>
             </div>
 
-            <div class="flex justify-end gap-2">
-              <Button variant="outline" @click="closeCreateProjectModal">
-                Cancel
-              </Button>
-              <Button type="submit" :disabled="isCreatingProject">
-                {{ isCreatingProject ? 'Creating...' : 'Create Project' }}
-              </Button>
+            <!-- Footer with buttons -->
+            <div class="mt-auto pt-8">
+              <div class="flex justify-end gap-2">
+                <Button variant="outline" @click="closeCreateProjectModal">
+                  Cancel
+                </Button>
+                <Button type="submit" @click="createProject" :disabled="isCreatingProject">
+                  {{ isCreatingProject ? 'Creating...' : 'Create Project' }}
+                </Button>
+              </div>
             </div>
-
           </form>
         </div>
       </div>
@@ -212,7 +223,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { columns } from '@/components/tasks/columns'
 import { overdueColumns } from '@/components/tasks/overdue-columns'
@@ -232,6 +243,10 @@ import { parseDate, getLocalTimeZone } from '@internationalized/date'
 
 // Import the example data
 import exampleData from '@/components/tasks/data/example.json'
+
+definePageMeta({
+  layout: 'dashboard'
+})
 
 const router = useRouter()
 
@@ -475,12 +490,6 @@ async function createProject() {
     }
 
     projectSuccessMessage.value = 'Project created successfully!'
-    
-    // Auto-close success message after 1000ms
-    setTimeout(() => {
-      projectSuccessMessage.value = ''
-      isCreateProjectModalOpen.value = false
-    }, 1000)
   } catch (err: any) {
     console.error('Error creating project:', err)
     projectErrorMessage.value = err?.data?.statusMessage || err?.message || 'Something went wrong. Project was not created.'
@@ -537,6 +546,23 @@ async function fetchProjects() {
 onMounted(() => {
   fetchData()
   fetchProjects()
+  
+  // Listen for sidebar events
+  window.addEventListener('open-create-task-modal', () => {
+    isModalOpen.value = true
+  })
+  window.addEventListener('open-create-project-modal', () => {
+    isCreateProjectModalOpen.value = true
+  })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('open-create-task-modal', () => {
+    isModalOpen.value = true
+  })
+  window.removeEventListener('open-create-project-modal', () => {
+    isCreateProjectModalOpen.value = true
+  })
 })
 </script>
 

@@ -1,9 +1,17 @@
-import { serverSupabaseClient } from '#supabase/server'
+import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
-  const supabase = await serverSupabaseClient(event)
+  const supabase = await serverSupabaseServiceRole(event)
+  const user = await serverSupabaseUser(event)
   const taskId = getRouterParam(event, 'id')
   const body = await readBody(event)
+
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized - User not authenticated'
+    })
+  }
 
   if (!taskId) {
     throw createError({
@@ -20,13 +28,27 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    console.log('PUT /api/tasks/[id] - Request body:', body)
-    console.log('PUT /api/tasks/[id] - Task ID:', taskId)
 
-    // First, get the current task to check permissions
-    const { data: currentTask, error: fetchError } = await supabase
+    // Get current user's staff ID
+    const { data: staffIdData, error: staffIdError } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (staffIdError || !staffIdData) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch staff ID',
+        data: staffIdError
+      })
+    }
+    const currentStaffId = (staffIdData as { id: number }).id
+
+    // Check if task exists before checking permissions
+    const { data: taskExists, error: fetchError } = await supabase
       .from('tasks')
-      .select('creator_id, assignee_id')
+      .select('id')
       .eq('id', taskId)
       .single()
 
@@ -44,39 +66,58 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // TODO: STAFF MODULE INTEGRATION REQUIRED
-    // For now, we'll skip permission validation until user-staff mapping is implemented
-    // Once staff module is ready, uncomment and implement this permission check:
-    /*
-    // Get current user's staff ID
-    const { data: userStaffMapping, error: mappingError } = await supabase
-      .from('user_staff_mapping')
-      .select('staff_id')
-      .eq('user_id', event.context.user?.id)
-      .single()
+    // Get task assignees
+    const { data: assigneeRows } = await supabase
+      .from('task_assignees')
+      .select('assigned_to_staff_id')
+      .eq('task_id', taskId)
+      .eq('is_active', true)
 
-    if (mappingError || !userStaffMapping) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Unable to verify user permissions'
-      })
+    // Check if task is assigned to anyone
+    const isTaskAssigned = assigneeRows && assigneeRows.length > 0
+    
+    if (isTaskAssigned) {
+      // If task is assigned, only the assigned person can edit
+      const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
+      
+      if (!isCurrentUserAssigned) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to edit this task. Only assigned staff can edit assigned tasks.'
+        })
+      }
+    } else {
+      // If task is unassigned, only the task creator can edit
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select('creator_id')
+        .eq('id', taskId)
+        .single() as { data: { creator_id: number } | null, error: any }
+
+      if (taskError || !taskData) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch task creator information'
+        })
+      }
+
+      if (taskData.creator_id !== currentStaffId) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to edit this task. Only the task creator can edit unassigned tasks.'
+        })
+      }
     }
-
-    const userStaffId = userStaffMapping.staff_id
-
-    // Check if user is creator or assignee
-    const canEdit = currentTask.creator_id === userStaffId || currentTask.assignee_id === userStaffId
-
-    if (!canEdit) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'You do not have permission to edit this task. Only the creator or assignee can edit it.'
-      })
-    }
-    */
 
     // Validate and prepare the update data
-    const updateData: any = {}
+    const updateData: {
+      title?: string
+      start_date?: string
+      due_date?: string
+      status?: string
+      notes?: string
+      assignee_id?: number
+    } = {}
     
     if (body.task_name) updateData.title = body.task_name
     if (body.start_date) updateData.start_date = body.start_date
@@ -85,19 +126,15 @@ export default defineEventHandler(async (event) => {
     if (body.notes !== undefined) updateData.notes = body.notes
     if (body.assignee_id !== undefined) updateData.assignee_id = body.assignee_id
 
-    console.log('PUT /api/tasks/[id] - Update data:', updateData)
-
     // Update task in database
-    const { data: task, error } = await supabase
+    const { data: task, error } = await (supabase as any)
       .from('tasks')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .update(updateData as any)
+      .update(updateData)
       .eq('id', taskId)
       .select()
       .single()
 
     if (error) {
-      console.error('PUT /api/tasks/[id] - Database error:', error)
       if (error.code === 'PGRST116') {
         throw createError({
           statusCode: 404,
@@ -110,8 +147,6 @@ export default defineEventHandler(async (event) => {
         data: error
       })
     }
-
-    console.log('PUT /api/tasks/[id] - Success, updated task:', task)
 
     return {
       success: true,

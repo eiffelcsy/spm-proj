@@ -1,22 +1,16 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
-  console.log('DELETE /api/tasks/[id] - Starting delete request')
-  
   const supabase = await serverSupabaseServiceRole(event)
   const user = await serverSupabaseUser(event)
   const taskId = getRouterParam(event, 'id')
 
-  console.log('DELETE /api/tasks/[id] - User:', user?.id)
-  console.log('DELETE /api/tasks/[id] - Supabase client initialized:', !!supabase)
-
-  // TODO: Re-enable user authentication check once user-staff mapping is implemented
-  // if (!user) {
-  //   throw createError({
-  //     statusCode: 401,
-  //     statusMessage: 'Unauthorized - User not authenticated'
-  //   })
-  // }
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized - User not authenticated'
+    })
+  }
 
   if (!taskId) {
     throw createError({
@@ -26,8 +20,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    console.log('DELETE /api/tasks/[id] - Task ID:', taskId, 'Type:', typeof taskId)
-
     // Convert taskId to number if it's a string
     const numericTaskId = typeof taskId === 'string' ? parseInt(taskId) : taskId
     
@@ -38,12 +30,26 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    console.log('DELETE /api/tasks/[id] - Numeric Task ID:', numericTaskId)
+    // Get current user's staff ID
+    const { data: staffIdData, error: staffIdError } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (staffIdError || !staffIdData) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch staff ID',
+        data: staffIdError
+      })
+    }
+    const currentStaffId = (staffIdData as { id: number }).id
 
     // First, check if the task exists
     const { data: existingTask, error: fetchError } = await supabase
       .from('tasks')
-      .select('id, creator_id, assignee_id')
+      .select('id')
       .eq('id', numericTaskId)
       .single()
 
@@ -61,8 +67,48 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // TODO: Add permission check when user-staff mapping is implemented
-    // For now, allow deletion (you may want to add proper permission checks)
+    // Get task assignees
+    const { data: assigneeRows } = await supabase
+      .from('task_assignees')
+      .select('assigned_to_staff_id')
+      .eq('task_id', numericTaskId)
+      .eq('is_active', true)
+
+    // Check if task is assigned to anyone
+    const isTaskAssigned = assigneeRows && assigneeRows.length > 0
+    
+    if (isTaskAssigned) {
+      // If task is assigned, only the assigned person can delete
+      const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
+      
+      if (!isCurrentUserAssigned) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to delete this task. Only assigned staff can delete assigned tasks.'
+        })
+      }
+    } else {
+      // If task is unassigned, only the task creator can delete
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select('creator_id')
+        .eq('id', numericTaskId)
+        .single() as { data: { creator_id: number } | null, error: any }
+
+      if (taskError || !taskData) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch task creator information'
+        })
+      }
+
+      if (taskData.creator_id !== currentStaffId) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to delete this task. Only the task creator can delete unassigned tasks.'
+        })
+      }
+    }
 
     // Check if this task has subtasks
     const { data: subtasks, error: subtaskError } = await supabase
@@ -71,28 +117,47 @@ export default defineEventHandler(async (event) => {
       .eq('parent_task_id', numericTaskId)
 
     if (subtaskError) {
-      console.warn('DELETE /api/tasks/[id] - Could not check for subtasks:', subtaskError)
+      // Could not check for subtasks, but continue with deletion
     } else if (subtasks && subtasks.length > 0) {
-      console.log('DELETE /api/tasks/[id] - Task has subtasks:', subtasks.length)
-      // For now, we'll still allow deletion - the database should handle cascading
-      // You might want to prevent deletion or delete subtasks first depending on your business logic
+      // Task has subtasks - database should handle cascading
+    }
+
+    // Delete activity timeline records first (foreign key constraint)
+    const { error: timelineDeleteError } = await supabase
+      .from('activity_timeline')
+      .delete()
+      .eq('task_id', numericTaskId)
+
+    if (timelineDeleteError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to delete activity timeline records',
+        data: timelineDeleteError
+      })
+    }
+
+    // Delete task assignees (foreign key constraint)
+    const { error: assigneesDeleteError } = await supabase
+      .from('task_assignees')
+      .delete()
+      .eq('task_id', numericTaskId)
+
+    if (assigneesDeleteError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to delete task assignees',
+        data: assigneesDeleteError
+      })
     }
 
     // Delete the task
-    console.log('DELETE /api/tasks/[id] - Attempting to delete task with ID:', numericTaskId)
-    
     const { data: deletedData, error: deleteError } = await supabase
       .from('tasks')
       .delete()
       .eq('id', numericTaskId)
       .select()
 
-    console.log('DELETE /api/tasks/[id] - Delete query result:')
-    console.log('  - deletedData:', deletedData)
-    console.log('  - deleteError:', deleteError)
-
     if (deleteError) {
-      console.error('DELETE /api/tasks/[id] - Database error:', deleteError)
       throw createError({
         statusCode: 500,
         statusMessage: 'Failed to delete task',
@@ -101,15 +166,11 @@ export default defineEventHandler(async (event) => {
     }
 
     if (!deletedData || deletedData.length === 0) {
-      console.warn('DELETE /api/tasks/[id] - No rows were deleted. Task may not exist.')
       throw createError({
         statusCode: 404,
         statusMessage: 'Task not found or already deleted'
       })
     }
-
-    console.log('DELETE /api/tasks/[id] - Success, task deleted:', taskId)
-    console.log('DELETE /api/tasks/[id] - Deleted data:', deletedData)
 
     return {
       success: true,
