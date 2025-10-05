@@ -119,7 +119,7 @@
         <div class="transition-all duration-300 ease-in-out">
           <h3 class="text-lg font-semibold py-2 flex items-center justify-between transition-all duration-200">
             <span>
-              Tasks
+              Tasks ({{ filteredTasks.length }})
             </span>
           </h3>
           <div class="transition-all duration-300 ease-in-out">
