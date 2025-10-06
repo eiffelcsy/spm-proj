@@ -38,9 +38,7 @@
         <div class="grid grid-cols-3 gap-4">
           <!-- Start Date -->
           <div class="flex flex-col gap-1 justify-end">
-            <Label class="mb-1">
-              Start Date
-            </Label>
+            <Label class="mb-1">Start Date</Label>
             <Popover>
               <PopoverTrigger as-child>
                 <Button variant="outline" :class="cn(
@@ -48,19 +46,17 @@
                   !startDate && 'text-muted-foreground',
                 )">
                   <CalendarIcon class="mr-2 h-4 w-4" />
-                  {{ startDate ? formatDate(startDate) : "Select start date" }}
+                  {{ startDate ? formatDateForDisplay(startDate) : "Select start date" }}
                 </Button>
               </PopoverTrigger>
               <PopoverContent class="w-auto p-0">
-                <Calendar v-model="startDate" initial-focus />
+                <Calendar v-model="startDate as DateValue" initial-focus />
               </PopoverContent>
             </Popover>
           </div>
           <!-- Due Date -->
           <div class="flex flex-col gap-1 justify-end">
-            <Label class="mb-1">
-              Due Date
-            </Label>
+            <Label class="mb-1">Due Date</Label>
             <Popover>
               <PopoverTrigger as-child>
                 <Button variant="outline" :class="cn(
@@ -68,20 +64,20 @@
                   !dueDate && 'text-muted-foreground',
                 )">
                   <CalendarIcon class="mr-2 h-4 w-4" />
-                  {{ dueDate ? formatDate(dueDate) : "Select due date" }}
-                </Button>
+                  {{ dueDate ? formatDateForDisplay(dueDate) : "Select due date" }}                </Button>
               </PopoverTrigger>
               <PopoverContent class="w-auto p-0">
-                <Calendar v-model="dueDate" initial-focus :min-value="startDate" />
+                <Calendar v-model="dueDate as DateValue" initial-focus />
               </PopoverContent>
             </Popover>
           </div>
 
-        <!-- Status, Priority -->
+          <!-- Status, Priority, Repeat -->
           <StatusDropdown v-model="status" label="Status" placeholder="Select status" />
           <PriorityDropdown v-model="priority" label="Priority" placeholder="Select priority" />
           <RepeatFrequencyDropdown v-model="repeatFrequency" label="Repeat" placeholder="Select frequency" />
         </div>
+
         <div>
           <AssignCombobox 
             v-model="assignedTo" 
@@ -90,11 +86,10 @@
             :staff-members="staffMembers" 
           />
         </div>
+        
         <!-- Notes -->
         <div>
-          <Label>
-            Notes
-          </Label>
+          <Label>Notes</Label>
           <textarea v-model="notes" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
         </div>
 
@@ -120,10 +115,8 @@
 
             <!-- Expanded Subtask Details -->
             <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4 border-l-2 border-blue-200">
-              <!-- Status & Assignee -->
               <StatusDropdown v-model="subtask.status" label="Status" placeholder="Select status" compact />
-              <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee" :staff-members="staffMembers" compact/>
-              <!-- Notes -->
+              <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee" :staff-members="staffMembers" compact />
               <div>
                 <label class="block text-xs font-medium mb-1">Notes</label>
                 <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
@@ -137,12 +130,8 @@
         </div>
 
         <div class="flex justify-end gap-2">
-          <Button variant="outline" @click="handleCancel">
-            Cancel
-          </Button>
-          <Button type="submit">
-            Create Task
-          </Button>
+          <Button variant="outline" @click="handleCancel">Cancel</Button>
+          <Button type="submit">Create Task</Button>
         </div>
       </form>
       
@@ -154,13 +143,9 @@
           <p class="text-gray-600 mb-6">Are you sure you want to delete this subtask?</p>
           <div class="flex justify-end gap-3">
             <button type="button" @click="cancelDelete"
-              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">
-              No
-            </button>
+              class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">No</button>
             <button type="button" @click="confirmDelete"
-              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
-              Yes
-            </button>
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Yes</button>
           </div>
         </div>
       </div>
@@ -169,13 +154,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { StatusDropdown } from '@/components/task-modals/status-dropdown'
 import PriorityDropdown from './priority-dropdown.vue'
 import RepeatFrequencyDropdown from './repeat-freq-dropdown.vue'
 import { AssignCombobox } from '@/components/task-modals/assign-combobox'
 import { Input } from '@/components/ui/input'
-import type { CalendarDate } from '@internationalized/date'
+import type { DateValue } from '@internationalized/date'
 import { parseDate, getLocalTimeZone } from '@internationalized/date'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
@@ -185,10 +171,11 @@ import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 
 const supabase = useSupabaseClient()
+const route = useRoute()
 
 const props = defineProps<{
   isOpen: boolean
-  project?: string | null
+  projectId?: string | null
   role: 'staff' | 'manager'
   currentUser: string
   teamMembers?: string[]
@@ -202,33 +189,31 @@ const emit = defineEmits<{
 const createdTask = ref<any>(null)
 
 // form state
-const today = new Date().toISOString().split('T')[0]
+const today = new Date().toISOString().substring(0, 10)
 const title = ref('')
-const startDate = ref<CalendarDate>(parseDate(today))
-const dueDate = ref<CalendarDate>(parseDate(today))
+const startDate = ref<DateValue | undefined>(parseDate(today))
+const dueDate = ref<DateValue | undefined>(parseDate(today))
 const status = ref('not-started')
-const priority = ref('1') // New priority field
-const repeatFrequency = ref('never') // New repeat frequency field
+const priority = ref('1')
+const repeatFrequency = ref('never')
 const notes = ref('')
 const subtasks = ref<{
   title: string;
-  startDate: CalendarDate;
-  dueDate: CalendarDate;
   status: string;
-  priority: string; // New subtask priority
   notes: string;
   assignedTo: string[];
   expanded: boolean;
 }[]>([])
 const assignedTo = ref<string[]>([])
 
-// staff members for assignee dropdown - will show staff fullname and email only
+// staff members for assignee dropdown
 const staffMembers = ref<{ id: number; fullname: string; email: string }[]>([])
 
 // Load staff members when modal opens
 watch(() => props.isOpen, async (isOpen) => {
   if (!isOpen) return
   try {
+    // Reset form when modal opens
     startDate.value = parseDate(today)
     dueDate.value = parseDate(today)
     title.value = ''
@@ -241,14 +226,21 @@ watch(() => props.isOpen, async (isOpen) => {
     errorMessage.value = ''
     successMessage.value = ''
 
-    staffMembers.value = (await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/staff'))
-      .map(staff => ({
-        ...staff,
-        fullname: staff.fullname,
-        email: staff.email ?? `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
+    // Load staff members
+    const fetchedStaff = await $fetch('/api/staff')
+    
+    if (fetchedStaff && Array.isArray(fetchedStaff)) {
+      staffMembers.value = fetchedStaff.map((staff: any) => ({
+        id: staff.id,
+        fullname: staff.fullname || '',
+        email: staff.email ?? `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@company.com`
       }))
+    } else {
+      staffMembers.value = []
+    }
   } catch (err) {
-    console.error('Failed to load staff', err)
+    console.error('Failed to load staff:', err)
+    staffMembers.value = []
   }
 })
 
@@ -260,6 +252,7 @@ const errorMessage = ref('')
 const showDeleteConfirmation = ref(false)
 const pendingDeleteIndex = ref<number | null>(null)
 
+// Watch start date to ensure due date is not before start date
 watch(startDate, (newStartDate) => {
   if (dueDate.value && newStartDate && dueDate.value < newStartDate) {
     dueDate.value = newStartDate
@@ -269,10 +262,7 @@ watch(startDate, (newStartDate) => {
 function addSubtask() {
   subtasks.value.push({
     title: '',
-    startDate: parseDate(new Date().toISOString().split('T')[0] || ''),
-    dueDate: parseDate(new Date().toISOString().split('T')[0] || ''),
     status: 'not-started',
-    priority: '1', // Default priority for new subtasks
     notes: '',
     assignedTo: [],
     expanded: false
@@ -331,6 +321,14 @@ function handleSuccessOk() {
   emit('close')
 }
 
+// Get project ID from route if we're on a project page
+const getProjectIdFromContext = (): string | null => {
+  if (route.path.startsWith('/project/') && route.params.id) {
+    return String(route.params.id)
+  }
+  return null
+}
+
 async function createTask() {
   try {
     if (!title.value.trim()) {
@@ -346,6 +344,13 @@ async function createTask() {
     errorMessage.value = ''
     successMessage.value = ''
     
+    const projectId = props.projectId 
+      ? Number(props.projectId) 
+      : getProjectIdFromContext() 
+        ? Number(getProjectIdFromContext()) 
+        : null
+
+    // Create task data - just send repeat_frequency, no need for is_recurring
     const taskData = {
       title: title.value,
       start_date: startDate.value ? startDate.value.toString() : null,
@@ -354,18 +359,18 @@ async function createTask() {
       priority: priority.value,
       repeat_frequency: repeatFrequency.value,
       notes: notes.value || null,
-      project_id: props.project ? Number(props.project) : null,
+      project_id: projectId,
       subtasks: subtasks.value.map(subtask => ({
         title: subtask.title,
         start_date: startDate.value ? startDate.value.toString() : null,
         due_date: dueDate.value ? dueDate.value.toString() : null,
         status: subtask.status,
-        priority: subtask.priority,
+        priority: priority.value,
         notes: subtask.notes || null,
       }))
     }
 
-    // create task
+    // Create the task
     const taskResp = await $fetch('/api/tasks', {
       method: 'POST',
       body: taskData
@@ -378,50 +383,50 @@ async function createTask() {
     const created = taskResp.task
 
     // Assign main task assignees
-    const assigneeIds = assignedTo.value.map(id => Number(id))
-
-    if (assigneeIds.length > 0) {
+    if (assignedTo.value.length > 0 && created && created.id !== undefined) {
       await new Promise(resolve => setTimeout(resolve, 150))
       
       try {
-        const mapResp = await $fetch('/api/assignee', {
+        await $fetch('/api/assignee', {
           method: 'POST',
           body: {
             task_id: created.id,
-            assignee_ids: assigneeIds
+            assignee_ids: assignedTo.value.map(id => Number(id))
           }
         })
       } catch (error: any) {
-        throw new Error('Failed to assign users to task')
+        console.error('Failed to assign users to task:', error)
       }
     }
+
     // Assign subtask assignees
-      if (taskResp.subtasks && Array.isArray(taskResp.subtasks)) {
-        for (let i = 0; i < subtasks.value.length; i++) {
-          const localSubtask = subtasks.value[i]
-          const createdSubtask = taskResp.subtasks[i]
-          
-          
-        const subtaskAssigneeIds = localSubtask.assignedTo.map(id => Number(id))
-          try {
-            const assigneeResp = await $fetch('/api/assignee', {
-              method: 'POST',
-              body: {
-                task_id: createdSubtask.id,
-                assignee_ids: subtaskAssigneeIds
-              }
-            })
-          } catch (error: any) {
-            console.error(`Failed to assign users to subtask ${createdSubtask.id}:`, error.data || error.message)
-          }
-          
-          // Small delay to prevent race conditions
-          await new Promise(resolve => setTimeout(resolve, 50))
+    if (taskResp.subtasks && Array.isArray(taskResp.subtasks) && Array.isArray(subtasks.value)) {
+      const respSubtasks = taskResp.subtasks as any[]
+      const maxLength = Math.min(subtasks.value.length, respSubtasks.length)
+      
+      for (let i = 0; i < maxLength; i++) {
+        const localSubtask = subtasks.value[i]
+        const createdSubtask = respSubtasks[i]
+        
+        if (!localSubtask || !createdSubtask || !localSubtask.assignedTo.length) continue
+        
+        try {
+          await $fetch('/api/assignee', {
+            method: 'POST',
+            body: {
+              task_id: createdSubtask.id,
+              assignee_ids: localSubtask.assignedTo.map(id => Number(id))
+            }
+          })
+        } catch (error: any) {
+          console.error(`Failed to assign users to subtask ${createdSubtask.id}:`, error)
         }
       }
+    }
 
     createdTask.value = created
     successMessage.value = 'Task created successfully!'
+      
   } catch (err: any) {
     console.error('Error creating task:', err)
     errorMessage.value = err?.data?.statusMessage || err?.message || 'Something went wrong. Task was not created.'
@@ -429,12 +434,19 @@ async function createTask() {
   }
 }
 
-function formatDate(date: CalendarDate) {
-  const jsDate = date.toDate(getLocalTimeZone())
-  const day = String(jsDate.getDate()).padStart(2, '0')
-  const month = String(jsDate.getMonth() + 1).padStart(2, '0')
-  const year = jsDate.getFullYear()
-  return `${day}/${month}/${year}`
+function formatDateForDisplay(date: DateValue | undefined): string {
+  if (!date) return ''
+  
+  try {
+    const jsDate = date.toDate(getLocalTimeZone())
+    const day = String(jsDate.getDate()).padStart(2, '0')
+    const month = String(jsDate.getMonth() + 1).padStart(2, '0')
+    const year = jsDate.getFullYear()
+    return `${day}/${month}/${year}`
+  } catch (error) {
+    console.warn('Failed to format date for display:', date, error)
+    return ''
+  }
 }
 </script>
 

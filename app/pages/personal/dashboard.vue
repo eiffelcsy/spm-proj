@@ -54,6 +54,7 @@
         :isOpen="isModalOpen"
         role="staff"
         :currentUser="'me@example.com'"
+        :projectId="null"
         @close="isModalOpen = false"
         @task-created="addTask"
       />

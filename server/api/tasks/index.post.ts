@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     due_date: body.due_date ?? null,
     status: body.status ?? null,
     priority: body.priority ?? null,
-    repeat_frequency: body.repeat_frequency ?? null,
+    repeat_frequency: body.repeat_frequency ?? 'never',
     project_id: body.project_id ?? null,
     creator_id: staffRow.id,
     parent_task_id: null

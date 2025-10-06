@@ -86,11 +86,6 @@ const statusOptions: StatusOption[] = [
         value: 'in-progress',
         label: 'In Progress',
         colorClass: 'bg-yellow-500'
-    },
-    {
-        value: 'completed',
-        label: 'Completed',
-        colorClass: 'bg-green-500'
     }
 ]
 
