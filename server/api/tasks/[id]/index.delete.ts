@@ -51,6 +51,7 @@ export default defineEventHandler(async (event) => {
       .from('tasks')
       .select('id')
       .eq('id', numericTaskId)
+      .is('deleted_at', null)
       .single()
 
     if (fetchError) {
@@ -110,62 +111,38 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Check if this task has subtasks
-    const { data: subtasks, error: subtaskError } = await supabase
+    // Soft delete all subtasks first
+    const { error: subtasksSoftDeleteError } = await (supabase as any)
       .from('tasks')
-      .select('id')
+      .update({ deleted_at: new Date().toISOString() })
       .eq('parent_task_id', numericTaskId)
+      .is('deleted_at', null)
 
-    if (subtaskError) {
-      // Could not check for subtasks, but continue with deletion
-    } else if (subtasks && subtasks.length > 0) {
-      // Task has subtasks - database should handle cascading
-    }
-
-    // Delete activity timeline records first (foreign key constraint)
-    const { error: timelineDeleteError } = await supabase
-      .from('activity_timeline')
-      .delete()
-      .eq('task_id', numericTaskId)
-
-    if (timelineDeleteError) {
+    if (subtasksSoftDeleteError) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'Failed to delete activity timeline records',
-        data: timelineDeleteError
+        statusMessage: 'Failed to soft delete subtasks',
+        data: subtasksSoftDeleteError
       })
     }
 
-    // Delete task assignees (foreign key constraint)
-    const { error: assigneesDeleteError } = await supabase
-      .from('task_assignees')
-      .delete()
-      .eq('task_id', numericTaskId)
-
-    if (assigneesDeleteError) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to delete task assignees',
-        data: assigneesDeleteError
-      })
-    }
-
-    // Delete the task
-    const { data: deletedData, error: deleteError } = await supabase
+    // Soft delete the main task
+    const { data: softDeletedData, error: softDeleteError } = await (supabase as any)
       .from('tasks')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', numericTaskId)
+      .is('deleted_at', null)
       .select()
 
-    if (deleteError) {
+    if (softDeleteError) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'Failed to delete task',
-        data: deleteError
+        statusMessage: 'Failed to soft delete task',
+        data: softDeleteError
       })
     }
 
-    if (!deletedData || deletedData.length === 0) {
+    if (!softDeletedData || softDeletedData.length === 0) {
       throw createError({
         statusCode: 404,
         statusMessage: 'Task not found or already deleted'
@@ -175,7 +152,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       message: 'Task deleted successfully',
-      deletedTask: deletedData?.[0] || null
+      deletedTask: softDeletedData?.[0] || null
     }
   } catch (error: any) {
     if (error.statusCode) {

@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
+      .is('deleted_at', null)
       .lt('due_date', new Date().toISOString().split('T')[0])
       .neq('status', 'completed') // Exclude completed tasks
       .order('due_date', { ascending: true })

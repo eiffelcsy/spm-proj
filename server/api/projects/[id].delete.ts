@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
         .select('*')
         .eq('id', numericProjectId)
         .eq('owner_id', staffRow.id)
+        .is('deleted_at', null)
         .maybeSingle()
 
     if (fetchError) throw createError({ statusCode: 500, statusMessage: fetchError.message })
@@ -42,6 +43,7 @@ export default defineEventHandler(async (event) => {
             .from('projects')
             .select('id, owner_id')
             .eq('id', numericProjectId)
+            .is('deleted_at', null)
             .maybeSingle()
         
         if (anyProject) {
@@ -52,59 +54,25 @@ export default defineEventHandler(async (event) => {
     }
 
     try {
-        // First, get all tasks associated with this project
-        const { data: projectTasks, error: fetchTasksError } = await supabase
+        // Soft delete all tasks associated with this project
+        const { error: tasksSoftDeleteError } = await (supabase as any)
             .from('tasks')
-            .select('id')
+            .update({ deleted_at: new Date().toISOString() })
             .eq('project_id', numericProjectId)
+            .is('deleted_at', null)
 
-        if (fetchTasksError) {
-            throw createError({ statusCode: 500, statusMessage: 'Failed to fetch associated tasks' })
+        if (tasksSoftDeleteError) {
+            throw createError({ statusCode: 500, statusMessage: 'Failed to soft delete associated tasks' })
         }
 
-        // Delete related records first (foreign key constraints)
-        if (projectTasks && projectTasks.length > 0) {
-            const taskIds = projectTasks.map((task: any) => task.id)
-            
-            // Delete activity timeline records first
-            const { error: timelineDeleteError } = await supabase
-                .from('activity_timeline')
-                .delete()
-                .in('task_id', taskIds)
-
-            if (timelineDeleteError) {
-                throw createError({ statusCode: 500, statusMessage: 'Failed to delete activity timeline records' })
-            }
-            
-            // Delete task assignees
-            const { error: assigneesDeleteError } = await supabase
-                .from('task_assignees')
-                .delete()
-                .in('task_id', taskIds)
-
-            if (assigneesDeleteError) {
-                throw createError({ statusCode: 500, statusMessage: 'Failed to delete task assignees' })
-            }
-
-            // Delete the tasks
-            const { error: tasksDeleteError } = await supabase
-                .from('tasks')
-                .delete()
-                .in('id', taskIds)
-
-            if (tasksDeleteError) {
-                throw createError({ statusCode: 500, statusMessage: 'Failed to delete associated tasks' })
-            }
-        }
-
-        // Delete the project
-        const { error: projectDeleteError } = await supabase
+        // Soft delete the project
+        const { error: projectSoftDeleteError } = await (supabase as any)
             .from('projects')
-            .delete()
+            .update({ deleted_at: new Date().toISOString() })
             .eq('id', numericProjectId)
 
-        if (projectDeleteError) {
-            throw createError({ statusCode: 500, statusMessage: 'Failed to delete project' })
+        if (projectSoftDeleteError) {
+            throw createError({ statusCode: 500, statusMessage: 'Failed to soft delete project' })
         }
 
         return { 

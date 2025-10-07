@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
     const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false }) as { data: Project[] | null, error: any }
 
     if (projectsError) {

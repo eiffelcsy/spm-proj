@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) {

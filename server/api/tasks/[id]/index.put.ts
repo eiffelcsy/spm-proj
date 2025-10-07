@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
       .from('tasks')
       .select('id')
       .eq('id', taskId)
+      .is('deleted_at', null)
       .single()
 
     if (fetchError) {

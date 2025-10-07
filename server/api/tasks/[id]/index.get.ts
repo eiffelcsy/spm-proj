@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
       .from('tasks')
       .select('*')
       .eq('id', taskId)
+      .is('deleted_at', null)
       .single() as { data: any, error: any }
 
 
@@ -123,6 +124,7 @@ export default defineEventHandler(async (event) => {
         .from('tasks')
         .select('*')
         .eq('parent_task_id', parentTask.id)
+        .is('deleted_at', null)
         .order('start_date', { ascending: true });
 
 
