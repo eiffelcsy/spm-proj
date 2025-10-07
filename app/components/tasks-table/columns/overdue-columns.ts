@@ -2,7 +2,7 @@
 import { h, computed } from 'vue'
 import DataTableColumnHeader from '../data-table-column-header.vue'
 import DropdownAction from '../data-table-dropdown.vue'
-import { Badge } from '@/components/ui/badge'
+import { formatDate, createStartDateColumn, createStatusColumn } from './column-helpers'
 
 export const overdueColumns = computed(() => [
     {
@@ -15,27 +15,7 @@ export const overdueColumns = computed(() => [
         return h('div', { class: 'max-w-[500px] w-72 truncate font-medium text-red-900' }, row.getValue('title'))
       },
     },
-    {
-      accessorKey: 'startDate',
-      header: ({ column }: any) => h(DataTableColumnHeader, { 
-          column: column,
-          title: 'Start Date'
-      }),
-      cell: ({ row }: any) => {
-        const value = row.getValue('startDate') as string | null
-        if (!value) return h('div', '—')
-  
-        const date = new Date(value)
-        if (isNaN(date.getTime())) return h('div', '—')
-  
-        const formatted = new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        }).format(date)
-        return h('div', formatted)
-      },
-    },
+    createStartDateColumn(),
     {
       accessorKey: 'dueDate',
       header: ({ column }: any) => h(DataTableColumnHeader, { 
@@ -44,20 +24,9 @@ export const overdueColumns = computed(() => [
       }),
       cell: ({ row }: any) => {
         const value = row.getValue('dueDate') as string | null
-        if (!value) return h('div', '—')
-  
-        const date = new Date(value)
-        if (isNaN(date.getTime())) return h('div', '—')
-  
-        const formatted = new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        }).format(date)
-        return h('div', { class: 'text-red-600 font-semibold' }, formatted)
+        return h('div', { class: 'text-red-600 font-semibold' }, formatDate(value))
       },
     },
-  // Find the project column in this file and replace it with:
 {
     accessorKey: 'project',
     header: ({ column }) => h(DataTableColumnHeader, { 
@@ -72,25 +41,7 @@ export const overdueColumns = computed(() => [
       }, project)
     },
 },
-    {
-      accessorKey: 'status',
-      header: ({ column }: any) => h(DataTableColumnHeader, { 
-          column: column,
-          title: 'Status'
-      }),
-      cell: ({ row }: any) => {
-        const status = row.getValue('status') as string
-        const statusClass = {
-          'not-started': 'bg-red-100 text-red-800',
-          'in-progress': 'bg-yellow-100 text-yellow-800',
-          'completed': 'bg-green-100 text-green-800',
-        }[status.toLowerCase()] || 'bg-red-100 text-red-800'
-        
-        return h(Badge, { 
-          class: `w-22 items-center px-2.5 py-0.5 rounded-full text-xs text-center font-medium ${statusClass}` 
-        }, status.replace('-', ' '))
-      },
-    },
+    createStatusColumn(),
     {
       id: 'actions',
       enableHiding: false,

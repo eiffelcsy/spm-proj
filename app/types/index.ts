@@ -234,6 +234,16 @@ export interface TaskForUI {
 }
 
 /**
+ * Minimal task data for dropdown actions
+ * Used in data table dropdowns for status updates and deletion
+ */
+export interface TaskForDropdown {
+  id: number
+  status: TaskStatus
+  title?: string
+}
+
+/**
  * Input for creating a new task
  */
 export interface TaskCreateInput {
@@ -476,6 +486,20 @@ export interface TasksListResponse {
 export interface ProjectsListResponse {
   projects: ProjectWithRelations[]
   count: number
+}
+
+// ============================================================================
+// BREADCRUMB TYPES
+// ============================================================================
+
+/**
+ * Breadcrumb item for navigation
+ * Used by useBreadcrumbs composable
+ */
+export interface BreadcrumbItem {
+  label: string
+  href?: string
+  isCurrentPage: boolean
 }
 
 // ============================================================================

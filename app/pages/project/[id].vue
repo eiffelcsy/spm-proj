@@ -173,7 +173,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { getLocalTimeZone } from '@internationalized/date'
 
 definePageMeta({
-  layout: 'dashboard'
+  layout: 'with-sidebar'
 })
 import { columns } from '@/components/tasks-table/columns/columns'
 import { overdueColumns } from '@/components/tasks-table/columns/overdue-columns'

@@ -32,7 +32,7 @@
                   variant="outline"
                   :class="
                     cn(
-                      'w-[13vw] justify-start text-left font-normal',
+                      'w-full justify-start text-left font-normal',
                       !startDate && 'text-muted-foreground'
                     )
                   "
@@ -62,7 +62,7 @@
                   variant="outline"
                   :class="
                     cn(
-                      'w-[13vw] justify-start text-left font-normal',
+                      'w-full justify-start text-left font-normal',
                       !dueDate && 'text-muted-foreground'
                     )
                   "
@@ -89,7 +89,7 @@
           <div class="flex flex-col gap-1">
             <Label class="mb-1">Status</Label>
             <Select v-model="status">
-              <SelectTrigger class="w-[13vw]">
+              <SelectTrigger class="w-full">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -259,13 +259,13 @@
                   />
                 </div>
 
-                <!-- Description -->
+                <!-- Notes -->
                 <div class="flex flex-col gap-1">
-                  <Label class="text-xs mb-1">Description</Label>
+                  <Label class="text-xs mb-1">Notes</Label>
                   <textarea
-                    v-model="subtask.description"
+                    v-model="subtask.notes"
                     rows="2"
-                    placeholder="Subtask description..."
+                    placeholder="Subtask notes..."
                     class="w-full border rounded-lg px-2 py-1 text-sm bg-white"
                   ></textarea>
                 </div>
@@ -368,7 +368,7 @@ const subtasks = ref<
     startDate: DateValue;
     dueDate: DateValue | undefined;
     status: string;
-    description: string;
+    notes: string;
     assignedTo: string[];
     expanded: boolean;
   }[]
@@ -480,7 +480,7 @@ function populateForm() {
   }
 
   status.value = props.task.status || "not-started";
-  description.value = props.task.description || props.task.notes || "";
+  description.value = props.task.notes || "";
 
   // Handle subtasks if they exist
   if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
@@ -525,7 +525,7 @@ function populateForm() {
             })()
           : todayDate,
       status: subtask.status || "not-started",
-      description: subtask.description || "",
+      notes: subtask.notes || "",
       assignedTo: (() => {
         // Check assignees array first
         if (subtask.assignees && Array.isArray(subtask.assignees) && subtask.assignees.length > 0) {
@@ -563,7 +563,7 @@ function addSubtask() {
     startDate: todayDate,
     dueDate: todayDate,
     status: "not-started",
-    description: "",
+    notes: "",
     assignedTo: [],
     expanded: true,
   });

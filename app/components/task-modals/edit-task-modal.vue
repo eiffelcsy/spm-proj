@@ -341,7 +341,7 @@ function populateForm() {
   }
 
   status.value = props.task.status || 'not-started'
-  description.value = props.task.description || props.task.notes || ''
+  description.value = props.task.notes || ''
 
   // Handle subtasks if they exist
   if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
@@ -386,7 +386,7 @@ function populateForm() {
         }
       })() : undefined,
       status: subtask.status || 'not-started',
-      notes: subtask.notes || subtask.description || '',
+      notes: subtask.notes || '',
       assignedTo: subtask.assignedTo || (subtask.assignee_id ? [String(subtask.assignee_id)] : []),
       expanded: false
     }))

@@ -3,14 +3,11 @@ import { MoreHorizontal, Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ref } from 'vue'
-import DeleteTaskModal from '@/components/task-modals/delete-task-modal/DeleteTaskModal.vue'
+import { DeleteTaskModal } from '@/components/task-modals/delete-task'
+import type { TaskForDropdown } from '@/types'
 
 const props = defineProps<{
-  task: {
-    id: string
-    status: string
-    title?: string
-  }
+  task: TaskForDropdown
 }>()
 
 const emit = defineEmits<{

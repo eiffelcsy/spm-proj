@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { Table } from '@tanstack/vue-table'
-import type { Task } from './data/schema'
 import { computed } from 'vue'
 
-import { Cross2Icon, PlusCircledIcon, UpdateIcon } from '@radix-icons/vue'
+import { Cross2Icon, UpdateIcon } from '@radix-icons/vue'
+import { PlusSquare } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -72,7 +72,7 @@ defineOptions({
           class="h-8"
           @click="emit('create-task')"
         >
-          <PlusCircledIcon class="md:mr-2 h-4 w-4" />
+          <PlusSquare class="md:mr-2 h-4 w-4" />
           <span class="hidden md:block">Create New Task</span>
         </Button>
       </div>

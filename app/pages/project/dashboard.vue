@@ -75,114 +75,20 @@
           </div>
         </div>
 
-      <CreateTaskModal :isOpen="isModalOpen" role="manager" :currentUser="'me@example.com'"
-        :projectId="''" @close="isModalOpen = false" @task-created="addTask" />
+      <CreateTaskModal 
+        :isOpen="isModalOpen" 
+        role="manager" 
+        :currentUser="'me@example.com'"
+        :projectId="''" 
+        @close="isModalOpen = false" 
+        @task-created="addTask" 
+      />
 
-      <!-- Create Project Modal -->
-      <div v-if="isCreateProjectModalOpen"
-        class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" @click="$emit('close')">
-
-        <!-- Modal content -->
-        <div class="relative bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 overflow-y-auto z-10 flex flex-col h-[65vh]" @click.stop>
-          <h2 class="text-xl font-semibold mb-4">Create New Project</h2>
-
-          <!-- Feedback Messages -->
-          <div v-if="projectSuccessMessage" class="flex-1 flex items-center justify-center">
-            <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 text-green-800 rounded-xl p-8 flex flex-col items-center justify-center gap-6 min-w-[320px] min-h-[140px] shadow-lg">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
-                </div>
-                <span class="text-lg font-semibold text-center">{{ projectSuccessMessage }}</span>
-              </div>
-              <Button variant="outline" @click="handleProjectSuccessOk" class="bg-white hover:bg-green-50 border-green-300 text-green-700 hover:text-green-800 px-6 py-2">OK</Button>
-            </div>
-          </div>
-          <div v-if="projectErrorMessage" class="mb-4 p-3 rounded bg-red-100 text-red-700">
-            {{ projectErrorMessage }}
-          </div>
-
-          <form v-if="!projectSuccessMessage" @submit.prevent="createProject" class="space-y-4">
-
-            <!-- Project Title -->
-            <div>
-              <Label class="block text-sm font-medium mb-1">Project Title *</Label>
-              <Input v-model="projectName" type="text" required placeholder="Enter project title"
-                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-
-            <!-- Description -->
-            <div>
-              <Label class="block text-sm font-medium mb-1">Description</Label>
-              <textarea v-model="projectDescription" rows="4" placeholder="Enter project description (optional)"
-                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-            </div>
-
-            <!-- Due Date -->
-            <div>
-              <Label class="block text-sm font-medium mb-1">Due Date</Label>
-              <Popover>
-                <PopoverTrigger as-child>
-                  <Button variant="outline" :class="cn(
-                    'w-full justify-start text-left font-normal',
-                    !projectDueDate && 'text-muted-foreground',
-                  )">
-                    <CalendarIcon class="mr-2 h-4 w-4" />
-                    {{ projectDueDate ? formatDate(projectDueDate) : "Select due date (optional)" }}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent class="w-auto p-0">
-                  <Calendar v-model="projectDueDate" />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <!-- Status -->
-            <div>
-              <Label class="block text-sm font-medium mb-1">Status</Label>
-              <Select v-model="projectStatus">
-                <SelectTrigger class="w-full">
-                  <SelectValue placeholder="Select project status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">
-                    <div class="flex items-center gap-2">
-                      <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
-                      Active
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="completed">
-                    <div class="flex items-center gap-2">
-                      <span class="w-2 h-2 rounded-full bg-green-400"></span>
-                      Completed
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="archived">
-                    <div class="flex items-center gap-2">
-                      <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                      Archived
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <!-- Footer with buttons -->
-            <div class="mt-auto pt-8">
-              <div class="flex justify-end gap-2">
-                <Button variant="outline" @click="closeCreateProjectModal">
-                  Cancel
-                </Button>
-                <Button type="submit" @click="createProject" :disabled="isCreatingProject">
-                  {{ isCreatingProject ? 'Creating...' : 'Create Project' }}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
+      <CreateProjectModal
+        :isOpen="isCreateProjectModalOpen"
+        @close="isCreateProjectModalOpen = false"
+        @project-created="handleProjectCreated"
+      />
     </div>
   </div>
   </div>
@@ -192,38 +98,21 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CreateTaskModal } from '@/components/task-modals/create-task'
+import { CreateProjectModal } from '@/components/project-modals/create-project'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CalendarIcon, FolderPlus } from 'lucide-vue-next'
-import { cn } from '@/lib/utils'
-import type { CalendarDate } from '@internationalized/date'
-import { parseDate, getLocalTimeZone } from '@internationalized/date'
+import { FolderPlus } from 'lucide-vue-next'
 import type { Task } from '@/components/tasks-table/data/schema'
 
 definePageMeta({
-  layout: 'dashboard'
+  layout: 'with-sidebar'
 })
 
 const router = useRouter()
 
 const isModalOpen = ref(false)
-// Removed selectedProjectId as projects now navigate to detail pages
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-
-// Project creation modal state
 const isCreateProjectModalOpen = ref(false)
-const projectName = ref('')
-const projectDescription = ref('')
-const projectDueDate = ref<any>(null)
-const projectStatus = ref('active')
-const projectSuccessMessage = ref('')
-const projectErrorMessage = ref('')
-const isCreatingProject = ref(false)
 
 // Removed project editing modal state as editing now happens on detail pages
 
@@ -368,92 +257,28 @@ async function addTask(newTask: Task) {
 // Project creation functions
 function openCreateProjectModal() {
   isCreateProjectModalOpen.value = true
-  resetProjectForm()
 }
 
-function closeCreateProjectModal() {
+function handleProjectCreated(project: any) {
   isCreateProjectModalOpen.value = false
-  resetProjectForm()
-}
-
-function resetProjectForm() {
-  projectName.value = ''
-  projectDescription.value = ''
-  projectDueDate.value = null
-  projectStatus.value = 'active'
-  projectSuccessMessage.value = ''
-  projectErrorMessage.value = ''
-  isCreatingProject.value = false
-}
-
-function handleProjectSuccessOk() {
-  resetProjectForm()
-  isCreateProjectModalOpen.value = false
-  // Refresh projects list
-  fetchProjects()
-}
-
-async function createProject() {
-  try {
-    if (!projectName.value.trim()) {
-      projectErrorMessage.value = 'Project title is required.'
-      return
+  // Add the new project to the local projects array
+  if (project) {
+    const newProject = {
+      id: String(project.id),
+      name: project.name,
+      description: project.description || '',
+      status: project.status || 'active',
+      createdAt: project.created_at,
+      dueDate: project.due_date || null,
+      isRealData: true
     }
-
-    projectErrorMessage.value = ''
-    projectSuccessMessage.value = ''
-    isCreatingProject.value = true
-
-    const projectData = {
-      name: projectName.value.trim(),
-      description: projectDescription.value.trim() || null,
-      due_date: projectDueDate.value ? projectDueDate.value.toString() : null,
-      status: projectStatus.value
-    }
-
-    const response = await $fetch('/api/projects', {
-      method: 'POST',
-      body: projectData
-    })
-
-    if (!response || !response.success) {
-      throw new Error('Failed to create project')
-    }
-
-    // Add the new project to the local projects array
-    if (response.project) {
-      const newProject = {
-        id: String(response.project.id),
-        name: response.project.name,
-        description: response.project.description || '',
-        status: response.project.status || 'active',
-        createdAt: response.project.created_at,
-        dueDate: response.project.due_date || null,
-        isRealData: true
-      }
-      projects.value.unshift(newProject)
-    }
-
-    projectSuccessMessage.value = 'Project created successfully!'
-  } catch (err: any) {
-    console.error('Error creating project:', err)
-    projectErrorMessage.value = err?.data?.statusMessage || err?.message || 'Something went wrong. Project was not created.'
-    projectSuccessMessage.value = ''
-  } finally {
-    isCreatingProject.value = false
+    projects.value.unshift(newProject)
   }
 }
 
 function formatDate(date: any): string {
   if (typeof date === 'string') {
     const jsDate = new Date(date)
-    const day = String(jsDate.getDate()).padStart(2, '0')
-    const month = String(jsDate.getMonth() + 1).padStart(2, '0')
-    const year = jsDate.getFullYear()
-    return `${day}/${month}/${year}`
-  }
-  if (date && typeof date.toDate === 'function') {
-    const jsDate = date.toDate(getLocalTimeZone())
     const day = String(jsDate.getDate()).padStart(2, '0')
     const month = String(jsDate.getMonth() + 1).padStart(2, '0')
     const year = jsDate.getFullYear()
@@ -469,8 +294,6 @@ function capitalizeStatus(status: string): string {
 async function fetchProjects() {
   try {
     const fetchedProjects = await $fetch('/api/projects')
-    console.log('Fetched projects:', fetchedProjects) // Debug log
-    console.log('Number of projects:', fetchedProjects?.length) // Debug log
     
     projects.value = fetchedProjects.map((project: any) => ({
       id: String(project.id),
@@ -479,11 +302,10 @@ async function fetchProjects() {
       status: project.status || 'active',
       createdAt: project.created_at || new Date().toISOString(),
       dueDate: project.due_date || null,
-      isRealData: true // Mark as real data from Supabase
+      isRealData: true
     }))
   } catch (err) {
     console.error('Failed to fetch projects:', err)
-    // If fetch fails, show empty array instead of example data
     projects.value = []
   }
 }

@@ -69,6 +69,17 @@ export default defineEventHandler(async (event) => {
       creator = creatorData
     }
     
+    // Fetch project information
+    let project = null
+    if (task && task.project_id) {
+      const { data: projectData } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('id', task.project_id)
+        .single()
+      project = projectData
+    }
+    
     // Fetch all active assignees for main task
     let assignees: any[] = []
     const { data: assigneeRows } = await supabase
@@ -194,12 +205,13 @@ export default defineEventHandler(async (event) => {
       canDelete = Boolean(isCreator)
     }
     
-    // Attach history, subtasks, assignees, creator, and permissions to the task object
+    // Attach history, subtasks, assignees, creator, project, and permissions to the task object
     if (task) {
       parentTask.history = history || [];
       parentTask.subtasks = subtasks;
       parentTask.assignees = assignees;
       parentTask.creator = creator;
+      parentTask.project = project;
       parentTask.permissions = {
         canEdit,
         canDelete
