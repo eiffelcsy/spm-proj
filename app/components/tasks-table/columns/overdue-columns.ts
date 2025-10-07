@@ -1,7 +1,8 @@
 // Create special columns for overdue tasks with red highlighting
 import { h, computed } from 'vue'
-import DataTableColumnHeader from './data-table-column-header.vue'
-import DropdownAction from '@/components/tasks/data-table-dropdown.vue'
+import DataTableColumnHeader from '../data-table-column-header.vue'
+import DropdownAction from '../data-table-dropdown.vue'
+import { Badge } from '@/components/ui/badge'
 
 export const overdueColumns = computed(() => [
     {
@@ -80,14 +81,14 @@ export const overdueColumns = computed(() => [
       cell: ({ row }: any) => {
         const status = row.getValue('status') as string
         const statusClass = {
-          'not-started': 'bg-red-200 text-red-900 ring-1 ring-red-400',
-          'in-progress': 'bg-red-100 text-red-800 ring-1 ring-red-300',
+          'not-started': 'bg-red-100 text-red-800',
+          'in-progress': 'bg-yellow-100 text-yellow-800',
           'completed': 'bg-green-100 text-green-800',
         }[status.toLowerCase()] || 'bg-red-100 text-red-800'
         
-        return h('div', { 
+        return h(Badge, { 
           class: `w-22 items-center px-2.5 py-0.5 rounded-full text-xs text-center font-medium ${statusClass}` 
-        }, status)
+        }, status.replace('-', ' '))
       },
     },
     {

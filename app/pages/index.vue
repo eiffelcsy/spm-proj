@@ -48,6 +48,12 @@ const handleLogout = async () => {
     }
   }
 };
+
+onMounted(() => {
+  if (user.value) {
+    router.push('/personal/dashboard');
+  }
+});
 </script>
 
 <style scoped>

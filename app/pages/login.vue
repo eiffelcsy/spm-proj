@@ -1,59 +1,67 @@
 <template>
-  <div class="home-container">
-    <div class="left-section">
-      <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
+  <div class="grid min-h-svh lg:grid-cols-2">
+    <div class="relative hidden bg-muted lg:block">
+      <img src="/assets/office-picture.jpg" alt="Image"
+        class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale">
     </div>
-    <div class="right-section login-section">
-      <div class="login-card-container">
-        <NuxtLink to="/" class="back-link">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="back-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          <span class="back-text">Back to Home</span>
-        </NuxtLink>
-        <div class="login-card">
-          <h1 class="login-title">Welcome Back</h1>
-          <p class="login-description">Sign in to continue</p>
-          <form @submit.prevent="handleLogin" class="login-form">
-            <div class="form-group">
-              <label for="email" class="form-label">Email Address</label>
-              <input v-model="email" type="email" id="email" class="form-input" placeholder="Enter your email" required />
+    <div class="flex flex-col gap-4 p-6 md:p-10">
+      <div class="flex flex-1 items-center justify-center">
+        <div class="w-full max-w-sm">
+          <div class="flex items-center justify-center text-center mb-10">
+            <ListCheck class="w-10 h-10 mr-2" />
+            <h1 class="text-4xl font-bold">
+              TaskAIO
+            </h1>
+          </div>
+          <form @submit.prevent="handleLogin" :class="cn('flex flex-col gap-6')">
+            <div class="flex flex-col items-center gap-2 text-center">
+              <h1 class="text-2xl font-bold">
+                Login to your account
+              </h1>
+              <p class="text-balance text-sm text-muted-foreground">
+                Enter your email below to login to your account
+              </p>
             </div>
-            <div class="form-group">
-              <label for="password" class="form-label">Password</label>
-              <input v-model="password" type="password" id="password" class="form-input" placeholder="Enter your password" required />
+            <div class="grid gap-6">
+              <div class="grid gap-2">
+                <Label for="email">Email</Label>
+                <Input id="email" v-model="email" type="email" placeholder="m@example.com" required />
+              </div>
+              <div class="grid gap-2">
+                <div class="flex items-center">
+                  <Label for="password">Password</Label>
+                  <NuxtLink href="/forgot-password" class="ml-auto text-sm underline-offset-4 hover:underline">
+                    Forgot your password?
+                  </NuxtLink>
+                </div>
+                <Input id="password" v-model="password" type="password" required />
+              </div>
+              <Button type="submit" class="w-full">
+                Login
+              </Button>
             </div>
-            <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
-            <p class="forgot-password">
-              <NuxtLink to="/forgot-password" class="link">Forgot password?</NuxtLink>
-            </p>
-            <button type="submit" class="login-button" :disabled="loading">
-              {{ loading ? 'Logging in...' : 'Log In' }}
-            </button>
+            <div class="text-center text-sm">
+              Don't have an account?
+              <NuxtLink href="/signup" class="underline underline-offset-4">
+                Sign up
+              </NuxtLink>
+            </div>
           </form>
-          <p class="signup-link">
-            Don't have an account? <NuxtLink to="/signup" class="link">Sign up here</NuxtLink>
-          </p>
         </div>
       </div>
     </div>
   </div>
 </template>
 
+
 <script setup lang="ts">
-// Your script logic remains the same
 import { ref } from 'vue';
 import { useSupabaseClient, useRouter } from '#imports';
+import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ListCheck } from "lucide-vue-next"
 
 const supabase = useSupabaseClient();
 const router = useRouter();
@@ -87,7 +95,7 @@ const handleLogin = async () => {
 
     if (response.success && response.session) {
       await supabase.auth.setSession(response.session);
-      router.push('/');
+      router.push('/personal/dashboard');
     } else {
       errorMsg.value = 'Login failed. Please try again.';
     }
@@ -103,180 +111,5 @@ const handleLogin = async () => {
 };
 </script>
 
-<style scoped>
-/* Base layout and sections */
-.home-container {
-  display: flex;
-  min-height: 100vh;
-  overflow: hidden;
-}
-
-.left-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.left-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  max-height: 100vh;
-}
-
-.right-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f0f2f5; /* Light gray background */
-}
-
-/* Back Link Styling */
-.back-link {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #5a5a5a;
-  text-decoration: none;
-  font-size: 1em;
-  font-weight: 500;
-  transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.back-link:hover {
-  color: #007bff;
-  transform: translateX(-4px);
-}
-
-.back-icon {
-  width: 20px;
-  height: 20px;
-}
-
-/* Login Card Styling */
-.login-card-container {
-  position: relative;
-  padding: 40px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  max-width: 450px;
-  width: 100%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.8s ease-in-out forwards;
-}
-
-.login-card {
-  text-align: left;
-}
-
-.login-title {
-  font-size: 2.5em;
-  margin-bottom: 0.2em;
-  color: #333;
-  text-align: center;
-  font-weight: 700;
-}
-
-.login-description {
-  font-size: 1.2em;
-  margin-bottom: 1.5em;
-  color: #777;
-  text-align: center;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group {
-  margin-bottom: 1.5em;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 0.5em;
-  font-size: 1em;
-  color: #555;
-}
-
-.form-input {
-  width: 100%;
-  padding: 12px;
-  font-size: 1em;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  transition: border-color 0.3s ease;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-}
-
-.forgot-password {
-  text-align: right;
-  margin-bottom: 1.5em;
-  font-size: 0.9em;
-}
-
-.login-button {
-  padding: 14px 24px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1.1em;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  font-weight: 600;
-}
-
-.login-button:hover {
-  background-color: #0056b3;
-  transform: translateY(-2px);
-}
-
-.signup-link {
-  margin-top: 1.5em;
-  text-align: center;
-  font-size: 1em;
-}
-
-.link {
-  color: #007bff;
-  text-decoration: none;
-  font-weight: 600;
-  transition: text-decoration 0.3s ease;
-}
-
-.link:hover {
-  text-decoration: underline;
-}
-
-.error-message {
-  color: #dc3545;
-  font-size: 0.9em;
-  margin-bottom: 1em;
-  text-align: center;
-}
-
-/* Optional animation to make it look nicer */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+<style>
 </style>

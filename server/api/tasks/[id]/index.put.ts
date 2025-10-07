@@ -116,7 +116,6 @@ export default defineEventHandler(async (event) => {
       due_date?: string
       status?: string
       notes?: string
-      assignee_id?: number
     } = {}
     
     if (body.task_name) updateData.title = body.task_name
@@ -124,7 +123,6 @@ export default defineEventHandler(async (event) => {
     if (body.end_date !== undefined) updateData.due_date = body.end_date
     if (body.status) updateData.status = body.status
     if (body.notes !== undefined) updateData.notes = body.notes
-    if (body.assignee_id !== undefined) updateData.assignee_id = body.assignee_id
 
     // Update task in database
     const { data: task, error } = await (supabase as any)
@@ -146,6 +144,32 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Failed to update task',
         data: error
       })
+    }
+
+    // Handle assignee update if provided
+    if (body.assignee_id !== undefined) {
+      // First, deactivate all current assignees
+      await supabase
+        .from('task_assignees')
+        .update({ is_active: false })
+        .eq('task_id', taskId)
+
+      // If a new assignee is provided (not null), add them
+      if (body.assignee_id !== null) {
+        const { error: assignError } = await supabase
+          .from('task_assignees')
+          .insert({
+            task_id: taskId,
+            assigned_to_staff_id: body.assignee_id,
+            assigned_by_staff_id: currentStaffId,
+            is_active: true
+          })
+
+        if (assignError) {
+          console.error('Failed to update assignee:', assignError)
+          // Don't throw error here, task update was successful
+        }
+      }
     }
 
     return {

@@ -241,23 +241,21 @@
         </div>
       </CardContent>
     </Card>
-    
+  
     <!-- Edit Task Modal -->
-    <EditTaskModal
-      :isOpen="isEditModalOpen"
-      :task="task"
-      :isSubtask="isSubtask"
-      @close="closeEditModal"
-      @task-updated="handleTaskUpdated"
-    />
+    <EditTaskModal 
+      :open="isEditModalOpen" 
+      :task="task" 
+      :isSubtask="isSubtask" 
+      @update:open="closeEditModal"
+      @task-updated="handleTaskUpdated" />
 
     <!-- Delete Task Modal -->
     <DeleteTaskModal
-      :isOpen="isDeleteModalOpen"
-      :isSubtask="isSubtask"
-      @close="closeDeleteModal"
-      @undo="undoDelete"
-      @delete-complete="handleDeleteComplete"
+      :open="isDeleteModalOpen"
+      :task="task"
+      @update:open="closeDeleteModal"
+      @confirm="handleDeleteComplete"
     />
   </div>
 </template>
@@ -269,9 +267,9 @@ definePageMeta({
 })
 
 // ...existing code...
-import DataTable from '@/components/tasks/data-table.vue'
-import EditTaskModal from '~/components/task-modals/edit-task-modal.vue'
-import { DeleteTaskModal } from '~/components/task-modals/delete-task-modal'
+import DataTable from '@/components/tasks-table/data-table.vue'
+import { EditTaskModal } from '@/components/task-modals/edit-task'
+import { DeleteTaskModal } from '@/components/task-modals/delete-task-modal'
 import { 
   List, 
   Clock, 

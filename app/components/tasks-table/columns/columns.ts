@@ -1,8 +1,9 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import DataTableColumnHeader from './data-table-column-header.vue'
-import type { Task } from './data/schema'
-import DropdownAction from '@/components/tasks/data-table-dropdown.vue'
+import DataTableColumnHeader from '../data-table-column-header.vue'
+import type { Task } from '../data/schema'
+import DropdownAction from '@/components/tasks-table/data-table-dropdown.vue'
+import { Badge } from '@/components/ui/badge'
 
 
 export const columns: ColumnDef<Task>[] = [
@@ -86,9 +87,9 @@ export const columns: ColumnDef<Task>[] = [
         'completed': 'bg-green-100 text-green-800',
       }[status.toLowerCase()] || 'bg-gray-100 text-gray-800'
       
-      return h('div', { 
+      return h(Badge, { 
         class: `w-22 items-center px-2.5 py-0.5 rounded-full text-xs text-center font-medium ${statusClass}` 
-      }, status)
+      }, status.replace('-', ' '))
     },
   },
   {

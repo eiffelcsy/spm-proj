@@ -3,8 +3,8 @@
     <label v-if="label" :class="labelClass">{{ label }}</label>
     <Combobox v-model="selectedIds" v-model:open="open" :ignore-filter="true" class="w-full">
       <ComboboxAnchor class="w-full py-0" as-child>
-        <TagsInput v-model="selectedIds" class="w-full min-w-[200px] max-w-full py-1">
-          <div class="flex gap-2 flex-wrap items-center w-full py-1">
+        <TagsInput v-model="selectedIds" class="w-full min-w-[200px] max-w-full py-3">
+          <div v-if="selectedStaffMembers.length > 0" class="flex gap-2 flex-wrap items-center w-full">
             <TagsInputItem
             v-for="staff in selectedStaffMembers"
             :key="staff.id"
@@ -18,15 +18,16 @@
           <ComboboxInput v-model="searchTerm" class="w-full" as-child>
             <TagsInputInput
               :placeholder="placeholder"
-              class="min-w-[120px] w-full p-0 border-none focus-visible:ring-0 h-auto"
+              class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
               @keydown.enter.prevent
             />
           </ComboboxInput>
         </TagsInput>
+
         <ComboboxList class="w-[--reka-popper-anchor-width] max-h-60 overflow-y-auto left-0" align="start">
-        <ComboboxEmpty class="w-full p-2 pt-3 text-center text-muted-foreground">
+          <ComboboxEmpty class="w-full p-2 pt-3 text-center text-muted-foreground">
             No staff found
-        </ComboboxEmpty>
+          </ComboboxEmpty>
           <ComboboxGroup>
             <ComboboxItem
               v-for="staff in filteredStaff"
@@ -49,12 +50,7 @@ import { computed, ref, watch } from "vue"
 import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxList } from "@/components/ui/combobox"
 import { TagsInput, TagsInputInput, TagsInputItem, TagsInputItemDelete, TagsInputItemText } from "@/components/ui/tags-input"
 import { useFilter } from "reka-ui"
-
-interface StaffMember {
-  id: number
-  fullname: string
-  email: string
-}
+import type { StaffMember } from "@/types"
 
 interface Props {
   modelValue?: string[]

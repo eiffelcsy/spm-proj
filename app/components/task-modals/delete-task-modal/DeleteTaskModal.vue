@@ -1,61 +1,61 @@
-<template>
-  <div>
-    <!-- Delete Confirmation Modal -->
-    <div v-if="isOpen" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-lg">
-        <h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
-        <p class="text-gray-600 mb-6">
-          Are you sure you want to delete this {{ isSubtask ? 'subtask' : 'task' }}?
-        </p>
-        <div class="flex justify-end gap-3">
-          <button @click="handleCancel" class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">
-            No
-          </button>
-          <button @click="handleConfirm" class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
-            Yes
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+
 interface Props {
-  isOpen: boolean
-  isSubtask?: boolean
+  open?: boolean
+  task?: { id: string | undefined, title?: string | undefined } | null
+}
+
+interface Emits {
+  (e: 'update:open', value: boolean): void
+  (e: 'confirm', task: { id: string | undefined, title?: string | undefined }): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  isSubtask: false
+  open: false,
+  task: null,
 })
 
-const emit = defineEmits<{
-  close: []
-  'delete-complete': []
-}>()
+const emit = defineEmits<Emits>()
 
-function handleCancel() {
-  emit('close')
+const handleClose = () => {
+  emit('update:open', false)
 }
 
-function handleConfirm() {
-  emit('delete-complete')
+const handleConfirm = () => {
+  if (props.task) {
+    emit('confirm', props.task)
+    handleClose()
+  }
 }
 </script>
 
-<style scoped>
-.modal-backdrop {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  /* Safari support */
-}
+<template>
+  <Dialog :open="open" @update:open="handleClose">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Confirm Delete Task</DialogTitle>
+        <DialogDescription>
+          Are you sure you want to delete this task? This action cannot be undone.
+        </DialogDescription>
+      </DialogHeader>
 
-/* Fallback for browsers that don't support backdrop-filter */
-@supports not (backdrop-filter: blur(8px)) {
-  .modal-backdrop {
-    background: rgba(0, 0, 0, 0.6);
-  }
-}
-</style>
+      <DialogFooter class="gap-2">
+        <Button variant="outline" @click="handleClose">
+          Cancel
+        </Button>
+        <Button variant="destructive" @click="handleConfirm">
+          Delete Task
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</template>

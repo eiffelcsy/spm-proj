@@ -175,13 +175,13 @@ import { getLocalTimeZone } from '@internationalized/date'
 definePageMeta({
   layout: 'dashboard'
 })
-import { columns } from '@/components/tasks/columns'
-import { overdueColumns } from '@/components/tasks/overdue-columns'
-import type { Task } from '@/components/tasks/data/schema'
-import DataTable from '@/components/tasks/data-table.vue'
-import CreateTaskModal from '~/components/task-modals/create-task-modal.vue'
-import EditProjectModal from '~/components/project-modals/edit-project-modal.vue'
-import DeleteProjectModal from '~/components/project-modals/delete-project-modal.vue'
+import { columns } from '@/components/tasks-table/columns/columns'
+import { overdueColumns } from '@/components/tasks-table/columns/overdue-columns'
+import type { Task } from '@/components/tasks-table/data/schema'
+import DataTable from '@/components/tasks-table/data-table.vue'
+import { CreateTaskModal } from '@/components/task-modals/create-task'
+import EditProjectModal from '@/components/project-modals/edit-project-modal.vue'
+import DeleteProjectModal from '@/components/project-modals/delete-project-modal.vue'
 import { Button } from '@/components/ui/button'
 
 const router = useRouter()

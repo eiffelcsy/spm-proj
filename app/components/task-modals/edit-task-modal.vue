@@ -203,7 +203,7 @@
 import { ref, watch } from 'vue'
 //import { DatePicker } from '@/components/ui/date-picker'
 import { StatusDropdown } from '@/components/task-modals/status-dropdown'
-import { AssignDropdown } from '@/components/task-modals/assign-dropdown'
+import { AssignDropdown } from '@/components/task-modals/assign-combobox'
 import { cn } from '@/lib/utils'
 import { getLocalTimeZone, parseDate, CalendarDate, type DateValue } from '@internationalized/date'
 import { Calendar } from '@/components/ui/calendar'

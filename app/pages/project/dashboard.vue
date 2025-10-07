@@ -75,43 +75,8 @@
           </div>
         </div>
 
-        <!-- Overdue Tasks Section -->
-        <div class="mb-6">
-          <div 
-            v-if="overdueTasks.length > 0" 
-            class="border-l-4 border-red-500 pl-4 mb-4 bg-red-50/70 p-4 rounded-r-lg"
-          >
-            <h3 class="text-lg font-semibold pb-2 text-red-600 flex items-center">
-              <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clip-rule="evenodd" />
-              </svg>
-              Overdue Tasks ({{ overdueTasks.length }})
-            </h3>
-            <DataTable :columns="overdueColumns" :data="overdueTasks" @rowClick="goToTask"
-              :hideToolbar="true" />
-          </div>
-        </div>
-
-        <!-- All Tasks Section -->
-        <div>
-          <h3 class="text-lg font-semibold py-2 flex items-center justify-between">
-            <span>
-              All Tasks ({{ allTasks.length }})
-            </span>
-          </h3>
-          <div>
-            <DataTable :columns="columns" :data="allTasks" @rowClick="goToTask" :showCreateButton="true"
-              :showRefreshButton="true" @create-task="openCreateModal" @refresh-tasks="fetchData" />
-          </div>
-        </div>
-      </div>
-
       <CreateTaskModal :isOpen="isModalOpen" role="manager" :currentUser="'me@example.com'"
         :projectId="''" @close="isModalOpen = false" @task-created="addTask" />
-
-      <!-- Edit Project Modal removed - editing now happens on project detail pages -->
 
       <!-- Create Project Modal -->
       <div v-if="isCreateProjectModalOpen"
@@ -220,16 +185,13 @@
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { columns } from '@/components/tasks/columns'
-import { overdueColumns } from '@/components/tasks/overdue-columns'
-import type { Task } from '@/components/tasks/data/schema'
-import DataTable from '@/components/tasks/data-table.vue'
-import CreateTaskModal from '~/components/task-modals/create-task-modal.vue'
+import { CreateTaskModal } from '@/components/task-modals/create-task'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -240,9 +202,7 @@ import { CalendarIcon, FolderPlus } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import type { CalendarDate } from '@internationalized/date'
 import { parseDate, getLocalTimeZone } from '@internationalized/date'
-
-// Import the example data
-import exampleData from '@/components/tasks/data/example.json'
+import type { Task } from '@/components/tasks-table/data/schema'
 
 definePageMeta({
   layout: 'dashboard'
@@ -352,15 +312,6 @@ function getProjectDueDate(project: any): string {
   return formatDate(project.dueDate)
 }
 
-function goToTask(task: Task) {
-  console.log('goToTask called with task:', task)
-  console.log('Task ID:', task.id, 'Type:', typeof task.id)
-  router.push(`/task/${task.id}?from=project`)
-}
-
-function openCreateModal() {
-  isModalOpen.value = true
-}
 
 async function fetchData() {
   try {
@@ -441,12 +392,6 @@ function handleProjectSuccessOk() {
   // Refresh projects list
   fetchProjects()
 }
-
-// Project editing functions
-// Removed edit project modal functions as editing now happens on detail pages
-
-// Removed handleProjectUpdated function as project editing now happens on detail pages
-
 
 async function createProject() {
   try {
@@ -567,84 +512,4 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.modal-backdrop {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  /* Safari support */
-}
-
-/* Fallback for browsers that don't support backdrop-filter */
-@supports not (backdrop-filter: blur(8px)) {
-  .modal-backdrop {
-    background: rgba(0, 0, 0, 0.6);
-  }
-}
-
-/* Custom animations for project cards */
-.project-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.project-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.selected-project-card {
-  animation: slideInFromTop 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideInFromTop {
-  0% {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1.02);
-  }
-}
-
-/* Smooth transitions for tasks section */
-.tasks-section {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Enhanced slide-in animation */
-.slide-in-from-top-2 {
-  animation: slideInFromTop2 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideInFromTop2 {
-  0% {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Smooth grid transitions */
-.grid-transition {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Fade out animation for disappearing cards */
-.fade-out {
-  animation: fadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes fadeOut {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-}
 </style>
