@@ -10,6 +10,7 @@ const props = defineProps<{
     id: string
     status: string
     title?: string
+    repeat_frequency?: string
   }
 }>()
 
@@ -34,17 +35,47 @@ const isDeleteModalOpen = ref(false)
 // Update task status
 async function updateTaskStatus(newStatus: string) {
   try {
-    const response = await $fetch<{ success: boolean; task: any }>(`/api/tasks/${props.task.id}`, {
-      method: 'PUT',
-      body: {
-        status: newStatus
-      }
-    })
+    // Check if task is recurring and being marked as completed
+    const isRecurring = props.task.repeat_frequency && props.task.repeat_frequency !== 'never'
+    const isMarkingCompleted = newStatus === 'completed'
+    
+    if (isMarkingCompleted && isRecurring) {
+      const response = await $fetch<{ success: boolean; task: any; nextTask?: any }>(`/api/tasks/${props.task.id}/complete`, {
+        method: 'POST'
+      })
 
-    if (response.success) {
-      emit('task-updated')
+      if (response.success) {
+        // Show message if a recurring task was created
+        if (response.nextTask) {
+          console.log('Recurring task completed! Next occurrence created:', response.nextTask)
+          
+          // Optional: Show user notification
+          window.dispatchEvent(new CustomEvent('recurring-task-created', { 
+            detail: { 
+              originalTask: response.task,
+              nextTask: response.nextTask 
+            }
+          }))
+        }
+        
+        emit('task-updated')
+      } else {
+        console.error('Failed to complete recurring task')
+      }
     } else {
-      console.error('Failed to update task status')
+      // For non-recurring tasks or other status updates, use the regular update endpoint
+      const response = await $fetch<{ success: boolean; task: any }>(`/api/tasks/${props.task.id}`, {
+        method: 'PUT',
+        body: {
+          status: newStatus
+        }
+      })
+
+      if (response.success) {
+        emit('task-updated')
+      } else {
+        console.error('Failed to update task status')
+      }
     }
   } catch (error) {
     console.error('Error updating task status:', error)
@@ -94,7 +125,11 @@ function closeDeleteModal() {
       <!-- Status update actions -->
       <template v-for="status in availableStatuses" :key="status.value">
         <DropdownMenuItem @click.stop="updateTaskStatus(status.value)" class="cursor-pointer">
-          Mark as {{ status.label }}
+          <span v-if="status.value === 'completed' && task.repeat_frequency && task.repeat_frequency !== 'never'" class="flex items-center">
+            ✓ Mark as {{ status.label }}
+            <span class="ml-1 text-xs text-muted-foreground">(will create next occurrence)</span>
+          </span>
+          <span v-else>Mark as {{ status.label }}</span>
         </DropdownMenuItem>
       </template>
       
