@@ -30,9 +30,9 @@ const route = useRoute()
 
 const pageTitle = computed(() => {
   const path = route.path
-  if (path.startsWith('/personal')) return 'Personal Dashboard'
-  if (path.startsWith('/project')) return 'Project Dashboard'
-  if (path.startsWith('/task')) return 'Task Details'
+  if (path.startsWith('/personal') || (path.startsWith('/task') && from === 'personal')) return 'Personal Dashboard'
+  if (path.startsWith('/project') || (path.startsWith('/task') && from === 'project')) return 'Project Dashboard'
+  
   return 'Dashboard'
 })
 
