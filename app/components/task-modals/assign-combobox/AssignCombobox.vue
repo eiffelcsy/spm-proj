@@ -109,7 +109,7 @@ const { contains } = useFilter({ sensitivity: "base" })
 const filteredStaff = computed(() => {
   const options = props.staffMembers.filter(i => !selectedIds.value.includes(i.id.toString()))
   return searchTerm.value
-    ? options.filter(option => contains(option.fullname, searchTerm.value) || contains(option.email, searchTerm.value))
+    ? options.filter(option => contains(option.fullname, searchTerm.value) || contains(option.email ?? '', searchTerm.value))
     : options
 })
 

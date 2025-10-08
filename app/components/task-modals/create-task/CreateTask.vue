@@ -404,7 +404,17 @@ watch(() => props.isOpen, async (isOpen) => {
           email: staff.email ?? `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
         }))
     } else {
-      staffMembers.value = []
+      // If no project, only show current user as assignee option
+      if (props.currentUser) {
+        const currentUserData = await $fetch<{ id: number; fullname: string; email?: string }>('/api/user/me')
+        staffMembers.value = [{
+          id: currentUserData.id,
+          fullname: currentUserData.fullname,
+          email: currentUserData.email ?? `${currentUserData.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
+        }]
+      } else {
+        staffMembers.value = []
+      }
     }
   } catch (err) {
     console.error('Failed to load staff', err)
