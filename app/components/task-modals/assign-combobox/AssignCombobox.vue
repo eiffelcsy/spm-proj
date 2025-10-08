@@ -1,6 +1,14 @@
 <template>
   <div class="flex flex-col gap-1 w-full">
-    <label v-if="label" :class="labelClass">{{ label }}</label>
+    <div v-if="label" class="flex items-center justify-between">
+      <label :class="labelClass">{{ label }}</label>
+      <span v-if="maxLimitReached" class="text-xs text-orange-600 font-medium">
+        Maximum {{ maxAssignees }} assignees reached
+      </span>
+      <span v-else-if="showMinimumWarning" class="text-xs text-red-600 font-medium">
+        At least {{ minAssignees }} assignee{{ minAssignees > 1 ? 's' : '' }} required
+      </span>
+    </div>
     <Combobox v-model="selectedIds" v-model:open="open" :ignore-filter="true" class="w-full">
       <ComboboxAnchor class="w-full py-0" as-child>
         <TagsInput v-model="selectedIds" class="w-full min-w-[200px] max-w-full py-3">
@@ -9,10 +17,17 @@
             v-for="staff in selectedStaffMembers"
             :key="staff.id"
             :value="staff.id.toString()"
-            class="max-w-full py-4"
+            :class="['max-w-full py-4', { 'pr-2': !canRemoveAssignee(staff.id.toString()) }]"
             >
             <span class="truncate block max-w-full p-3">{{ staff.email }}</span>
-            <TagsInputItemDelete />
+            <TagsInputItemDelete v-if="canRemoveAssignee(staff.id.toString())" />
+            <span 
+              v-else 
+              class="ml-2 text-xs text-muted-foreground italic"
+              :title="`Cannot remove: ${getRemovalBlockReason()}`"
+            >
+              (Required)
+            </span>
             </TagsInputItem>
           </div>
           <ComboboxInput v-model="searchTerm" class="w-full" as-child>
@@ -58,6 +73,10 @@ interface Props {
   placeholder?: string
   staffMembers?: StaffMember[]
   compact?: boolean
+  maxAssignees?: number
+  minAssignees?: number
+  canRemoveAssignees?: boolean  // For future manager role feature
+  currentUserId?: string        // For future self-removal prevention
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,7 +84,11 @@ const props = withDefaults(defineProps<Props>(), {
   label: 'Assign To',
   staffMembers: () => [],
   compact: false,
-  modelValue: () => []
+  modelValue: () => [],
+  maxAssignees: 5,
+  minAssignees: 1,
+  canRemoveAssignees: true,  // Default: allow removal (will be controlled by manager role later)
+  currentUserId: undefined
 })
 
 const emit = defineEmits<{
@@ -78,6 +101,9 @@ watch(selectedIds, v => emit('update:modelValue', v))
 
 const open = ref(false)
 const searchTerm = ref("")
+const maxLimitReached = computed(() => selectedIds.value.length >= props.maxAssignees)
+const minLimitReached = computed(() => selectedIds.value.length <= props.minAssignees)
+const showMinimumWarning = computed(() => minLimitReached.value && props.minAssignees > 0)
 
 const { contains } = useFilter({ sensitivity: "base" })
 const filteredStaff = computed(() => {
@@ -94,10 +120,56 @@ const selectedStaffMembers = computed(() =>
 
 function onSelectStaff(id: string) {
   if (!selectedIds.value.includes(id)) {
+    // Check if max limit is reached
+    if (selectedIds.value.length >= props.maxAssignees) {
+      return // Don't add more if limit reached
+    }
     selectedIds.value = [...selectedIds.value, id]
   }
   searchTerm.value = ""
 }
+
+/**
+ * Check if an assignee can be removed
+ * Future enhancement: Add manager role check here
+ * @param staffId - The staff ID to check
+ */
+function canRemoveAssignee(staffId: string): boolean {
+  // Enforce minimum assignees - cannot remove if at minimum
+  if (selectedIds.value.length <= props.minAssignees) {
+    return false
+  }
+  
+  // Future enhancement: Check if current user has manager rights
+  // if (!props.canRemoveAssignees) {
+  //   return false
+  // }
+  
+  // Future enhancement: Prevent non-managers from removing others
+  // if (!props.canRemoveAssignees && staffId !== props.currentUserId) {
+  //   return false
+  // }
+  
+  return true
+}
+
+/**
+ * Get the reason why removal is blocked (for tooltips)
+ * Future enhancement: Add more specific reasons based on manager role
+ */
+function getRemovalBlockReason(): string {
+  if (selectedIds.value.length <= props.minAssignees) {
+    return `At least ${props.minAssignees} assignee${props.minAssignees > 1 ? 's are' : ' is'} required`
+  }
+  
+  // Future enhancements:
+  // if (!props.canRemoveAssignees) {
+  //   return 'Only managers can remove assignees'
+  // }
+  
+  return 'Cannot remove this assignee'
+}
+
 const labelClass = computed(() =>
   props.compact ? 'text-xs font-medium' : 'text-sm font-medium'
 )

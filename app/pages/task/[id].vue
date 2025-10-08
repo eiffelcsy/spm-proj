@@ -92,10 +92,10 @@
                           <div>
                               <div class="flex items-center text-sm font-medium text-muted-foreground mb-1">
                                   <RefreshCwIcon class="h-4 w-4 mr-2" />
-                                  Repeat Frequency
+                                  Repeat Interval
                               </div>
                               <div class="text-sm ml-6">
-                                  {{ getRepeatFrequencyDisplay(task.repeat_frequency) }}
+                                  {{ getRepeatFrequencyDisplay(task.repeat_interval) }} days
                               </div>
                           </div>
                       </div>
@@ -218,6 +218,10 @@
               <span>This view is read-only. Only the creator or assignee can edit this {{ isSubtask ? 'subtask' :
                   'task'
                   }}.</span>
+
+              <div>
+                DEBUG: {{ task }}
+              </div>
           </div>
       </div>
 
@@ -235,6 +239,22 @@
           </CardContent>
       </Card>
 
+      <!-- Create Task Modal -->
+      <CreateTaskModal
+        :isOpen="isModalOpen"
+        role="staff"
+        :currentUser="currentUserStaffId ? String(currentUserStaffId) : undefined"
+        @close="isModalOpen = false"
+        @task-created="handleTaskChange"
+      />
+
+      <!-- Create Project Modal -->
+      <CreateProjectModal
+        :isOpen="isCreateProjectModalOpen"
+        @close="isCreateProjectModalOpen = false"
+        @project-created="handleProjectCreated"
+      />
+      
       <!-- Edit Task Modal -->
       <EditTaskModal :open="isEditModalOpen" :task="task" :isSubtask="isSubtask" @update:open="closeEditModal"
           @task-updated="handleTaskUpdated" />
@@ -252,6 +272,8 @@ definePageMeta({
 })
 
 import DataTable from '@/components/tasks-table/data-table.vue'
+import { CreateTaskModal } from "@/components/task-modals/create-task/";
+import { CreateProjectModal } from "@/components/project-modals/create-project";
 import { EditTaskModal } from '@/components/task-modals/edit-task'
 import { DeleteTaskModal } from '@/components/task-modals/delete-task'
 import {
@@ -284,6 +306,17 @@ import {
 } from '@/components/tasks-table/columns/column-helpers'
 
 // ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
+
+const isModalOpen = ref<boolean>(false);
+const isCreateProjectModalOpen = ref<boolean>(false);
+const isEditModalOpen = ref(false)
+const isDeleteModalOpen = ref(false)
+const editableTask = ref<any>(null)
+const currentUserStaffId = ref<number | null>(null)
+
+// ============================================================================
 // ROUTING & DATA FETCHING
 // ============================================================================
 
@@ -292,6 +325,21 @@ const router = useRouter()
 const taskId = route.params.id
 
 const { data, pending, error, refresh } = await useFetch(`/api/tasks/${taskId}`)
+
+function fetchTask() {
+  refresh();
+}
+
+// Fetch current user
+async function fetchCurrentUser() {
+  try {
+    const user = await $fetch('/api/user/me')
+    currentUserStaffId.value = user.id
+  } catch (err) {
+    console.error('Failed to fetch current user:', err)
+    currentUserStaffId.value = null
+  }
+}
 
 // ============================================================================
 // COMPUTED PROPERTIES
@@ -308,7 +356,7 @@ const isSubtask = computed(() => {
 
 const isRecurringTask = computed(() => {
   if (!task.value) return false
-  return task.value.repeat_frequency && task.value.repeat_frequency !== 'never' && task.value.repeat_frequency !== '0'
+  return task.value.repeat_interval && task.value.repeat_interval !== 0
 })
 
 const isTaskOverdue = computed(() => {
@@ -325,14 +373,6 @@ const canDelete = computed(() => {
   if (!task.value || !task.value.permissions) return false
   return task.value.permissions.canDelete
 })
-
-// ============================================================================
-// STATE MANAGEMENT
-// ============================================================================
-
-const isEditModalOpen = ref(false)
-const isDeleteModalOpen = ref(false)
-const editableTask = ref<any>(null)
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -377,65 +417,6 @@ function getRepeatFrequencyDisplay(frequency: string | null | undefined): string
   }
   
   return frequencyMap[frequency.toLowerCase()] || 'Does not repeat'
-}
-
-// ============================================================================
-// NAVIGATION FUNCTIONS
-// ============================================================================
-
-/**
- * Navigate to project detail page
- */
-function goToProject(projectId: number) {
-  router.push(`/project/${projectId}`)
-}
-
-/**
- * Navigate back to appropriate dashboard based on context
- */
-function goToDashboard() {
-  const from = route.query.from
-  const projectId = route.query.projectId
-  
-  if (from === 'project' && projectId) {
-    router.push(`/project/${projectId}`)
-  } else if (from === 'project') {
-    router.push('/project/dashboard')
-  } else {
-    router.push('/personal/dashboard')
-  }
-}
-
-/**
- * Navigate to subtask detail page while preserving context
- */
-function goToSubtask(subtaskId: string) {
-  const from = route.query.from
-  const projectId = route.query.projectId
-  
-  if (from && projectId) {
-    router.push(`/task/${subtaskId}?from=${from}&projectId=${projectId}`)
-  } else if (from) {
-    router.push(`/task/${subtaskId}?from=${from}`)
-  } else {
-    router.push(`/task/${subtaskId}`)
-  }
-}
-
-/**
- * Navigate to parent task detail page while preserving context
- */
-function goToParentTask(parentId: string) {
-  const from = route.query.from
-  const projectId = route.query.projectId
-  
-  if (from && projectId) {
-    router.push(`/task/${parentId}?from=${from}&projectId=${projectId}`)
-  } else if (from) {
-    router.push(`/task/${parentId}?from=${from}`)
-  } else {
-    router.push(`/task/${parentId}`)
-  }
 }
 
 // ============================================================================
@@ -519,6 +500,68 @@ async function performDelete() {
 }
 
 // ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+/**
+ * Unified handler for task changes (create, update, delete)
+ */
+ function handleTaskChange() {
+  fetchTask();
+  isModalOpen.value = false;
+}
+
+/**
+ * Project creation handler
+ */
+function handleProjectCreated(project: any) {
+  isCreateProjectModalOpen.value = false;
+}
+
+// ============================================================================
+// NAVIGATION FUNCTIONS
+// ============================================================================
+
+/**
+ * Navigate to project detail page
+ */
+ function goToProject(projectId: number) {
+  router.push(`/project/${projectId}`)
+}
+
+/**
+ * Navigate back to appropriate dashboard based on context
+ */
+function goToDashboard() {
+  const from = route.query.from
+  const projectId = route.query.projectId
+  
+  if (from === 'project' && projectId) {
+    router.push(`/project/${projectId}`)
+  } else if (from === 'project') {
+    router.push('/project/dashboard')
+  } else {
+    router.push('/personal/dashboard')
+  }
+}
+
+/**
+ * Navigate to subtask detail page while preserving context
+ */
+function goToSubtask(subtaskId: string) {
+  const from = route.query.from
+  const projectId = route.query.projectId
+  
+  if (from && projectId) {
+    router.push(`/task/${subtaskId}?from=${from}&projectId=${projectId}`)
+  } else if (from) {
+    router.push(`/task/${subtaskId}?from=${from}`)
+  } else {
+    router.push(`/task/${subtaskId}`)
+  }
+}
+
+// ============================================================================
 // SUBTASK TABLE CONFIGURATION
 // ============================================================================
 
@@ -544,4 +587,34 @@ const subtaskRows = computed(() => {
     dueDate: subtask.due_date || subtask.dueDate,
   }))
 })
+
+// ============================================================================
+// LIFECYCLE HOOKS
+// ============================================================================
+
+/**
+ * Set up event listeners for quick actions
+ */
+ onMounted(() => {
+  fetchCurrentUser();
+  window.addEventListener("task-updated", handleTaskChange);
+  window.addEventListener("task-deleted", handleTaskChange);
+  window.addEventListener("open-create-task-modal", () => {
+    isModalOpen.value = true;
+  });
+  window.addEventListener("open-create-project-modal", () => {
+    isCreateProjectModalOpen.value = true;
+  });
+});
+
+onUnmounted(() => {
+  window.removeEventListener("task-updated", handleTaskChange);
+  window.removeEventListener("task-deleted", handleTaskChange);
+  window.removeEventListener("open-create-task-modal", () => {
+    isModalOpen.value = true;
+  });
+  window.removeEventListener("open-create-project-modal", () => {
+    isCreateProjectModalOpen.value = true;
+  });
+});
 </script>

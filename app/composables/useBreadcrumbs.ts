@@ -56,10 +56,13 @@ export function useBreadcrumbs() {
       const project = response.find((p: any) => p.id.toString() === projectId)
       if (project?.name) {
         projectName.value = project.name
+      } else {
+        projectName.value = `Project #${projectId}`
       }
     } catch (error) {
-      console.error('Failed to fetch project name:', error)
-      projectName.value = 'Project'
+      // Silently handle auth errors - user might not be on an authenticated page yet
+      // Just use a fallback project name
+      projectName.value = `Project #${projectId}`
     } finally {
       isLoading.value = false
     }
@@ -101,14 +104,14 @@ export function useBreadcrumbs() {
       if (pathSegments[1] === 'dashboard') {
         // Project Dashboard
         items.push({
-          label: 'Projects',
+          label: 'Projects Dashboard',
           href: '/project/dashboard',
           isCurrentPage: true
         })
       } else if (pathSegments[1] && pathSegments[1] !== 'dashboard') {
         // Specific Project Page
         items.push({
-          label: 'Projects',
+          label: 'Projects Dashboard',
           href: '/project/dashboard',
           isCurrentPage: false
         })

@@ -22,9 +22,6 @@ const allStatuses = [
   { value: 'completed', label: 'Completed' }
 ]
 
-// Get statuses that the task is not currently in
-const availableStatuses = allStatuses.filter(status => status.value !== props.task.status)
-
 // Delete modal state
 const isDeleteModalOpen = ref(false)
 
@@ -89,7 +86,7 @@ function closeDeleteModal() {
       <DropdownMenuLabel>Actions</DropdownMenuLabel>
       
       <!-- Status update actions -->
-      <template v-for="status in availableStatuses" :key="status.value">
+      <template v-for="status in allStatuses" :key="status.value">
         <DropdownMenuItem @click.stop="updateTaskStatus(status.value)" class="cursor-pointer">
           Mark as {{ status.label }}
         </DropdownMenuItem>

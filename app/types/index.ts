@@ -169,11 +169,12 @@ export interface ProjectMemberWithStaff extends ProjectMemberDB {
  * Task record from database (raw)
  * Maps to 'tasks' table in ERD
  * Note: 'description' field is called 'notes' in some parts of the codebase
+ * Note: notes has NOT NULL constraint in database, defaults to 'No notes...'
  */
 export interface TaskDB {
   id: number
   title: string
-  notes: string | null  // Called 'description' in ERD, but 'notes' in codebase
+  notes: string  // NOT NULL in database, defaults to 'No notes...'
   project_id: number | null
   parent_task_id: number | null
   creator_id: number
@@ -181,7 +182,7 @@ export interface TaskDB {
   start_date: string | null
   due_date: string | null
   priority: string | null
-  repeat_frequency: string | null
+  repeat_interval: number | null
   created_at: string
   updated_at: string
   completed_at: string | null
@@ -252,8 +253,8 @@ export interface TaskCreateInput {
   due_date?: string | null
   status?: TaskStatus
   priority?: string | null
-  repeat_frequency?: string | null
-  notes?: string | null
+  repeat_interval?: number | null
+  notes?: string  // Will default to 'No notes...' if not provided
   project_id?: number | null
   assignee_ids?: number[]
   assigned_by_staff_id?: number | null
@@ -263,7 +264,7 @@ export interface TaskCreateInput {
     due_date?: string | null
     status?: TaskStatus
     priority?: string
-    notes?: string | null
+    notes?: string  // Will default to 'No notes...' if not provided
     assignee_ids?: number[]
   }>
 }
@@ -277,7 +278,7 @@ export interface TaskUpdateInput {
   start_date: string
   end_date: string | null
   status: TaskStatus
-  notes: string | null
+  notes: string  // NOT NULL in database
   assignee_id?: number | null
 }
 
@@ -443,7 +444,7 @@ export interface SubtaskFormState {
   dueDate: any    // DateValue from @internationalized/date
   status: TaskStatus
   priority: number
-  repeatInterval: number
+  repeatInterval: number | null
   notes: string
   assignedTo: string[]  // Array of staff IDs as strings
   expanded: boolean

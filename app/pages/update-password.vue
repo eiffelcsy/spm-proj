@@ -18,14 +18,26 @@
   
   <script setup lang="ts">
   import { onMounted, ref } from 'vue';
+
+  // ============================================================================
+  // ROUTING & SERVICES
+  // ============================================================================
   
   const supabase = useSupabaseClient();
   const router = useRouter();
+
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
   
   const newPassword = ref('');
   const loading = ref(false);
   const successMsg = ref('');
   const errorMsg = ref('');
+
+  // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
   
   function parseHashParams(hash: string): Record<string, string> {
     const params = new URLSearchParams(hash.replace(/^#/, ''));
@@ -35,30 +47,10 @@
     });
     return result;
   }
-  
-  onMounted(async () => {
-    // Ensure there's an active session. Recovery links often include tokens in the URL hash
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session && typeof window !== 'undefined' && window.location.hash) {
-      const hashParams = parseHashParams(window.location.hash);
-      const accessToken = hashParams['access_token'];
-      const refreshToken = hashParams['refresh_token'];
-      const type = hashParams['type'];
-      try {
-        if (type === 'recovery' && accessToken && refreshToken) {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (error) {
-            throw error;
-          }
-        }
-      } catch (e: any) {
-        errorMsg.value = e?.message || 'Failed to initialize session from recovery link.';
-      }
-    }
-  });
+
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
   
   const handleUpdate = async () => {
     try {
@@ -92,6 +84,34 @@
       loading.value = false;
     }
   };
+
+  // ============================================================================
+  // LIFECYCLE HOOKS
+  // ============================================================================
+  
+  onMounted(async () => {
+    // Ensure there's an active session. Recovery links often include tokens in the URL hash
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session && typeof window !== 'undefined' && window.location.hash) {
+      const hashParams = parseHashParams(window.location.hash);
+      const accessToken = hashParams['access_token'];
+      const refreshToken = hashParams['refresh_token'];
+      const type = hashParams['type'];
+      try {
+        if (type === 'recovery' && accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            throw error;
+          }
+        }
+      } catch (e: any) {
+        errorMsg.value = e?.message || 'Failed to initialize session from recovery link.';
+      }
+    }
+  });
   </script>
   
   <style scoped>

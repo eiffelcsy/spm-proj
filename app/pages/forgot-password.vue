@@ -56,13 +56,20 @@
 </template>
 
 <script setup lang="ts">
-// Your script logic remains the same
 import { ref } from 'vue';
+
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
 
 const email = ref('');
 const loading = ref(false);
 const successMsg = ref('');
 const errorMsg = ref('');
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
 
 const handleReset = async () => {
   loading.value = true;

@@ -19,12 +19,12 @@ export default defineEventHandler(async (event) => {
 
   const parentTaskPayload = {
     title: body.title,
-    notes: body.notes ?? null,
+    notes: body.notes || 'No notes...',
     start_date: body.start_date ?? null,
     due_date: body.due_date ?? null,
     status: body.status ?? null,
     priority: body.priority ?? null,
-    repeat_frequency: body.repeat_frequency ?? null,
+    repeat_interval: body.repeat_interval ?? null,
     project_id: body.project_id ?? null,
     creator_id: staffRow.id,
     parent_task_id: null
@@ -56,6 +56,17 @@ export default defineEventHandler(async (event) => {
       ? body.assignee_ids.map((v: any) => Number(v))
       : []
 
+    // Enforce assignee requirements: minimum 1, maximum 5
+    if (parentAssigneeIds.length === 0) {
+      await rollbackParent()
+      throw createError({ statusCode: 400, statusMessage: 'At least one assignee is required for the task' })
+    }
+    
+    if (parentAssigneeIds.length > 5) {
+      await rollbackParent()
+      throw createError({ statusCode: 400, statusMessage: 'Maximum 5 assignees allowed per task' })
+    }
+
     if (parentAssigneeIds.length > 0) {
       const parentMappings = parentAssigneeIds.map((staffId) => ({
         task_id: createdTaskId,
@@ -73,12 +84,12 @@ export default defineEventHandler(async (event) => {
     if (subtasksInput.length > 0) {
       const subtaskRows = subtasksInput.map((s: any) => ({
         title: s.title,
-        notes: s.notes ?? null,
+        notes: s.notes || 'No notes...',
         start_date: s.start_date ?? null,
         due_date: s.due_date ?? null,
         status: s.status ?? null,
         priority: body.priority ?? null,
-        repeat_frequency: body.repeat_frequency ?? null,
+        repeat_interval: body.repeat_interval ?? null,
         project_id: s.project_id ?? null,
         creator_id: staffRow.id,
         parent_task_id: createdTaskId

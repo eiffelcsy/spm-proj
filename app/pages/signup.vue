@@ -8,7 +8,7 @@
       <div class="flex flex-1 items-center justify-center">
         <div class="w-full max-w-sm">
           <div class="flex items-center justify-center text-center mb-10">
-            <ListCheck class="w-10 h-10 mr-2" />
+            <CheckSquare class="w-10 h-10 mr-2" />
             <h1 class="text-4xl font-bold">
               TaskAIO
             </h1>
@@ -59,13 +59,26 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ListCheck } from "lucide-vue-next"
+import { CheckSquare } from "lucide-vue-next"
+
+// ============================================================================
+// ROUTING
+// ============================================================================
 
 const router = useRouter();
+
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
+
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
 const errorMsg = ref('');
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
 
 const handleSignup = async () => {
   loading.value = true;

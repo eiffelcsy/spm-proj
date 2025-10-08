@@ -146,28 +146,62 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Handle assignee update if provided
-    if (body.assignee_id !== undefined) {
+    // Handle assignees update if provided (support both single and multiple)
+    if (body.assignee_id !== undefined || body.assignee_ids !== undefined) {
+      // Convert to array format for unified handling
+      let assigneeIdsToSet: number[] = []
+      
+      if (body.assignee_ids !== undefined && Array.isArray(body.assignee_ids)) {
+        // Multiple assignees (new format)
+        assigneeIdsToSet = body.assignee_ids.map((id: any) => Number(id))
+        
+        // Enforce maximum 5 assignees limit
+        if (assigneeIdsToSet.length > 5) {
+          throw createError({ statusCode: 400, statusMessage: 'Maximum 5 assignees allowed per task' })
+        }
+      } else if (body.assignee_id !== undefined) {
+        // Single assignee (legacy format)
+        if (body.assignee_id !== null) {
+          assigneeIdsToSet = [Number(body.assignee_id)]
+        }
+      }
+
       // First, deactivate all current assignees
-      await supabase
+      await (supabase as any)
         .from('task_assignees')
         .update({ is_active: false })
         .eq('task_id', taskId)
 
-      // If a new assignee is provided (not null), add them
-      if (body.assignee_id !== null) {
-        const { error: assignError } = await supabase
+      // Enforce minimum 1 assignee requirement
+      if (assigneeIdsToSet.length === 0) {
+        throw createError({ 
+          statusCode: 400, 
+          statusMessage: 'At least one assignee is required for the task' 
+        })
+      }
+
+      // Add or reactivate new assignees
+      if (assigneeIdsToSet.length > 0) {
+        const assigneeMappings = assigneeIdsToSet.map((staffId) => ({
+          task_id: Number(taskId),
+          assigned_to_staff_id: staffId,
+          assigned_by_staff_id: currentStaffId,
+          is_active: true
+        }))
+
+        const { error: assignError } = await (supabase as any)
           .from('task_assignees')
-          .insert({
-            task_id: taskId,
-            assigned_to_staff_id: body.assignee_id,
-            assigned_by_staff_id: currentStaffId,
-            is_active: true
+          .upsert(assigneeMappings, {
+            onConflict: 'task_id,assigned_to_staff_id'
           })
 
         if (assignError) {
-          console.error('Failed to update assignee:', assignError)
-          // Don't throw error here, task update was successful
+          console.error('Failed to update assignees:', assignError)
+          throw createError({
+            statusCode: 500,
+            statusMessage: 'Failed to update task assignees',
+            data: assignError
+          })
         }
       }
     }

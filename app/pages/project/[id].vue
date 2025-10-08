@@ -1,19 +1,5 @@
 <template>
   <div class="w-full mx-auto p-8 md:px-12 lg:max-w-6xl xl:max-w-7xl">
-
-    <!-- Back Button -->
-    <div class="mb-6">
-      <button 
-        @click="goBack"
-        class="flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200"
-      >
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-        Back to Projects Dashboard
-      </button>
-    </div>
-
     <div class="mb-4">
       <!-- Error message -->
       <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -143,10 +129,10 @@
     <CreateTaskModal 
       :isOpen="isModalOpen" 
       role="manager" 
-      :currentUser="'me@example.com'"
-      :projectId="projectId" 
+      :currentUser="currentUserStaffId ? String(currentUserStaffId) : undefined"
+      :project="projectId" 
       @close="isModalOpen = false" 
-      @task-created="addTask" 
+      @task-created="handleTaskCreated" 
     />
 
     <!-- Edit Project Modal -->
@@ -184,11 +170,18 @@ import EditProjectModal from '@/components/project-modals/edit-project-modal.vue
 import DeleteProjectModal from '@/components/project-modals/delete-project-modal.vue'
 import { Button } from '@/components/ui/button'
 
+// ============================================================================
+// ROUTING
+// ============================================================================
+
 const router = useRouter()
 const route = useRoute()
 
-// Get project ID from route params
 const projectId = computed(() => route.params.id as string)
+
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
 
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -201,100 +194,9 @@ const isModalOpen = ref(false)
 const isEditProjectModalOpen = ref(false)
 const isDeleteProjectModalOpen = ref(false)
 
-// Transform tasks to match expected format
-function transformTask(task: any): Task {
-  return {
-    id: task.id,
-    title: task.title,
-    startDate: new Date(task.start_date),
-    dueDate: new Date(task.due_date),
-    project: task.project,
-    status: task.status
-  }
-}
-
-const allTasks = computed(() => {
-  // Ensure rawTasks.value is an array before calling map
-  if (!Array.isArray(rawTasks.value)) {
-    return []
-  }
-  return rawTasks.value.map(transformTask)
-})
-
-// Helper function to check if a task is overdue
-function isTaskOverdue(task: Task): boolean {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const dueDate = new Date(task.dueDate)
-  dueDate.setHours(0, 0, 0, 0)
-
-  return dueDate < today && task.status !== 'completed'
-}
-
-const overdueTasks = computed(() => {
-  return allTasks.value.filter(task => isTaskOverdue(task))
-})
-
-// Non-overdue tasks (for the "All Tasks" section)
-const nonOverdueTasks = computed(() => {
-  return allTasks.value.filter(task => !isTaskOverdue(task))
-})
-
-// Filtered tasks based on selected project (excluding overdue tasks)
-const filteredTasks = computed(() => {
-  const tasksToFilter = nonOverdueTasks.value
-
-  // Ensure rawTasks.value is an array
-  if (!Array.isArray(rawTasks.value)) {
-    return []
-  }
-  
-  return tasksToFilter.filter(task => {
-    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.project_id === parseInt(projectId.value)
-  })
-})
-
-// Filtered overdue tasks based on selected project
-const filteredOverdueTasks = computed(() => {
-  // Ensure rawTasks.value is an array
-  if (!Array.isArray(rawTasks.value)) {
-    return []
-  }
-  
-  return overdueTasks.value.filter(task => {
-    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.project_id === parseInt(projectId.value)
-  })
-})
-
-// Check if current user is the project owner
-const isProjectOwner = computed(() => {
-  return currentUserStaffId.value !== null && 
-         project.value?.owner_id !== null && 
-         currentUserStaffId.value === project.value.owner_id
-})
-
-function getProjectTaskCount(): number {
-  // Ensure rawTasks.value is an array before calling filter
-  if (!Array.isArray(rawTasks.value)) {
-    return 0
-  }
-  return rawTasks.value.filter(task => task.project_id === parseInt(projectId.value)).length
-}
-
-function goBack() {
-  router.push('/project/dashboard')
-}
-
-function goToTask(task: Task) {
-  router.push(`/task/${task.id}?from=project&projectId=${projectId.value}`)
-}
-
-function openCreateModal() {
-  isModalOpen.value = true
-}
+// ============================================================================
+// DATA FETCHING FUNCTIONS
+// ============================================================================
 
 async function fetchData() {
   try {
@@ -359,43 +261,103 @@ async function fetchProject() {
   }
 }
 
-async function addTask(newTask: Task) {
-  const startDateStr = newTask.startDate.toISOString().split('T')[0]!
-  const dueDateStr = newTask.dueDate.toISOString().split('T')[0]!
+// ============================================================================
+// DATA TRANSFORMATION
+// ============================================================================
+
+/**
+ * Transform raw task data to match Task schema
+ */
+function transformTask(task: any): Task {
+  return {
+    id: task.id,
+    title: task.title,
+    startDate: new Date(task.start_date),
+    dueDate: new Date(task.due_date),
+    project: task.project,
+    status: task.status
+  }
+}
+
+// ============================================================================
+// COMPUTED PROPERTIES
+// ============================================================================
+
+const allTasks = computed(() => {
+  // Ensure rawTasks.value is an array before calling map
+  if (!Array.isArray(rawTasks.value)) {
+    return []
+  }
+  return rawTasks.value.map(transformTask)
+})
+
+const overdueTasks = computed(() => {
+  return allTasks.value.filter(task => isTaskOverdue(task))
+})
+
+// Non-overdue tasks (for the "All Tasks" section)
+const nonOverdueTasks = computed(() => {
+  return allTasks.value.filter(task => !isTaskOverdue(task))
+})
+
+// Filtered tasks based on selected project (excluding overdue tasks)
+const filteredTasks = computed(() => {
+  const tasksToFilter = nonOverdueTasks.value
+
+  // Ensure rawTasks.value is an array
+  if (!Array.isArray(rawTasks.value)) {
+    return []
+  }
   
-  rawTasks.value.push({
-    id: String(rawTasks.value.length + 1),
-    title: newTask.title,
-    description: '',
-    notes: '',
-    startDate: startDateStr,
-    dueDate: dueDateStr,
-    projectId: projectId.value,
-    project: newTask.project,
-    status: newTask.status,
-    creator: 'me@example.com',
-    assignee: 'me@example.com',
-    subtasks: [],
-    history: []
+  return tasksToFilter.filter(task => {
+    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
+    return rawTask?.project_id === parseInt(projectId.value)
   })
-  isModalOpen.value = false
+})
+
+// Filtered overdue tasks based on selected project
+const filteredOverdueTasks = computed(() => {
+  // Ensure rawTasks.value is an array
+  if (!Array.isArray(rawTasks.value)) {
+    return []
+  }
+  
+  return overdueTasks.value.filter(task => {
+    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
+    return rawTask?.project_id === parseInt(projectId.value)
+  })
+})
+
+// Check if current user is the project owner
+const isProjectOwner = computed(() => {
+  return currentUserStaffId.value !== null && 
+         project.value?.owner_id !== null && 
+         currentUserStaffId.value === project.value.owner_id
+})
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Helper function to check if a task is overdue
+ */
+function isTaskOverdue(task: Task): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const dueDate = new Date(task.dueDate)
+  dueDate.setHours(0, 0, 0, 0)
+
+  return dueDate < today && task.status !== 'completed'
 }
 
-function getProjectCreatedDate(project: any): string {
-  if (!project?.isRealData) {
-    return 'Fake data'
+function getProjectTaskCount(): number {
+  // Ensure rawTasks.value is an array before calling filter
+  if (!Array.isArray(rawTasks.value)) {
+    return 0
   }
-  return formatDate(project.createdAt)
-}
-
-function getProjectDueDate(project: any): string {
-  if (!project?.isRealData) {
-    return 'Fake data'
-  }
-  if (!project.dueDate) {
-    return 'No due date'
-  }
-  return formatDate(project.dueDate)
+  return rawTasks.value.filter(task => task.project_id === parseInt(projectId.value)).length
 }
 
 function formatDate(date: any): string {
@@ -420,7 +382,43 @@ function capitalizeStatus(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
-// Project editing functions
+function getProjectCreatedDate(project: any): string {
+  if (!project?.isRealData) {
+    return 'Fake data'
+  }
+  return formatDate(project.createdAt)
+}
+
+function getProjectDueDate(project: any): string {
+  if (!project?.isRealData) {
+    return 'Fake data'
+  }
+  if (!project.dueDate) {
+    return 'No due date'
+  }
+  return formatDate(project.dueDate)
+}
+
+// ============================================================================
+// NAVIGATION FUNCTIONS
+// ============================================================================
+
+function goBack() {
+  router.push('/project/dashboard')
+}
+
+function goToTask(task: Task) {
+  router.push(`/task/${task.id}?from=project&projectId=${projectId.value}`)
+}
+
+// ============================================================================
+// MODAL MANAGEMENT
+// ============================================================================
+
+function openCreateModal() {
+  isModalOpen.value = true
+}
+
 function openEditProjectModal() {
   isEditProjectModalOpen.value = true
 }
@@ -429,13 +427,21 @@ function closeEditProjectModal() {
   isEditProjectModalOpen.value = false
 }
 
-// Project deletion functions
 function openDeleteProjectModal() {
   isDeleteProjectModalOpen.value = true
 }
 
 function closeDeleteProjectModal() {
   isDeleteProjectModalOpen.value = false
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+async function handleTaskCreated(newTask: Task) {
+  isModalOpen.value = false
+  fetchData()
 }
 
 async function handleProjectDeleted() {
@@ -459,6 +465,10 @@ function handleProjectUpdated(updatedProject: any) {
   // Don't close modal immediately - let it close after success message timeout
 }
 
+// ============================================================================
+// LIFECYCLE HOOKS
+// ============================================================================
+
 onMounted(async () => {
   isLoading.value = true
   try {
@@ -466,21 +476,25 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+  
+  // Listen for task quick actions
+  window.addEventListener('task-updated', fetchData)
+  window.addEventListener('task-deleted', fetchData)
+  
+  // Listen for sidebar events
+  window.addEventListener('open-create-task-modal', () => {
+    isModalOpen.value = true
+  })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('task-updated', fetchData)
+  window.removeEventListener('task-deleted', fetchData)
+  window.removeEventListener('open-create-task-modal', () => {
+    isModalOpen.value = true
+  })
 })
 </script>
 
 <style scoped>
-.modal-backdrop {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  /* Safari support */
-}
-
-/* Fallback for browsers that don't support backdrop-filter */
-@supports not (backdrop-filter: blur(8px)) {
-  .modal-backdrop {
-    background: rgba(0, 0, 0, 0.6);
-  }
-}
 </style>

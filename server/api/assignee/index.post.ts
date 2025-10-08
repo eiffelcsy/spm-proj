@@ -9,8 +9,17 @@ export default defineEventHandler(async (event) => {
     ? body.assignee_ids.map((v: any) => Number(v))
     : []
 
-  if (!taskId || assigneeIds.length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'task_id and assignee_ids are required' })
+  if (!taskId) {
+    throw createError({ statusCode: 400, statusMessage: 'task_id is required' })
+  }
+  
+  if (assigneeIds.length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'At least one assignee is required' })
+  }
+
+  // Enforce maximum 5 assignees limit
+  if (assigneeIds.length > 5) {
+    throw createError({ statusCode: 400, statusMessage: 'Maximum 5 assignees allowed per task' })
   }
 
   let assignedBy = body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : null

@@ -136,8 +136,8 @@
           <Label>
             Notes
           </Label>
-          <textarea v-model="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm"
-            placeholder="Notes"></textarea>
+          <Textarea v-model="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm"
+            placeholder="Add notes here..."></Textarea>
         </div>
 
         <!-- Subtasks -->
@@ -252,8 +252,8 @@
                 <!-- Notes -->
                 <div class="flex flex-col gap-1">
                   <Label class="text-xs mb-1">Notes</Label>
-                  <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
-                    class="w-full border rounded-lg px-2 py-1 text-sm bg-white"></textarea>
+                  <Textarea v-model="subtask.notes" rows="2" placeholder="Add subtask notes here..."
+                    class="w-full border rounded-lg px-2 py-1 text-sm bg-white"></Textarea>
                 </div>
               </div>
             </div>
@@ -331,10 +331,9 @@ import {
   NumberFieldIncrement,
   NumberFieldInput,
 } from '@/components/ui/number-field'
+import { Textarea } from '@/components/ui/textarea'
 import type { StaffMember, TaskFromAPI, TaskCreateInput } from '@/types'
 
-
-const supabase = useSupabaseClient()
 
 const props = defineProps<{
   isOpen: boolean
@@ -387,17 +386,26 @@ watch(() => props.isOpen, async (isOpen) => {
     priority.value = 1
     repeatInterval.value = 0
     notes.value = ''
-    assignedTo.value = []
+    assignedTo.value = props.currentUser ? [props.currentUser] : []
     subtasks.value = []
     errorMessage.value = ''
     successMessage.value = ''
 
-    staffMembers.value = (await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/staff'))
-      .map(staff => ({
-        ...staff,
-        fullname: staff.fullname,
-        email: staff.email ?? `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
+    // Fetch assignees based on project
+    if (props.project) {
+      
+      // If project exists, fetch project members as possible assignees
+      staffMembers.value = (await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/project-members', {
+        params: { project_id: props.project }
       }))
+        .map(staff => ({
+          ...staff,
+          fullname: staff.fullname,
+          email: staff.email ?? `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
+        }))
+    } else {
+      staffMembers.value = []
+    }
   } catch (err) {
     console.error('Failed to load staff', err)
   }
@@ -502,8 +510,27 @@ async function createTask() {
       return
     }
 
+    // Filter out empty/invalid assignees
+    const validAssignees = assignedTo.value.filter(id => id && id.trim() !== '')
+
+    if (validAssignees.length === 0) {
+      errorMessage.value = 'At least one assignee is required.'
+      return
+    }
+
+    if (validAssignees.length > 5) {
+      errorMessage.value = 'Maximum 5 assignees allowed.'
+      return
+    }
+
     errorMessage.value = ''
     successMessage.value = ''
+    
+    // Prepare assignee IDs
+    const assigneeIds = assignedTo.value
+      .filter(id => id && id.trim() !== '')
+      .map(id => Number(id))
+      .filter(id => !isNaN(id) && id > 0)
     
     const taskData = {
       title: title.value,
@@ -511,16 +538,21 @@ async function createTask() {
       due_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
       priority: priority.value.toString(),
-      repeat_frequency: repeatInterval.value.toString(),
-      notes: notes.value || null,
+      repeat_interval: repeatInterval.value.toString(),
+      notes: notes.value.trim() || 'No notes...',
       project_id: props.project ? Number(props.project) : null,
+      assignee_ids: assigneeIds,
       subtasks: subtasks.value.map(subtask => ({
         title: subtask.title,
         start_date: startDate.value ? startDate.value.toString() : null,
         due_date: dueDate.value ? dueDate.value.toString() : null,
         status: subtask.status,
         priority: subtask.priority.toString(),
-        notes: subtask.notes || null,
+        notes: subtask.notes.trim() || 'No notes...',
+        assignee_ids: subtask.assignedTo
+          .filter(id => id && id.trim() !== '')
+          .map(id => Number(id))
+          .filter(id => !isNaN(id) && id > 0)
       }))
     }
 
@@ -540,50 +572,7 @@ async function createTask() {
       throw new Error('Task was not created')
     }
 
-    // Assign main task assignees
-    const assigneeIds = assignedTo.value.map(id => Number(id))
-
-    if (assigneeIds.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, 150))
-      
-      try {
-        const mapResp = await $fetch('/api/assignee', {
-          method: 'POST',
-          body: {
-            task_id: created.id,
-            assignee_ids: assigneeIds
-          }
-        })
-      } catch (error: any) {
-        throw new Error('Failed to assign users to task')
-      }
-    }
-    // Assign subtask assignees
-      if (taskResp.subtasks && Array.isArray(taskResp.subtasks)) {
-        for (let i = 0; i < subtasks.value.length; i++) {
-          const localSubtask = subtasks.value[i]
-          const createdSubtask = taskResp.subtasks[i] as any
-          
-          if (!localSubtask || !createdSubtask) continue
-          
-        const subtaskAssigneeIds = localSubtask.assignedTo.map(id => Number(id))
-          try {
-            const assigneeResp = await $fetch('/api/assignee', {
-              method: 'POST',
-              body: {
-                task_id: createdSubtask.id,
-                assignee_ids: subtaskAssigneeIds
-              }
-            })
-          } catch (error: any) {
-            console.error(`Failed to assign users to subtask ${createdSubtask.id}:`, error.data || error.message)
-          }
-          
-          // Small delay to prevent race conditions
-          await new Promise(resolve => setTimeout(resolve, 50))
-        }
-      }
-
+    // Task and assignees are now created by the server
     createdTask.value = created
     successMessage.value = 'Task created successfully!'
   } catch (err: any) {

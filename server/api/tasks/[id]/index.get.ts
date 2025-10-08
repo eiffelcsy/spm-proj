@@ -1,7 +1,7 @@
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
-  const supabase = await serverSupabaseClient(event)
+  const supabase = await serverSupabaseServiceRole(event)
   const user = await serverSupabaseUser(event)
   const taskId = Number(getRouterParam(event, 'id'))
 
@@ -197,7 +197,7 @@ export default defineEventHandler(async (event) => {
     
     if (isTaskAssigned) {
       // If task is assigned, only assigned person can edit/delete
-      canEdit = isAssigned
+      canEdit = Boolean(isAssigned || isCreator)
       canDelete = isAssigned
     } else {
       // If task is unassigned, only task creator can edit/delete

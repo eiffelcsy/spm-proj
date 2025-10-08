@@ -83,5 +83,24 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 500, statusMessage: projectError.message });
     }
 
-    return { success: true, project };
+    // Add the creator as a project member with 'manager' role
+    if (project) {
+        const projectMemberPayload = {
+            project_id: project.id,
+            staff_id: staffRow.id,
+            role: 'manager',
+            invited_at: new Date().toISOString(),
+            joined_at: new Date().toISOString()
+        };
+
+        const { error: memberError } = await (supabase as any)
+            .from("project_members")
+            .insert(projectMemberPayload as any);
+
+        if (memberError) {
+            throw createError({ statusCode: 500, statusMessage: memberError.message });
+        }
+    }
+
+    return { success: true, project } as { success: boolean; project: Project };
 });

@@ -11,6 +11,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Get project_id from query parameters
+  const query = getQuery(event)
+  const projectId = query.project_id ? Number(query.project_id) : null
+
+  if (!projectId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'project_id query parameter is required'
+    })
+  }
+
   // Get current user's staff ID
   const { data: staffIdData, error: staffIdError } = await supabase
     .from('staff')
@@ -27,41 +38,36 @@ export default defineEventHandler(async (event) => {
   }
   const currentStaffId = (staffIdData as { id: number }).id
   
+  // Verify user is a member of the project
+  const { data: projectMember, error: memberError } = await supabase
+    .from('project_members')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('staff_id', currentStaffId)
+    .maybeSingle()
+
+  if (memberError) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to verify project membership',
+      data: memberError
+    })
+  }
+
+  if (!projectMember) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'You are not a member of this project'
+    })
+  }
+
   try {
-    // Get task IDs where user is an assignee
-    const { data: assignedTaskIds, error: assigneeError } = await supabase
-      .from('task_assignees')
-      .select('task_id')
-      .eq('assigned_to_staff_id', currentStaffId)
-      .eq('is_active', true)
-
-    if (assigneeError && assigneeError.code !== 'PGRST116') {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to fetch assigned tasks',
-        data: assigneeError
-      })
-    }
-
-    const assignedTaskIdList = assignedTaskIds?.map((row: any) => row.task_id) || []
-
-    // Fetch overdue tasks where user is creator OR assignee
-    let query = supabase
+    // Fetch tasks for the specified project
+    const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
-      .lt('due_date', new Date().toISOString().split('T')[0])
-      .neq('status', 'completed')
-      .order('due_date', { ascending: true })
-
-    // If user has assigned tasks, include them in the query
-    if (assignedTaskIdList.length > 0) {
-      query = query.or(`creator_id.eq.${currentStaffId},id.in.(${assignedTaskIdList.join(',')})`)
-    } else {
-      // If no assigned tasks, just get tasks created by user
-      query = query.eq('creator_id', currentStaffId)
-    }
-
-    const { data: tasks, error } = await query
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -72,7 +78,7 @@ export default defineEventHandler(async (event) => {
       } else {
         throw createError({
           statusCode: 500,
-          statusMessage: 'Failed to fetch overdue tasks',
+          statusMessage: 'Failed to fetch tasks',
           data: error
         })
       }

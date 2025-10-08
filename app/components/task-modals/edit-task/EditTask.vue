@@ -106,7 +106,7 @@
           <AssignCombobox
             v-model="assignedTo"
             label="Assign To"
-            placeholder="Select assignee"
+            placeholder="Select assignees"
             :staff-members="staffMembers"
             compact
           />
@@ -541,14 +541,11 @@ function populateForm() {
     subtasks.value = [];
   }
 
-  // Handle assignee - extract from assignees array
+  // Handle assignees - extract ALL from assignees array
   if (props.task.assignees && Array.isArray(props.task.assignees) && props.task.assignees.length > 0) {
-    const firstAssignee = props.task.assignees[0]?.assigned_to;
-    if (firstAssignee && firstAssignee.id) {
-      assignedTo.value = [String(firstAssignee.id)];
-    } else {
-      assignedTo.value = [];
-    }
+    assignedTo.value = props.task.assignees
+      .filter((a: any) => a.assigned_to && a.assigned_to.id)
+      .map((a: any) => String(a.assigned_to.id));
   } else if (props.task.assignee_id) {
     // Fallback for older data structure
     assignedTo.value = [String(props.task.assignee_id)];
@@ -598,7 +595,17 @@ async function updateTask() {
       return;
     }
 
-    const taskData: TaskUpdate = {
+    if (assignedTo.value.length === 0) {
+      errorMessage.value = "At least one assignee is required.";
+      return;
+    }
+
+    if (assignedTo.value.length > 5) {
+      errorMessage.value = "Maximum 5 assignees allowed.";
+      return;
+    }
+
+    const taskData: any = {
       task_name: title.value,
       start_date: startDate.value
         ? startDate.value.toString()
@@ -606,10 +613,7 @@ async function updateTask() {
       end_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
       notes: description.value || null,
-      assignee_id:
-        assignedTo.value.length > 0 && assignedTo.value[0]
-          ? parseInt(assignedTo.value[0])
-          : null,
+      assignee_ids: assignedTo.value.map(id => parseInt(id)),
     };
 
     // Update task via API endpoint

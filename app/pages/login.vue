@@ -8,7 +8,7 @@
       <div class="flex flex-1 items-center justify-center">
         <div class="w-full max-w-sm">
           <div class="flex items-center justify-center text-center mb-10">
-            <ListCheck class="w-10 h-10 mr-2" />
+            <CheckSquare class="w-10 h-10 mr-2" />
             <h1 class="text-4xl font-bold">
               TaskAIO
             </h1>
@@ -61,28 +61,55 @@ import { cn } from '@/lib/utils';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ListCheck } from "lucide-vue-next"
+import { CheckSquare } from "lucide-vue-next"
+
+// ============================================================================
+// ROUTING & SERVICES
+// ============================================================================
 
 const supabase = useSupabaseClient();
 const router = useRouter();
+
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
+
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
 const errorMsg = ref('');
 
+// ============================================================================
+// FORM VALIDATION
+// ============================================================================
+
+function validateForm(): boolean {
+  // Check if both fields are filled
+  if (!email.value || !password.value) {
+    errorMsg.value = 'Please enter both email and password.';
+    return false;
+  }
+  
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.value)) {
+    errorMsg.value = 'Please enter a valid email address.';
+    return false;
+  }
+  
+  return true;
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
 const handleLogin = async () => {
   loading.value = true;
   errorMsg.value = '';
 
-  // Frontend Validation (checks and logic)
-  if (!email.value || !password.value) {
-    errorMsg.value = 'Please enter both email and password.';
-    loading.value = false;
-    return;
-  }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email.value)) {
-    errorMsg.value = 'Please enter a valid email address.';
+  // Frontend Validation
+  if (!validateForm()) {
     loading.value = false;
     return;
   }

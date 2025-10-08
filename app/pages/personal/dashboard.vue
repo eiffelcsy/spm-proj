@@ -43,7 +43,7 @@
       <CreateTaskModal
         :isOpen="isModalOpen"
         role="staff"
-        :currentUser="'me@example.com'"
+        :currentUser="currentUserStaffId ? String(currentUserStaffId) : undefined"
         @close="isModalOpen = false"
         @task-created="handleTaskChange"
       />
@@ -75,8 +75,29 @@ definePageMeta({
 });
 
 const router = useRouter();
+
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
+
 const isModalOpen = ref<boolean>(false);
 const isCreateProjectModalOpen = ref<boolean>(false);
+const currentUserStaffId = ref<number | null>(null);
+
+// ============================================================================
+// DATA FETCHING
+// ============================================================================
+
+// Fetch current user
+async function fetchCurrentUser() {
+  try {
+    const user = await $fetch('/api/user/me')
+    currentUserStaffId.value = user.id
+  } catch (err) {
+    console.error('Failed to fetch current user:', err)
+    currentUserStaffId.value = null
+  }
+}
 
 // Fetch regular tasks
 const {
@@ -94,7 +115,18 @@ const {
   refresh: refreshOverdueTasks,
 } = await useFetch<{ tasks: any[]; count: number }>("/api/tasks/overdue");
 
-// Transform and separate tasks
+function fetchTasks() {
+  refreshTasks();
+  refreshOverdueTasks();
+}
+
+// ============================================================================
+// DATA TRANSFORMATION
+// ============================================================================
+
+/**
+ * Transform raw task data to match Task schema
+ */
 function transformTask(task: any): Task {
   return {
     id: task.id,
@@ -111,6 +143,10 @@ function transformTask(task: any): Task {
     }))
   };
 }
+
+// ============================================================================
+// COMPUTED PROPERTIES
+// ============================================================================
 
 const overdueTasks = computed(() => {
   if (!overdueTasksResponse.value?.tasks) return [];
@@ -129,29 +165,45 @@ const tasks = computed(() => {
   return allTasks.filter((task) => !overdueTaskIds.has(task.id));
 });
 
-function fetchTasks() {
-  refreshTasks();
-  refreshOverdueTasks();
-}
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
 
-// Unified handler for task changes (create, update, delete)
+/**
+ * Unified handler for task changes (create, update, delete)
+ */
 function handleTaskChange() {
   fetchTasks();
   isModalOpen.value = false;
 }
 
-// Task navigation handler
-function goToTask(task: Task) {
-  router.push(`/task/${task.id}?from=personal`);
-}
-
-// Project creation handler
+/**
+ * Project creation handler
+ */
 function handleProjectCreated(project: any) {
   isCreateProjectModalOpen.value = false;
 }
 
-// Set up event listeners for quick actions
+// ============================================================================
+// NAVIGATION FUNCTIONS
+// ============================================================================
+
+/**
+ * Navigate to task detail page
+ */
+function goToTask(task: Task) {
+  router.push(`/task/${task.id}?from=personal`);
+}
+
+// ============================================================================
+// LIFECYCLE HOOKS
+// ============================================================================
+
+/**
+ * Set up event listeners for quick actions
+ */
 onMounted(() => {
+  fetchCurrentUser();
   window.addEventListener("task-updated", handleTaskChange);
   window.addEventListener("task-deleted", handleTaskChange);
   window.addEventListener("open-create-task-modal", () => {
