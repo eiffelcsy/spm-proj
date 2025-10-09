@@ -36,11 +36,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Main task (fetch without join first)
+    // Main task (fetch without join first, excluding soft-deleted tasks)
     const { data: task, error } = await supabase
       .from('tasks')
       .select('*')
       .eq('id', taskId)
+      .is('deleted_at', null)
       .single() as { data: any, error: any }
 
 
@@ -69,13 +70,14 @@ export default defineEventHandler(async (event) => {
       creator = creatorData
     }
     
-    // Fetch project information
+    // Fetch project information (excluding soft-deleted projects)
     let project = null
     if (task && task.project_id) {
       const { data: projectData } = await supabase
         .from('projects')
         .select('id, name')
         .eq('id', task.project_id)
+        .is('deleted_at', null)
         .single()
       project = projectData
     }
@@ -134,6 +136,7 @@ export default defineEventHandler(async (event) => {
         .from('tasks')
         .select('*')
         .eq('parent_task_id', parentTask.id)
+        .is('deleted_at', null)
         .order('start_date', { ascending: true });
 
 

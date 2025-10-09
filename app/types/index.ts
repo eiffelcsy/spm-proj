@@ -105,6 +105,7 @@ export interface ProjectDB {
   status: ProjectStatus
   created_at: string
   updated_at: string
+  deleted_at: string | null
 }
 
 /**
@@ -186,6 +187,7 @@ export interface TaskDB {
   created_at: string
   updated_at: string
   completed_at: string | null
+  deleted_at: string | null
 }
 
 /**

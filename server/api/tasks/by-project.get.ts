@@ -62,11 +62,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Fetch tasks for the specified project
+    // Fetch tasks for the specified project (excluding soft-deleted tasks)
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
       .eq('project_id', projectId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -131,13 +132,14 @@ export default defineEventHandler(async (event) => {
           }))
         }
 
-        // Fetch project information
+        // Fetch project information (excluding soft-deleted projects)
         let project = null
         if (task.project_id) {
           const { data: projectData } = await supabase
             .from('projects')
             .select('id, name')
             .eq('id', task.project_id)
+            .is('deleted_at', null)
             .single()
           project = projectData
         }

@@ -1,15 +1,7 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import type { ProjectDB } from '~/types'
 
-interface Project {
-    id: number
-    name: string
-    description: string | null
-    due_date: string | null
-    owner_id: number
-    status: string
-    created_at: string
-    updated_at: string
-}
+// Using ProjectDB from types instead of local interface
 
 export default defineEventHandler(async (event) => {
     const supabase = await serverSupabaseServiceRole(event)
@@ -27,7 +19,7 @@ export default defineEventHandler(async (event) => {
         .from('staff')
         .select('id')
         .eq('user_id', user.id)
-        .maybeSingle()
+        .maybeSingle() as { data: { id: number } | null, error: any }
 
     if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
@@ -42,25 +34,27 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Project title is required.' })
     }
 
-    // Check if project exists and user owns it
+    // Check if project exists and user owns it (excluding soft-deleted projects)
     const { data: existingProject, error: fetchError } = await supabase
         .from('projects')
         .select('*')
         .eq('id', projectId)
-        .eq('owner_id', staffRow.id)
-        .maybeSingle()
+        .eq('owner_id', staffRow!.id)
+        .is('deleted_at', null)
+        .maybeSingle() as { data: ProjectDB | null, error: any }
 
     if (fetchError) throw createError({ statusCode: 500, statusMessage: fetchError.message })
     if (!existingProject) throw createError({ statusCode: 404, statusMessage: 'Project not found' })
 
-    // Check for duplicate project names (excluding current project)
+    // Check for duplicate project names (excluding current project and soft-deleted projects)
     const { data: duplicateProject, error: checkError } = await supabase
         .from('projects')
         .select('id')
         .eq('name', body.name.trim())
-        .eq('owner_id', staffRow.id)
+        .eq('owner_id', staffRow!.id)
         .neq('id', projectId)
-        .maybeSingle()
+        .is('deleted_at', null)
+        .maybeSingle() as { data: Pick<ProjectDB, 'id'> | null, error: any }
 
     if (checkError) throw createError({ statusCode: 500, statusMessage: checkError.message })
     if (duplicateProject) {
@@ -76,12 +70,12 @@ export default defineEventHandler(async (event) => {
         updated_at: new Date().toISOString()
     }
 
-    const { data: updatedProject, error: updateError } = await supabase
+    const { data: updatedProject, error: updateError } = await (supabase as any)
         .from('projects')
         .update(updatePayload)
         .eq('id', projectId)
         .select('*')
-        .single()
+        .single() as { data: ProjectDB | null, error: any }
 
     if (updateError) throw createError({ statusCode: 500, statusMessage: updateError.message })
 

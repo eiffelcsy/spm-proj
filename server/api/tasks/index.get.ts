@@ -45,10 +45,11 @@ export default defineEventHandler(async (event) => {
 
     const assignedTaskIdList = assignedTaskIds?.map((row: any) => row.task_id) || []
 
-    // Fetch tasks where user is creator OR assignee
+    // Fetch tasks where user is creator OR assignee (excluding soft-deleted tasks)
     let query = supabase
       .from('tasks')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     // If user has assigned tasks, include them in the query
@@ -123,13 +124,14 @@ export default defineEventHandler(async (event) => {
           }))
         }
 
-        // Fetch project information
+        // Fetch project information (excluding soft-deleted projects)
         let project = null
         if (task.project_id) {
           const { data: projectData } = await supabase
             .from('projects')
             .select('id, name')
             .eq('id', task.project_id)
+            .is('deleted_at', null)
             .single()
           project = projectData
         }

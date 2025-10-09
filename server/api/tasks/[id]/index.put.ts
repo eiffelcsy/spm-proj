@@ -45,11 +45,12 @@ export default defineEventHandler(async (event) => {
     }
     const currentStaffId = (staffIdData as { id: number }).id
 
-    // Check if task exists before checking permissions
+    // Check if task exists before checking permissions (excluding soft-deleted tasks)
     const { data: taskExists, error: fetchError } = await supabase
       .from('tasks')
       .select('id')
       .eq('id', taskId)
+      .is('deleted_at', null)
       .single()
 
     if (fetchError) {

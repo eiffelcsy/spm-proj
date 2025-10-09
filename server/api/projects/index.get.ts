@@ -1,15 +1,7 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import type { ProjectDB } from '~/types'
 
-interface Project {
-    id: number
-    name: string
-    description: string | null
-    due_date: string | null
-    owner_id: number
-    status: string
-    created_at: string
-    updated_at: string
-}
+// Using ProjectDB from types instead of local interface
 
 export default defineEventHandler(async (event) => {
     const supabase = await serverSupabaseServiceRole(event)
@@ -47,12 +39,13 @@ export default defineEventHandler(async (event) => {
     // Get the project IDs
     const projectIds = projectMembers.map((pm: any) => pm.project_id)
 
-    // Fetch only the projects where the user is a member
+    // Fetch only the projects where the user is a member (excluding soft-deleted projects)
     const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
         .in('id', projectIds)
-        .order('created_at', { ascending: false }) as { data: Project[] | null, error: any }
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false }) as { data: ProjectDB[] | null, error: any }
 
     if (projectsError) {
         throw createError({ statusCode: 500, statusMessage: projectsError.message })

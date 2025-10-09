@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import type { TaskDB } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -46,19 +47,35 @@ export default defineEventHandler(async (event) => {
     }
     const currentStaffId = (staffIdData as { id: number }).id
 
-    // First, check if the task exists
+    // First, check if the task exists (only non-deleted tasks)
     const { data: existingTask, error: fetchError } = await supabase
       .from('tasks')
-      .select('id')
+      .select('id, deleted_at')
       .eq('id', numericTaskId)
-      .single()
+      .is('deleted_at', null)
+      .single() as { data: Pick<TaskDB, 'id' | 'deleted_at'> | null, error: any }
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        throw createError({
-          statusCode: 404,
-          statusMessage: 'Task not found'
-        })
+        // Check if task exists but is soft-deleted
+        const { data: deletedTask } = await supabase
+          .from('tasks')
+          .select('id, deleted_at')
+          .eq('id', numericTaskId)
+          .not('deleted_at', 'is', null)
+          .maybeSingle() as { data: Pick<TaskDB, 'id' | 'deleted_at'> | null, error: any }
+        
+        if (deletedTask) {
+          throw createError({
+            statusCode: 404,
+            statusMessage: 'Task not found'
+          })
+        } else {
+          throw createError({
+            statusCode: 404,
+            statusMessage: 'Task not found'
+          })
+        }
       }
       throw createError({
         statusCode: 500,
@@ -110,57 +127,43 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Check if this task has subtasks
+    // Check if this task has subtasks (only non-deleted subtasks)
     const { data: subtasks, error: subtaskError } = await supabase
       .from('tasks')
       .select('id')
       .eq('parent_task_id', numericTaskId)
+      .is('deleted_at', null) as { data: Pick<TaskDB, 'id'>[] | null, error: any }
 
     if (subtaskError) {
       // Could not check for subtasks, but continue with deletion
     } else if (subtasks && subtasks.length > 0) {
-      // Task has subtasks - database should handle cascading
+      // Task has active subtasks - soft delete them first
+      const subtaskIds = subtasks.map(subtask => subtask.id)
+      const { error: subtasksDeleteError } = await (supabase as any)
+        .from('tasks')
+        .update({ deleted_at: new Date().toISOString() })
+        .in('id', subtaskIds)
+
+      if (subtasksDeleteError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to soft delete subtasks',
+          data: subtasksDeleteError
+        })
+      }
     }
 
-    // Delete activity timeline records first (foreign key constraint)
-    const { error: timelineDeleteError } = await supabase
-      .from('activity_timeline')
-      .delete()
-      .eq('task_id', numericTaskId)
-
-    if (timelineDeleteError) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to delete activity timeline records',
-        data: timelineDeleteError
-      })
-    }
-
-    // Delete task assignees (foreign key constraint)
-    const { error: assigneesDeleteError } = await supabase
-      .from('task_assignees')
-      .delete()
-      .eq('task_id', numericTaskId)
-
-    if (assigneesDeleteError) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to delete task assignees',
-        data: assigneesDeleteError
-      })
-    }
-
-    // Delete the task
-    const { data: deletedData, error: deleteError } = await supabase
+    // Soft delete the task by setting deleted_at timestamp
+    const { data: deletedData, error: deleteError } = await (supabase as any)
       .from('tasks')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', numericTaskId)
-      .select()
+      .select() as { data: TaskDB[] | null, error: any }
 
     if (deleteError) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'Failed to delete task',
+        statusMessage: 'Failed to soft delete task',
         data: deleteError
       })
     }
@@ -174,7 +177,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      message: 'Task deleted successfully',
+      message: 'Task soft deleted successfully',
       deletedTask: deletedData?.[0] || null
     }
   } catch (error: any) {

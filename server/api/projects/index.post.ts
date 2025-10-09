@@ -2,17 +2,9 @@ import {
     serverSupabaseServiceRole,
     serverSupabaseUser,
 } from "#supabase/server";
+import type { ProjectDB } from '~/types'
 
-interface Project {
-    id: number;
-    name: string;
-    description: string | null;
-    due_date: string | null;
-    owner_id: number;
-    status: string;
-    created_at: string;
-    updated_at: string;
-}
+// Using ProjectDB from types instead of local interface
 
 export default defineEventHandler(async (event) => {
     const supabase = await serverSupabaseServiceRole(event);
@@ -46,12 +38,13 @@ export default defineEventHandler(async (event) => {
         });
     }
 
-    // Check for duplicate project names for this owner
+    // Check for duplicate project names for this owner (excluding soft-deleted projects)
     const { data: existingProject, error: checkError } = (await supabase
         .from("projects")
         .select("id")
         .eq("name", body.name.trim())
         .eq("owner_id", staffRow.id)
+        .is("deleted_at", null)
         .maybeSingle()) as { data: { id: number } | null; error: any };
 
     if (checkError) {
@@ -77,7 +70,7 @@ export default defineEventHandler(async (event) => {
         .from("projects")
         .insert(projectPayload as any)
         .select("*")
-        .single()) as { data: Project | null; error: any };
+        .single()) as { data: ProjectDB | null; error: any };
 
     if (projectError) {
         throw createError({ statusCode: 500, statusMessage: projectError.message });
@@ -102,5 +95,5 @@ export default defineEventHandler(async (event) => {
         }
     }
 
-    return { success: true, project } as { success: boolean; project: Project };
+    return { success: true, project } as { success: boolean; project: ProjectDB };
 });

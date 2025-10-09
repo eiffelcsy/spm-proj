@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import type { TaskDB } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
     .from('staff')
     .select('id')
     .eq('user_id', user.id)
-    .maybeSingle()
+    .maybeSingle() as { data: { id: number } | null, error: any }
   if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
   if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
 
@@ -34,13 +35,14 @@ export default defineEventHandler(async (event) => {
     .from('tasks')
     .insert([parentTaskPayload] as any)
     .select('*')
-    .single()
+    .single() as { data: TaskDB | null, error: any }
 
   if (parentError) {
     throw createError({ statusCode: 500, statusMessage: parentError.message })
   }
 
-  const createdTaskId = parentTask.id
+  
+  const createdTaskId = parentTask!.id
 
   async function rollbackParent() {
     try {
@@ -71,7 +73,7 @@ export default defineEventHandler(async (event) => {
       const parentMappings = parentAssigneeIds.map((staffId) => ({
         task_id: createdTaskId,
         assigned_to_staff_id: staffId,
-        assigned_by_staff_id: body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : staffRow.id
+        assigned_by_staff_id: body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : staffRow!.id
       }))
       const { error: pmError } = await supabase.from('task_assignees').insert(parentMappings as any)
       if (pmError) {
@@ -91,14 +93,14 @@ export default defineEventHandler(async (event) => {
         priority: body.priority ?? null,
         repeat_interval: body.repeat_interval ?? null,
         project_id: s.project_id ?? null,
-        creator_id: staffRow.id,
+        creator_id: staffRow!.id,
         parent_task_id: createdTaskId
       }))
 
       const { data: insertedSubtasks, error: subError } = await supabase
         .from('tasks')
         .insert(subtaskRows)
-        .select('*')
+        .select('*') as { data: TaskDB[] | null, error: any }
 
       if (subError) {
         await rollbackParent()
@@ -108,14 +110,14 @@ export default defineEventHandler(async (event) => {
       const subtaskMappings: any[] = []
       for (let i = 0; i < subtasksInput.length; i++) {
         const s = subtasksInput[i]
-        const inserted = insertedSubtasks[i]
+        const inserted = insertedSubtasks?.[i]
         if (!inserted) continue
         const assigneeIdsForSub = Array.isArray(s.assignee_ids) ? s.assignee_ids.map((v: any) => Number(v)) : []
         for (const staffId of assigneeIdsForSub) {
           subtaskMappings.push({
             task_id: inserted.id,
             assigned_to_staff_id: staffId,
-            assigned_by_staff_id: body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : staffRow.id
+            assigned_by_staff_id: body.assigned_by_staff_id ? Number(body.assigned_by_staff_id) : staffRow!.id
           })
         }
       }
@@ -124,7 +126,7 @@ export default defineEventHandler(async (event) => {
         const { error: smError } = await supabase.from('task_assignees').insert(subtaskMappings as any)
         if (smError) {
           try {
-            const insertedIds = insertedSubtasks.map((r: any) => r.id)
+            const insertedIds = insertedSubtasks?.map((r: any) => r.id) || []
             await supabase.from('task_assignees').delete().in('task_id', insertedIds)
             await supabase.from('tasks').delete().in('id', insertedIds)
           } catch (_) {}
