@@ -133,7 +133,9 @@
                 :placeholder="projects.find(p => String(p.id) === selectedProjectId)?.name || 'Select project'" />
             </SelectTrigger>
             <SelectContent>
-   
+              <SelectItem :value="'Personal'">
+                Personal
+              </SelectItem>
               <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
                 {{ project.name }}
               </SelectItem>
@@ -390,7 +392,7 @@ const staffMembers = ref<StaffMember[]>([])
 
 // projects dropdown
 const projects = ref<{ id: number; name: string }[]>([])
-const selectedProjectId = ref<string>('')
+const selectedProjectId = ref<string | 'Personal'>('');
 
 // Load staff members when modal opens
 watch(() => props.isOpen, async (isOpen) => {
