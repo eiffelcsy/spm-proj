@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
 
     const { data: staffRow, error: staffError } = (await supabase
         .from("staff")
-        .select("id")
+        .select("id, staff_type")
         .eq("user_id", user.id)
         .maybeSingle()) as { data: { id: number } | null; error: any };
 
@@ -30,6 +30,14 @@ export default defineEventHandler(async (event) => {
             statusMessage: "No staff record found for authenticated user.",
         });
 
+    // Check if user is a manager
+    if (staffRow.staff_type !== 'manager') {
+        throw createError({
+            statusCode: 403,
+            statusMessage: "Only managers can create projects.",
+        });
+    }
+
     // Validate required fields
     if (!body.name || !body.name.trim()) {
         throw createError({
@@ -38,6 +46,22 @@ export default defineEventHandler(async (event) => {
         });
     }
 
+    // Validate priority if provided
+    if (body.priority && !['low', 'medium', 'high'].includes(body.priority)) {
+        throw createError({
+            statusCode: 400,
+            statusMessage: "Invalid priority value.",
+        });
+    }
+
+    // Validate status if provided
+    if (body.status && !['todo', 'in-progress', 'completed', 'blocked'].includes(body.status)) {
+        throw createError({
+            statusCode: 400,
+            statusMessage: "Invalid status value.",
+        });
+    }
+    
     // Check for duplicate project names for this owner (excluding soft-deleted projects)
     const { data: existingProject, error: checkError } = (await supabase
         .from("projects")
@@ -61,9 +85,11 @@ export default defineEventHandler(async (event) => {
     const projectPayload = {
         name: body.name.trim(),
         description: body.description?.trim() || null,
+        priority: body.priority || 'medium',
         due_date: body.due_date || null,
+        tags: body.tags || [],
         owner_id: staffRow.id,
-        status: body.status || "active",
+        status: body.status || "todo",
     };
 
     const { data: project, error: projectError } = (await supabase
@@ -92,6 +118,29 @@ export default defineEventHandler(async (event) => {
 
         if (memberError) {
             throw createError({ statusCode: 500, statusMessage: memberError.message });
+        }
+
+        // Add assigned users if provided
+        if (body.assigned_user_ids && Array.isArray(body.assigned_user_ids) && body.assigned_user_ids.length > 0) {
+            const assigneePayloads = body.assigned_user_ids
+                .filter((id: number) => id !== staffRow.id)  // Don't duplicate creator
+                .map((staffId: number) => ({
+                    project_id: project.id,
+                    staff_id: staffId,
+                    role: 'member',
+                    invited_at: new Date().toISOString(),
+                    joined_at: new Date().toISOString()
+                }));
+
+            if (assigneePayloads.length > 0) {
+                const { error: assignError } = await supabase
+                    .from("project_members")
+                    .insert(assigneePayloads);
+
+                if (assignError) {
+                    console.error('Error adding assigned users:', assignError);
+                }
+            }
         }
     }
 

@@ -7,7 +7,13 @@
       </div>
       <div class="flex items-center space-x-2">
         <Input v-model="searchQuery" placeholder="Search projects" />
-        <Button size="sm" @click="openCreateProjectModal">
+        <Button 
+          size="sm" 
+          @click="isManager ? openCreateProjectModal() : null"
+          :disabled="!isManager"
+          :class="!isManager ? 'cursor-not-allowed opacity-50' : ''"
+          :title="!isManager ? 'Only managers can create projects' : ''"
+        >
           <Plus class="mr-2 h-4 w-4" />
           New Project
         </Button>
@@ -40,16 +46,34 @@
           class="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
           @click="selectProject(project.id)"
         >
-          <CardHeader class="pb-3">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <CardTitle>{{ project.name }}</CardTitle>
-              </div>
-              <Badge :variant="getStatusVariant(project.status)" class="ml-2">
-                {{ capitalizeStatus(project.status) }}
-              </Badge>
-            </div>
-          </CardHeader>
+        <CardHeader class="pb-3">
+          <div class="flex items-start justify-between mb-2">
+            <CardTitle class="flex-1">{{ project.name }}</CardTitle>
+            <Badge :variant="getStatusVariant(project.status)"  class="text-xs">
+              {{ capitalizeStatus(project.status) }}
+            </Badge>
+          </div>
+
+  
+          <!-- Tags -->
+          <div v-if="project.tags && project.tags.length > 0" class="flex flex-wrap gap-1 mt-2">
+            <Badge 
+              v-for="tag in project.tags.slice(0, 3)" 
+              :key="tag"
+              variant="outline"
+              class="text-xs"
+            >
+              {{ tag }}
+            </Badge>
+            <Badge 
+              v-if="project.tags.length > 3"
+              variant="outline"
+              class="text-xs"
+            >
+              +{{ project.tags.length - 3 }}
+            </Badge>
+          </div>
+        </CardHeader>
           
           <CardContent class="space-y-4">
             <!-- Progress indicator -->
@@ -72,6 +96,12 @@
                 <span>{{ formatDateShort(project.dueDate) }}</span>
               </div>
             </div>
+
+            <!-- Assigned Users -->
+            <div v-if="project.assigned_user_ids && project.assigned_user_ids.length > 0" class="flex items-center space-x-2 text-sm">
+              <Users class="h-4 w-4 text-muted-foreground" />
+              <span class="text-muted-foreground">{{ project.assigned_user_ids.length }} assigned</span>
+            </div>
           </CardContent>
           
           <CardFooter v-if="project.dueDate" class="pt-0">
@@ -80,6 +110,13 @@
               <Badge v-if="isOverdue(project.dueDate)" variant="destructive" class="text-xs px-1">
                 Overdue
               </Badge>
+              <Badge 
+              v-if="project.priority"
+              :variant="getPriorityVariant(project.priority)" 
+              class="text-xs"
+            >
+              {{ project.priority.toUpperCase() }}
+            </Badge>
             </div>
           </CardFooter>
         </Card>
@@ -99,17 +136,43 @@
                 <div class="flex-1 space-y-1">
                   <div class="flex items-center space-x-2">
                     <h3 class="font-semibold">{{ project.name }}</h3>
+                    
+                    <!-- Priority Badge -->
+                    <Badge 
+                      v-if="project.priority"
+                      :variant="getPriorityVariant(project.priority)" 
+                      class="text-xs"
+                    >
+                      {{ project.priority.toUpperCase() }}
+                    </Badge>
+                    
                     <Badge :variant="getStatusVariant(project.status)">
                       {{ capitalizeStatus(project.status) }}
                     </Badge>
                   </div>
                   <p class="text-sm text-muted-foreground">{{ project.description }}</p>
+
+                  <!-- Tags -->
+                  <div v-if="project.tags && project.tags.length > 0" class="flex flex-wrap gap-1">
+                    <Badge 
+                      v-for="tag in project.tags" 
+                      :key="tag"
+                      variant="outline"
+                      class="text-xs"
+                    >
+                      {{ tag }}
+                    </Badge>
+                  </div>
                 </div>
                 
                 <div class="flex items-center space-x-6 text-sm text-muted-foreground">
                   <div class="flex items-center space-x-1">
                     <ListTodo class="h-4 w-4" />
                     <span>{{ getProjectTaskCount(project.id) }}</span>
+                  </div>
+                  <div v-if="project.assigned_user_ids && project.assigned_user_ids.length > 0" class="flex items-center space-x-1">
+                    <Users class="h-4 w-4" />
+                    <span>{{ project.assigned_user_ids.length }}</span>
                   </div>
                   <div class="flex items-center space-x-1">
                     <Calendar class="h-4 w-4" />
@@ -164,6 +227,7 @@ import {
   Calendar 
 } from 'lucide-vue-next'
 import type { Task } from '@/components/tasks-table/data/schema'
+import { Users } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'with-sidebar'
@@ -195,15 +259,21 @@ const rawTasks = ref<any[]>([])
 // DATA FETCHING
 // ============================================================================
 
+const currentUserStaffType = ref<string | null>(null)
+
 async function fetchCurrentUser() {
   try {
     const user = await $fetch('/api/user/me')
     currentUserStaffId.value = user.id
+    currentUserStaffType.value = user.staff_type
   } catch (err) {
     console.error('Failed to fetch current user:', err)
     currentUserStaffId.value = null
+    currentUserStaffType.value = null
   }
 }
+
+const isManager = computed(() => currentUserStaffType.value === 'manager')
 
 async function fetchProjects() {
   try {
@@ -213,7 +283,8 @@ async function fetchProjects() {
       id: String(project.id),
       name: project.name || '',
       description: project.description || '',
-      status: project.status || 'active',
+      priority: project.priority || 'medium',
+      status: project.status || 'todo',
       createdAt: project.created_at || new Date().toISOString(),
       dueDate: project.due_date || null,
       isRealData: true
@@ -309,17 +380,21 @@ function getProjectTaskCount(projectId: string): number {
 
 
 function capitalizeStatus(status: string): string {
+  if (status === 'in-progress') return 'In Progress'
+  if (status === 'todo') return 'To Do'
   return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
 function getStatusVariant(status: string) {
   switch (status) {
-    case 'active':
+    case 'todo':
+      return 'outline'
+    case 'in-progress':
       return 'default'
     case 'completed':
       return 'secondary'
-    case 'archived':
-      return 'outline'
+    case 'blocked':
+      return 'destructive'
     default:
       return 'default'
   }
@@ -362,6 +437,19 @@ function isOverdue(dueDateString: string | null): boolean {
   today.setHours(0, 0, 0, 0)
   dueDate.setHours(0, 0, 0, 0)
   return dueDate < today
+}
+
+function getPriorityVariant(priority: string) {
+  switch (priority) {
+    case 'high':
+      return 'destructive'
+    case 'medium':
+      return 'default'
+    case 'low':
+      return 'secondary'
+    default:
+      return 'outline'
+  }
 }
 
 // ============================================================================

@@ -46,9 +46,10 @@ import {
 // STATE MANAGEMENT
 // ============================================================================
 
-const currentUser = ref<{ id: number; fullname: string; email: string | null } | null>(null)
+const currentUser = ref<{ id: number; fullname: string; email: string | null; staff_type: string } | null>(null)
 const router = useRouter()
 const supabase = useSupabaseClient()
+const isManager = computed(() => currentUser.value?.staff_type === 'manager')
 
 // ============================================================================
 // DATA FETCHING
@@ -149,8 +150,9 @@ onMounted(() => {
                         </a>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton @click="$emit('create-project')">
+                    <SidebarMenuSubItem :title="!isManager ? 'Only managers can create projects' : ''">
+                      <SidebarMenuSubButton @click="isManager ? $emit('create-project') : null"
+                      :class="!isManager ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'">
                           <FolderPlus class="size-4" />
                           <span>Create Project</span>
                       </SidebarMenuSubButton>

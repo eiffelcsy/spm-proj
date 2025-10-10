@@ -20,7 +20,7 @@
               <h1 class="text-3xl font-bold mb-2">{{ project.name }}</h1>
               <p class="text-gray-600 text-lg">{{ project.description }}</p>
             </div>
-            <div v-if="isProjectOwner" class="flex gap-2">
+            <div v-if="isProjectOwner || isManager" class="flex gap-2">
               <Button 
                 variant="outline"
                 size="sm"
@@ -37,6 +37,7 @@
                 size="sm"
                 class="h-8 bg-white text-black border-gray-300 hover:bg-gray-50 hover:text-black"
                 @click="openEditProjectModal"
+                :title="!isManager ? 'Only managers can edit projects' : ''"
               >
                 <svg class="md:mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -60,15 +61,27 @@
           <!-- Project Info Card -->
           <div class="bg-white border rounded-lg p-6 shadow-sm mb-6">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <!-- Status and Task Count -->
+              <!-- Priority -->
+              <div class="flex flex-col">
+                <span class="text-sm text-gray-500 mb-1">Priority</span>
+                <Badge 
+                  :variant="getPriorityVariant(project.priority)" 
+                  class="w-fit"
+                >
+                  {{ project.priority ? project.priority.toUpperCase() : 'MEDIUM' }}
+                </Badge>
+              </div>
+              
+              <!-- Status -->
               <div class="flex flex-col">
                 <span class="text-sm text-gray-500 mb-1">Status</span>
                 <span 
                   class="px-3 py-1 rounded-full text-sm font-medium inline-block w-fit"
                   :class="{
-                    'bg-yellow-100 text-yellow-800': project.status === 'active',
+                    'bg-gray-100 text-gray-800': project.status === 'todo',
+                    'bg-blue-100 text-blue-800': project.status === 'in-progress',
                     'bg-green-100 text-green-800': project.status === 'completed',
-                    'bg-gray-100 text-gray-800': project.status === 'archived'
+                    'bg-red-100 text-red-800': project.status === 'blocked'
                   }"
                 >
                   {{ capitalizeStatus(project.status) }}
@@ -88,6 +101,21 @@
               <div class="flex flex-col">
                 <span class="text-sm text-gray-500 mb-1">Due Date</span>
                 <span class="text-lg font-semibold">{{ getProjectDueDate(project) }}</span>
+              </div>
+            </div>
+
+            <!-- Tags Row (NEW) -->
+            <div v-if="project.tags && project.tags.length > 0" class="mt-4 pt-4 border-t">
+              <span class="text-sm text-gray-500 mb-2 block">Tags:</span>
+              <div class="flex flex-wrap gap-2">
+                <Badge 
+                  v-for="tag in project.tags" 
+                  :key="tag"
+                  variant="outline"
+                  class="text-xs"
+                >
+                  {{ tag }}
+                </Badge>
               </div>
             </div>
             
@@ -248,6 +276,8 @@ async function fetchData() {
   }
 }
 
+const currentUserStaffType = ref<string | null>(null)
+
 async function fetchCurrentUser() {
   try {
     const user = await $fetch('/api/user/me')
@@ -257,6 +287,8 @@ async function fetchCurrentUser() {
     currentUserStaffId.value = null
   }
 }
+
+const isManager = computed(() => currentUserStaffType.value === 'manager')
 
 async function fetchProject() {
   try {
@@ -421,6 +453,9 @@ function formatDate(date: any): string {
 }
 
 function capitalizeStatus(status: string): string {
+  if (status === 'in-progress') return 'In Progress'
+  if (status === 'todo') return 'To Do'
+  if (status === 'blocked') return 'Blocked'
   return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
@@ -439,6 +474,19 @@ function getProjectDueDate(project: any): string {
     return 'No due date'
   }
   return formatDate(project.dueDate)
+}
+
+function getPriorityVariant(priority: string) {
+  switch (priority) {
+    case 'high':
+      return 'destructive'
+    case 'medium':
+      return 'default'
+    case 'low':
+      return 'secondary'
+    default:
+      return 'outline'
+  }
 }
 
 // ============================================================================

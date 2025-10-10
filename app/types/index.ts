@@ -17,9 +17,11 @@ export type StaffRole = 'staff' | 'manager' | 'director' | 'hr'
 
 export type TaskStatus = 'not-started' | 'in-progress' | 'completed' | 'blocked'
 
-export type ProjectStatus = 'active' | 'completed' | 'archived'
+export type ProjectStatus = 'todo' | 'in-progress' | 'completed' | 'blocked'
 
 export type ProjectMemberRole = 'member' | 'manager'
+
+export type ProjectPriority = 'low' | 'medium' | 'high'
 
 export type NotificationType = 
   | 'deadline_reminder' 
@@ -100,7 +102,10 @@ export interface ProjectDB {
   id: number
   name: string
   description: string | null
+  priority: ProjectPriority
   due_date: string | null
+  assigned_user_ids?: number[]
+  tags: string[]
   owner_id: number
   status: ProjectStatus
   created_at: string
@@ -124,7 +129,10 @@ export interface ProjectWithRelations extends ProjectDB {
 export interface ProjectCreateInput {
   name: string
   description?: string | null
+  priority?: ProjectPriority
   due_date?: string | null
+  assigned_user_ids?: number[]
+  tags?: string[]
   status?: ProjectStatus
 }
 
@@ -134,7 +142,10 @@ export interface ProjectCreateInput {
 export interface ProjectUpdateInput {
   name?: string
   description?: string | null
+  priority?: ProjectPriority
   due_date?: string | null
+  assigned_user_ids?: number[]
+  tags?: string[]
   status?: ProjectStatus
 }
 

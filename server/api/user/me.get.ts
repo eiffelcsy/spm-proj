@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
     const { data: staffRow, error: staffError } = await supabase
         .from('staff')
-        .select('id, fullname')
+        .select('id, fullname, staff_type')
         .eq('user_id', user.id)
         .maybeSingle() as { data: { id: number, fullname: string } | null, error: any }
 
@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
     return { 
         id: staffRow.id,
         fullname: staffRow.fullname,
-        email: user.email || null
+        email: user.email || null,
+        staff_type: staffRow.staff_type
     }
 })

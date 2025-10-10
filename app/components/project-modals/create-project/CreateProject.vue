@@ -52,6 +52,36 @@
           ></textarea>
         </div>
 
+        <!-- Priority -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Priority</Label>
+          <Select v-model="projectPriority">
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                  Low
+                </div>
+              </SelectItem>
+              <SelectItem value="medium">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+                  Medium
+                </div>
+              </SelectItem>
+              <SelectItem value="high">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                  High
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <!-- Due Date -->
         <div>
           <Label class="mb-1">Due Date</Label>
@@ -80,6 +110,48 @@
           </Popover>
         </div>
 
+        <!-- Assigned Users -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Assign To</Label>
+          <Select v-model="projectAssignedUsers" multiple>
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select users (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem 
+                v-for="staff in availableStaff" 
+                :key="staff.id" 
+                :value="String(staff.id)"
+              >
+                {{ staff.fullname }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <div v-if="projectAssignedUsers.length > 0" class="mt-2 flex flex-wrap gap-2">
+            <Badge 
+              v-for="userId in projectAssignedUsers" 
+              :key="userId"
+              variant="secondary"
+              class="text-xs"
+            >
+              {{ availableStaff.find(s => String(s.id) === userId)?.fullname }}
+            </Badge>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Tags</Label>
+          <TagsInput v-model="projectTags" class="w-full">
+            <TagsInputItem v-for="tag in projectTags" :key="tag" :value="tag">
+              <TagsInputItemText />
+              <TagsInputItemDelete />
+            </TagsInputItem>
+            <TagsInputInput placeholder="Add tags..." />
+          </TagsInput>
+          <p class="text-xs text-muted-foreground mt-1">Press Enter to add a tag</p>
+        </div>
+
         <!-- Status -->
         <div>
           <Label class="block text-sm font-medium mb-1">Status</Label>
@@ -88,10 +160,16 @@
               <SelectValue placeholder="Select project status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="active">
+              <SelectItem value="todo">
                 <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
-                  Active
+                  <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                  To Do
+                </div>
+              </SelectItem>
+              <SelectItem value="in-progress">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                  In Progress
                 </div>
               </SelectItem>
               <SelectItem value="completed">
@@ -100,10 +178,10 @@
                   Completed
                 </div>
               </SelectItem>
-              <SelectItem value="archived">
+              <SelectItem value="blocked">
                 <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                  Archived
+                  <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                  Blocked
                 </div>
               </SelectItem>
             </SelectContent>
@@ -149,6 +227,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { TagsInput, TagsInputInput, TagsInputItem, TagsInputItemDelete, TagsInputItemText } from '@/components/ui/tags-input'
+import type { ProjectPriority } from '@/types'
 
 const props = defineProps<{
   isOpen: boolean
@@ -166,11 +246,25 @@ const projectName = ref('')
 const projectDescription = ref('')
 const projectDueDate = ref<DateValue | null>(null)
 const projectStatus = ref('active')
+const projectPriority = ref<ProjectPriority>('medium')
+const projectTags = ref<string[]>([])
+const projectAssignedUsers = ref<string[]>([])
+const availableStaff = ref<any[]>([])
 
 // feedback state
 const successMessage = ref('')
 const errorMessage = ref('')
 const isCreating = ref(false)
+
+// Fetch staff for assignment
+onMounted(async () => {
+  try {
+    const staff = await $fetch('/api/staff')
+    availableStaff.value = staff
+  } catch (err) {
+    console.error('Failed to fetch staff:', err)
+  }
+})
 
 // Reset form when modal opens
 watch(() => props.isOpen, async (isOpen) => {
@@ -189,7 +283,10 @@ function resetForm() {
   projectName.value = ''
   projectDescription.value = ''
   projectDueDate.value = null
-  projectStatus.value = 'active'
+  projectPriority.value = 'medium'
+  projectTags.value = []
+  projectAssignedUsers.value = []
+  projectStatus.value = 'todo'
   errorMessage.value = ''
   successMessage.value = ''
   isCreating.value = false
@@ -230,7 +327,10 @@ async function createProject() {
     const projectData = {
       name: projectName.value.trim(),
       description: projectDescription.value.trim() || null,
+      priority: projectPriority.value,
       due_date: projectDueDate.value ? projectDueDate.value.toString() : null,
+      tags: projectTags.value,
+      assigned_user_ids: projectAssignedUsers.value.map(id => parseInt(id)),
       status: projectStatus.value,
     }
 
