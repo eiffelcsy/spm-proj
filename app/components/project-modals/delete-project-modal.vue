@@ -12,7 +12,7 @@
           </div>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Project Deleted Successfully!</h3>
           <p class="text-gray-600 mb-6">
-            The project "{{ project?.name }}" and all its tasks have been permanently deleted.
+            The project "{{ project?.name }}" and all its tasks have been deleted.
           </p>
           <button 
             @click="handleSuccessOk" 
@@ -74,7 +74,7 @@
                 <div class="ml-3">
                   <h4 class="text-sm font-medium text-red-800">Warning</h4>
                   <div class="mt-2 text-sm text-red-700">
-                    <p>This action will permanently delete:</p>
+                    <p>This action will delete:</p>
                     <ul class="list-disc list-inside mt-1 space-y-1">
                       <li>The project and all its data</li>
                       <li>All tasks and subtasks under this project</li>
