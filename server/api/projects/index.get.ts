@@ -31,19 +31,32 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 500, statusMessage: membersError.message })
     }
 
-    // If user is not a member of any projects, return empty array
-    if (!projectMembers || projectMembers.length === 0) {
+    // Get projects where user is the owner
+    const { data: ownedProjects, error: ownedError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('owner_id', staffRow.id)
+        .is('deleted_at', null)
+
+    if (ownedError) {
+        throw createError({ statusCode: 500, statusMessage: ownedError.message })
+    }
+
+    // Combine member project IDs and owned project IDs
+    const memberProjectIds = projectMembers ? projectMembers.map((pm: any) => pm.project_id) : []
+    const ownedProjectIds = ownedProjects ? ownedProjects.map((p: any) => p.id) : []
+    const allProjectIds = [...new Set([...memberProjectIds, ...ownedProjectIds])]
+
+    // If user has no projects (not member or owner of any), return empty array
+    if (allProjectIds.length === 0) {
         return []
     }
 
-    // Get the project IDs
-    const projectIds = projectMembers.map((pm: any) => pm.project_id)
-
-    // Fetch only the projects where the user is a member (excluding soft-deleted projects)
+    // Fetch all projects where user is either member or owner (excluding soft-deleted projects)
     const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .in('id', projectIds)
+        .in('id', allProjectIds)
         .is('deleted_at', null)
         .order('created_at', { ascending: false }) as { data: ProjectDB[] | null, error: any }
 

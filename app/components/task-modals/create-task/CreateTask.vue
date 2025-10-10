@@ -10,7 +10,8 @@
 
       <!-- Success Message -->
       <div v-if="successMessage" class="flex-1 flex items-center justify-center py-8">
-        <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 text-green-800 rounded-xl p-8 flex flex-col items-center justify-center gap-6 min-w-[320px] shadow-lg">
+        <div
+          class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 text-green-800 rounded-xl p-8 flex flex-col items-center justify-center gap-6 min-w-[320px] shadow-lg">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -19,7 +20,8 @@
             </div>
             <span class="text-lg font-semibold text-center">{{ successMessage }}</span>
           </div>
-          <Button variant="outline" @click="handleSuccessOk" class="bg-white hover:bg-green-50 border-green-300 text-green-700 hover:text-green-800 px-6 py-2">OK</Button>
+          <Button variant="outline" @click="handleSuccessOk"
+            class="bg-white hover:bg-green-50 border-green-300 text-green-700 hover:text-green-800 px-6 py-2">OK</Button>
         </div>
       </div>
 
@@ -29,7 +31,7 @@
       </div>
 
       <form v-if="!successMessage" @submit.prevent="createTask" class="space-y-4">
-        
+
         <!-- Title -->
         <div>
           <Label class="block text-sm font-medium mb-1">Task Title</Label>
@@ -122,13 +124,27 @@
           </div>
         </div>
 
+        <!-- Project Selection -->
         <div>
-          <AssignCombobox 
-            v-model="assignedTo" 
-            label="Assign To" 
-            placeholder="Select assignees"
-            :staff-members="staffMembers" 
-          />
+          <Label class="block text-sm font-medium mb-1">Project</Label>
+          <Select v-model="selectedProjectId">
+            <SelectTrigger>
+              <SelectValue
+                :placeholder="projects.find(p => String(p.id) === selectedProjectId)?.name || 'Select project'" />
+            </SelectTrigger>
+            <SelectContent>
+   
+              <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
+                {{ project.name }}
+              </SelectItem>
+              
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <AssignCombobox v-model="assignedTo" label="Assign To" placeholder="Select assignees"
+            :staff-members="staffMembers" />
         </div>
 
         <!-- Notes -->
@@ -149,16 +165,12 @@
               <div class="flex gap-2 mb-2">
                 <Input v-model="subtask.title" type="text" placeholder="Subtask Title"
                   class="flex-1 border rounded-lg px-3 py-2 bg-white" required />
-                <Button type="button" @click="toggleSubtaskExpanded(index)"
-                  variant="outline"
-                  class="px-3 py-2"
+                <Button type="button" @click="toggleSubtaskExpanded(index)" variant="outline" class="px-3 py-2"
                   :title="subtask.expanded ? 'Collapse details' : 'Expand details'">
                   <span class="inline-block transition-transform duration-200"
                     :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
                 </Button>
-                <Button type="button" @click="removeSubtask(index)"
-                  variant="destructive"
-                  class="px-2">
+                <Button type="button" @click="removeSubtask(index)" variant="destructive" class="px-2">
                   <XIcon class="h-4 w-4" />
                 </Button>
               </div>
@@ -246,7 +258,8 @@
 
                 <!-- Assignee -->
                 <div class="flex flex-col gap-1">
-                  <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee" :staff-members="staffMembers" compact/>
+                  <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
+                    :staff-members="staffMembers" compact />
                 </div>
 
                 <!-- Notes -->
@@ -375,6 +388,10 @@ const assignedTo = ref<string[]>([])
 // staff members for assignee dropdown
 const staffMembers = ref<StaffMember[]>([])
 
+// projects dropdown
+const projects = ref<{ id: number; name: string }[]>([])
+const selectedProjectId = ref<string>('')
+
 // Load staff members when modal opens
 watch(() => props.isOpen, async (isOpen) => {
   if (!isOpen) return
@@ -391,9 +408,31 @@ watch(() => props.isOpen, async (isOpen) => {
     errorMessage.value = ''
     successMessage.value = ''
 
+    // Load projects
+    try {
+      const fetchedProjects = await $fetch('/api/projects');
+      projects.value = Array.isArray(fetchedProjects)
+        ? fetchedProjects.map((p: any) => ({ id: p.id, name: p.name }))
+        : [];
+    } catch (err) {
+      projects.value = [];
+    }
+
+    // Default project selection
+    if (props.project) {
+      selectedProjectId.value = String(props.project);
+      console.log('Setting project from prop:', props.project);
+    } else if (projects.value.length > 0) {
+      selectedProjectId.value = 'Select project';
+      console.log('No project prop, defaulting to first project:', selectedProjectId.value);
+    } else {
+      selectedProjectId.value = 'None'
+      console.log('No project prop, setting to empty string')
+    }
+
     // Fetch assignees based on project
     if (props.project) {
-      
+
       // If project exists, fetch project members as possible assignees
       staffMembers.value = (await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/project-members', {
         params: { project_id: props.project }
@@ -483,6 +522,7 @@ function resetForm() {
   notes.value = ''
   subtasks.value = []
   assignedTo.value = []
+  selectedProjectId.value = ''
   errorMessage.value = ''
   successMessage.value = ''
 }
@@ -535,13 +575,13 @@ async function createTask() {
 
     errorMessage.value = ''
     successMessage.value = ''
-    
+
     // Prepare assignee IDs
     const assigneeIds = assignedTo.value
       .filter(id => id && id.trim() !== '')
       .map(id => Number(id))
       .filter(id => !isNaN(id) && id > 0)
-    
+
     const taskData = {
       title: title.value,
       start_date: startDate.value ? startDate.value.toString() : null,
@@ -550,7 +590,7 @@ async function createTask() {
       priority: priority.value.toString(),
       repeat_interval: repeatInterval.value.toString(),
       notes: notes.value.trim() || 'No notes...',
-      project_id: props.project ? Number(props.project) : null,
+      project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assigneeIds,
       subtasks: subtasks.value.map(subtask => ({
         title: subtask.title,

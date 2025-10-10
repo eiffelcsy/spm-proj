@@ -12,13 +12,9 @@
         <!-- Title -->
         <div>
           <Label class="block text-sm font-medium mb-1">Task Title</Label>
-          <Input
-            v-model="title"
-            type="text"
-            required
+          <Input v-model="title" type="text" required
             class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Task Title"
-          />
+            placeholder="Task Title" />
         </div>
 
         <!-- Start Date & Due Date -->
@@ -28,15 +24,11 @@
             <Label class="mb-1"> Start Date </Label>
             <Popover>
               <PopoverTrigger as-child>
-                <Button
-                  variant="outline"
-                  :class="
-                    cn(
-                      'w-full justify-start text-left font-normal',
-                      !startDate && 'text-muted-foreground'
-                    )
-                  "
-                >
+                <Button variant="outline" :class="cn(
+                  'w-full justify-start text-left font-normal',
+                  !startDate && 'text-muted-foreground'
+                )
+                  ">
                   <CalendarIcon class="mr-2 h-4 w-4" />
                   {{
                     startDate
@@ -46,10 +38,7 @@
                 </Button>
               </PopoverTrigger>
               <PopoverContent class="w-auto p-0">
-                <Calendar
-                  v-model:model-value="startDate as any"
-                  initial-focus
-                />
+                <Calendar v-model:model-value="startDate as any" initial-focus />
               </PopoverContent>
             </Popover>
           </div>
@@ -58,15 +47,11 @@
             <Label class="mb-1"> Due Date </Label>
             <Popover>
               <PopoverTrigger as-child>
-                <Button
-                  variant="outline"
-                  :class="
-                    cn(
-                      'w-full justify-start text-left font-normal',
-                      !dueDate && 'text-muted-foreground'
-                    )
-                  "
-                >
+                <Button variant="outline" :class="cn(
+                  'w-full justify-start text-left font-normal',
+                  !dueDate && 'text-muted-foreground'
+                )
+                  ">
                   <CalendarIcon class="mr-2 h-4 w-4" />
                   {{
                     dueDate
@@ -76,11 +61,7 @@
                 </Button>
               </PopoverTrigger>
               <PopoverContent class="w-auto p-0">
-                <Calendar
-                  v-model:model-value="dueDate as any"
-                  initial-focus
-                  :min-value="startDate as any"
-                />
+                <Calendar v-model:model-value="dueDate as any" initial-focus :min-value="startDate as any" />
               </PopoverContent>
             </Popover>
           </div>
@@ -102,65 +83,51 @@
           </div>
         </div>
 
+        <!-- Project Link (if task belongs to a project) -->
+        <!-- <div v-if="task.project" class="flex items-center space-x-2">
+          <FolderIcon class="h-4 w-4 text-muted-foreground" />
+          <Label class="block text-sm font-medium mb-1">Project Title</Label>
+          <div variant="link" class="h-auto p-0 text-sm font-medium text-primary hover:underline"> {{ task.project.name}} </div>
+        </div> -->
+      
+        <div>
+          <Label class="block text-sm font-medium mb-1">Project Title</Label>
+          <Input v-model="task.project.name" type="text" 
+            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            readonly/>
+        </div>
+
         <div class="flex flex-col gap-1">
-          <AssignCombobox
-            v-model="assignedTo"
-            label="Assign To"
-            placeholder="Select assignees"
-            :staff-members="staffMembers"
-            compact
-          />
+          <AssignCombobox v-model="assignedTo" label="Assign To" placeholder="Select assignees"
+            :staff-members="staffMembers" compact />
         </div>
 
         <!-- Notes -->
         <div class="flex flex-col gap-1">
           <Label class="mb-1"> Notes / Description </Label>
-          <textarea
-            v-model="description"
-            rows="3"
-            class="w-full border rounded-lg px-3 py-2"
-            placeholder="Notes"
-          ></textarea>
+          <textarea v-model="description" rows="3" class="w-full border rounded-lg px-3 py-2"
+            placeholder="Notes"></textarea>
         </div>
 
         <!-- Subtasks -->
         <div class="flex flex-col gap-1">
           <Label class="mb-1">Subtasks</Label>
           <div class="border rounded-lg p-3 mb-3">
-            <div
-              v-for="(subtask, index) in subtasks"
-              :key="index"
-              class="border rounded-lg p-3 mb-3"
-            >
+            <div v-for="(subtask, index) in subtasks" :key="index" class="border rounded-lg p-3 mb-3">
               <!-- Subtask Header -->
               <div class="flex gap-2 mb-2">
-                <Input
-                  v-model="subtask.title"
-                  type="text"
-                  placeholder="Subtask Title"
-                  class="flex-1 border rounded-lg px-3 py-2 bg-white"
-                  required
-                />
-                <Button
-                  type="button"
-                  @click="toggleSubtaskExpanded(index)"
+                <Input v-model="subtask.title" type="text" placeholder="Subtask Title"
+                  class="flex-1 border rounded-lg px-3 py-2 bg-white" required />
+                <Button type="button" @click="toggleSubtaskExpanded(index)"
                   class="px-3 py-2 bg-white border border-zinc-300 text-black rounded-lg hover:bg-zinc-50 text-sm"
-                  :title="
-                    subtask.expanded ? 'Collapse details' : 'Expand details'
-                  "
-                >
-                  <span
-                    class="inline-block transition-transform duration-200"
-                    :class="{ '-rotate-90': !subtask.expanded }"
-                    >▼</span
-                  >
+                  :title="subtask.expanded ? 'Collapse details' : 'Expand details'
+                    ">
+                  <span class="inline-block transition-transform duration-200"
+                    :class="{ '-rotate-90': !subtask.expanded }">▼</span>
                   Details
                 </Button>
-                <Button
-                  type="button"
-                  @click="removeSubtask(index)"
-                  class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                >
+                <Button type="button" @click="removeSubtask(index)"
+                  class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
                   <XIcon class="h-4 w-4" />
                 </Button>
               </div>
@@ -174,15 +141,11 @@
                     <Label class="text-xs mb-1">Start Date</Label>
                     <Popover>
                       <PopoverTrigger as-child>
-                        <Button
-                          variant="outline"
-                          :class="
-                            cn(
-                              'h-8 justify-start text-left font-normal text-xs',
-                              !subtask.startDate && 'text-muted-foreground'
-                            )
-                          "
-                        >
+                        <Button variant="outline" :class="cn(
+                          'h-8 justify-start text-left font-normal text-xs',
+                          !subtask.startDate && 'text-muted-foreground'
+                        )
+                          ">
                           <CalendarIcon class="mr-1 h-3 w-3" />
                           {{
                             subtask.startDate
@@ -192,10 +155,7 @@
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent class="w-auto p-0">
-                        <Calendar
-                          v-model:model-value="subtask.startDate as any"
-                          initial-focus
-                        />
+                        <Calendar v-model:model-value="subtask.startDate as any" initial-focus />
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -204,15 +164,11 @@
                     <Label class="text-xs mb-1">Due Date</Label>
                     <Popover>
                       <PopoverTrigger as-child>
-                        <Button
-                          variant="outline"
-                          :class="
-                            cn(
-                              'h-8 justify-start text-left font-normal text-xs',
-                              !subtask.dueDate && 'text-muted-foreground'
-                            )
-                          "
-                        >
+                        <Button variant="outline" :class="cn(
+                          'h-8 justify-start text-left font-normal text-xs',
+                          !subtask.dueDate && 'text-muted-foreground'
+                        )
+                          ">
                           <CalendarIcon class="mr-1 h-3 w-3" />
                           {{
                             subtask.dueDate
@@ -222,11 +178,8 @@
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent class="w-auto p-0">
-                        <Calendar
-                          v-model:model-value="subtask.dueDate as any"
-                          initial-focus
-                          :min-value="subtask.startDate as any"
-                        />
+                        <Calendar v-model:model-value="subtask.dueDate as any" initial-focus
+                          :min-value="subtask.startDate as any" />
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -250,24 +203,15 @@
 
                 <!-- Assignee -->
                 <div class="flex flex-col gap-1">
-                  <AssignCombobox
-                    v-model="subtask.assignedTo"
-                    label="Assign To"
-                    placeholder="Select assignee"
-                    :staff-members="staffMembers"
-                    compact
-                  />
+                  <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
+                    :staff-members="staffMembers" compact />
                 </div>
 
                 <!-- Notes -->
                 <div class="flex flex-col gap-1">
                   <Label class="text-xs mb-1">Notes</Label>
-                  <textarea
-                    v-model="subtask.notes"
-                    rows="2"
-                    placeholder="Subtask notes..."
-                    class="w-full border rounded-lg px-2 py-1 text-sm bg-white"
-                  ></textarea>
+                  <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
+                    class="w-full border rounded-lg px-2 py-1 text-sm bg-white"></textarea>
                 </div>
               </div>
             </div>
@@ -377,6 +321,9 @@ const assignedTo = ref<string[]>([]);
 
 const staffMembers = ref<{ id: number; fullname: string; email: string }[]>([]);
 
+// projects dropdown
+const projects = ref<{ id: number; name: string }[]>([])
+const selectedProjectId = ref<string>('')
 // feedback state
 const successMessage = ref("");
 const errorMessage = ref("");
@@ -411,6 +358,16 @@ watch(
     }
   }
 );
+
+// Load projects
+try {
+  const fetchedProjects = await $fetch('/api/projects');
+  projects.value = Array.isArray(fetchedProjects)
+    ? fetchedProjects.map((p: any) => ({ id: p.id, name: p.name }))
+    : [];
+} catch (err) {
+  projects.value = [];
+}
 
 // Watch for start date changes to ensure due date is not before start date
 watch(startDate, (newStartDate) => {
@@ -489,40 +446,40 @@ function populateForm() {
       startDate:
         subtask.start_date && typeof subtask.start_date === "string"
           ? (() => {
-              try {
-                if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.start_date)) {
-                  return parseDate(subtask.start_date);
-                } else {
-                  const date = new Date(subtask.start_date);
-                  if (!isNaN(date.getTime())) {
-                    const dateString = date.toISOString().split("T")[0];
-                    return dateString ? parseDate(dateString) : todayDate;
-                  }
+            try {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.start_date)) {
+                return parseDate(subtask.start_date);
+              } else {
+                const date = new Date(subtask.start_date);
+                if (!isNaN(date.getTime())) {
+                  const dateString = date.toISOString().split("T")[0];
+                  return dateString ? parseDate(dateString) : todayDate;
                 }
-                return todayDate;
-              } catch {
-                return todayDate;
               }
-            })()
+              return todayDate;
+            } catch {
+              return todayDate;
+            }
+          })()
           : todayDate,
       dueDate:
         subtask.due_date && typeof subtask.due_date === "string"
           ? (() => {
-              try {
-                if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.due_date)) {
-                  return parseDate(subtask.due_date);
-                } else {
-                  const date = new Date(subtask.due_date);
-                  if (!isNaN(date.getTime())) {
-                    const dateString = date.toISOString().split("T")[0];
-                    return dateString ? parseDate(dateString) : todayDate;
-                  }
+            try {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.due_date)) {
+                return parseDate(subtask.due_date);
+              } else {
+                const date = new Date(subtask.due_date);
+                if (!isNaN(date.getTime())) {
+                  const dateString = date.toISOString().split("T")[0];
+                  return dateString ? parseDate(dateString) : todayDate;
                 }
-                return todayDate;
-              } catch {
-                return todayDate;
               }
-            })()
+              return todayDate;
+            } catch {
+              return todayDate;
+            }
+          })()
           : todayDate,
       status: subtask.status || "not-started",
       notes: subtask.notes || "",
@@ -613,6 +570,7 @@ async function updateTask() {
       end_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
       notes: description.value || null,
+      project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assignedTo.value.map(id => parseInt(id)),
     };
 
