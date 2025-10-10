@@ -95,7 +95,7 @@
                                   Repeat Interval
                               </div>
                               <div class="text-sm ml-6">
-                                  {{ getRepeatFrequencyDisplay(task.repeat_interval) }} days
+                                  {{ getRepeatFrequencyDisplay(task.repeat_interval) }}
                               </div>
                           </div>
                       </div>

@@ -1,5 +1,3 @@
-import { serverSupabaseServiceRole } from '#supabase/server'
-
 /**
  * Activity logging utility for task actions
  * 
@@ -158,6 +156,21 @@ export async function logTaskUpdate(
       case 'priority':
         // Handle priority with fallback for null values
         return `${fieldName}: ${oldValue || 'Not set'} → ${newValue || 'Not set'}`
+        
+      case 'repeat_interval':
+        // Handle repeat interval with descriptive text
+        const formatRepeatInterval = (interval: number | string | null) => {
+          if (!interval || interval === '0') return 'Does not repeat'
+          const numericInterval = typeof interval === 'string' ? parseInt(interval) : interval
+          if (numericInterval === 1) return 'Daily'
+          if (numericInterval === 7) return 'Weekly'
+          if (numericInterval === 30) return 'Monthly'
+          if (numericInterval === 365) return 'Yearly'
+          return `Every ${numericInterval} days`
+        }
+        const formattedOldInterval = formatRepeatInterval(oldValue)
+        const formattedNewInterval = formatRepeatInterval(newValue)
+        return `${fieldName}: ${formattedOldInterval} → ${formattedNewInterval}`
         
       default:
         // Generic formatting for any other fields

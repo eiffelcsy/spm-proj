@@ -114,9 +114,9 @@ export default defineEventHandler(async (event) => {
     // Get current task data to compare changes
     const { data: currentTask, error: currentTaskError } = await supabase
       .from('tasks')
-      .select('title, start_date, due_date, status, notes, priority')
+      .select('title, start_date, due_date, status, notes, priority, repeat_interval')
       .eq('id', taskId)
-      .single() as { data: { title: string, start_date: string | null, due_date: string | null, status: string, notes: string, priority: string | null } | null, error: any }
+      .single() as { data: { title: string, start_date: string | null, due_date: string | null, status: string, notes: string, priority: string | null, repeat_interval: number | null } | null, error: any }
 
     if (currentTaskError || !currentTask) {
       throw createError({
@@ -134,6 +134,7 @@ export default defineEventHandler(async (event) => {
       status?: string
       notes?: string
       priority?: string
+      repeat_interval?: number
     } = {}
     
     if (body.task_name) updateData.title = body.task_name
@@ -142,6 +143,7 @@ export default defineEventHandler(async (event) => {
     if (body.status) updateData.status = body.status
     if (body.notes !== undefined) updateData.notes = body.notes
     if (body.priority !== undefined) updateData.priority = body.priority
+    if (body.repeat_interval !== undefined) updateData.repeat_interval = body.repeat_interval
 
     // Update task in database
     const { data: task, error } = await (supabase as any)
@@ -191,8 +193,11 @@ export default defineEventHandler(async (event) => {
     if (body.notes !== undefined && body.notes !== currentTask.notes) {
       changes.push({ field: 'notes', oldValue: currentTask.notes, newValue: body.notes })
     }
-    if (body.priority !== undefined && body.priority !== currentTask.priority) {
+    if (body.priority !== undefined && String(body.priority) !== String(currentTask.priority)) {
       changes.push({ field: 'priority', oldValue: currentTask.priority, newValue: body.priority })
+    }
+    if (body.repeat_interval !== undefined && String(body.repeat_interval) !== String(currentTask.repeat_interval)) {
+      changes.push({ field: 'repeat_interval', oldValue: currentTask.repeat_interval, newValue: body.repeat_interval })
     }
     
     // Special handling for task completion
