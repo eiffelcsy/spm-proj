@@ -24,6 +24,17 @@
               <Button 
                 variant="outline"
                 size="sm"
+                class="h-8 bg-white text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                @click="openCollaboratorsModal"
+              >
+                <svg class="md:mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span class="hidden md:block">Collaborators</span>
+              </Button>
+              <Button 
+                variant="outline"
+                size="sm"
                 class="h-8 bg-white text-black border-gray-300 hover:bg-gray-50 hover:text-black"
                 @click="openEditProjectModal"
               >
@@ -48,7 +59,7 @@
 
           <!-- Project Info Card -->
           <div class="bg-white border rounded-lg p-6 shadow-sm mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
               <!-- Status and Task Count -->
               <div class="flex flex-col">
                 <span class="text-sm text-gray-500 mb-1">Status</span>
@@ -67,6 +78,11 @@
               <div class="flex flex-col">
                 <span class="text-sm text-gray-500 mb-1">Total Tasks</span>
                 <span class="text-lg font-semibold">{{ getProjectTaskCount() }} tasks</span>
+              </div>
+
+              <div class="flex flex-col">
+                <span class="text-sm text-gray-500 mb-1">Collaborators</span>
+                <span class="text-lg font-semibold">{{ projectCollaboratorsCount }} members</span>
               </div>
               
               <div class="flex flex-col">
@@ -150,6 +166,14 @@
       @close="closeDeleteProjectModal" 
       @project-deleted="handleProjectDeleted" 
     />
+
+    <!-- Manage Collaborators Modal -->
+    <ManageCollaboratorsModal 
+      :isOpen="isCollaboratorsModalOpen" 
+      :project="project"
+      @close="closeCollaboratorsModal" 
+      @collaborators-updated="handleCollaboratorsUpdated" 
+    />
   </div>
 </template>
 
@@ -168,6 +192,7 @@ import DataTable from '@/components/tasks-table/data-table.vue'
 import { CreateTaskModal } from '@/components/task-modals/create-task'
 import EditProjectModal from '@/components/project-modals/edit-project-modal.vue'
 import DeleteProjectModal from '@/components/project-modals/delete-project-modal.vue'
+import { ManageCollaboratorsModal } from '@/components/project-modals/manage-collaborators'
 import { Button } from '@/components/ui/button'
 
 // ============================================================================
@@ -188,11 +213,13 @@ const error = ref<string | null>(null)
 const project = ref<any>(null)
 const rawTasks = ref<any[]>([])
 const currentUserStaffId = ref<number | null>(null)
+const projectCollaboratorsCount = ref<number>(0)
 
 // Modal states
 const isModalOpen = ref(false)
 const isEditProjectModalOpen = ref(false)
 const isDeleteProjectModalOpen = ref(false)
+const isCollaboratorsModalOpen = ref(false)
 
 // ============================================================================
 // DATA FETCHING FUNCTIONS
@@ -250,6 +277,9 @@ async function fetchProject() {
         owner_id: foundProject.owner_id || null,
         isRealData: true
       }
+
+      // Fetch collaborators count
+      await fetchProjectCollaborators()
     } else {
       project.value = null
     }
@@ -258,6 +288,18 @@ async function fetchProject() {
     console.error('Failed to fetch project:', err)
     error.value = 'Failed to load project. Please try again.'
     project.value = null
+  }
+}
+
+async function fetchProjectCollaborators() {
+  try {
+    const collaborators = await $fetch('/api/project-members', {
+      params: { project_id: projectId.value }
+    })
+    projectCollaboratorsCount.value = Array.isArray(collaborators) ? collaborators.length : 0
+  } catch (err) {
+    console.error('Failed to fetch collaborators:', err)
+    projectCollaboratorsCount.value = 0
   }
 }
 
@@ -435,6 +477,14 @@ function closeDeleteProjectModal() {
   isDeleteProjectModalOpen.value = false
 }
 
+function openCollaboratorsModal() {
+  isCollaboratorsModalOpen.value = true
+}
+
+function closeCollaboratorsModal() {
+  isCollaboratorsModalOpen.value = false
+}
+
 // ============================================================================
 // EVENT HANDLERS
 // ============================================================================
@@ -463,6 +513,11 @@ function handleProjectUpdated(updatedProject: any) {
   }
   
   // Don't close modal immediately - let it close after success message timeout
+}
+
+async function handleCollaboratorsUpdated() {
+  // Refresh the collaborators count
+  await fetchProjectCollaborators()
 }
 
 // ============================================================================

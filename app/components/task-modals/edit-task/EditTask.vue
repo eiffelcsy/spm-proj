@@ -81,6 +81,30 @@
               </SelectContent>
             </Select>
           </div>
+
+          <!-- Priority -->
+          <div class="flex flex-col gap-1">
+            <Label class="mb-1">Priority</Label>
+            <NumberField v-model="priority" :min="1" :max="10" :default-value="1">
+              <NumberFieldContent>
+                <NumberFieldDecrement />
+                <NumberFieldInput />
+                <NumberFieldIncrement />
+              </NumberFieldContent>
+            </NumberField>
+          </div>
+
+          <!-- Repeat Interval -->
+          <div class="flex flex-col gap-1">
+            <Label class="mb-1">Repeat Interval (in Days)</Label>
+            <NumberField v-model="repeatInterval" :min="0" :default-value="0">
+              <NumberFieldContent>
+                <NumberFieldDecrement />
+                <NumberFieldInput />
+                <NumberFieldIncrement />
+              </NumberFieldContent>
+            </NumberField>
+          </div>
         </div>
 
         <!-- Project Link (if task belongs to a project) -->
@@ -90,7 +114,7 @@
           <div variant="link" class="h-auto p-0 text-sm font-medium text-primary hover:underline"> {{ task.project.name}} </div>
         </div> -->
       
-        <div>
+        <div v-if="task.project">
           <Label class="block text-sm font-medium mb-1">Project Title</Label>
           <Input v-model="task.project.name" type="text" 
             class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -105,121 +129,8 @@
         <!-- Notes -->
         <div class="flex flex-col gap-1">
           <Label class="mb-1"> Notes / Description </Label>
-          <textarea v-model="description" rows="3" class="w-full border rounded-lg px-3 py-2"
-            placeholder="Notes"></textarea>
-        </div>
-
-        <!-- Subtasks -->
-        <div class="flex flex-col gap-1">
-          <Label class="mb-1">Subtasks</Label>
-          <div class="border rounded-lg p-3 mb-3">
-            <div v-for="(subtask, index) in subtasks" :key="index" class="border rounded-lg p-3 mb-3">
-              <!-- Subtask Header -->
-              <div class="flex gap-2 mb-2">
-                <Input v-model="subtask.title" type="text" placeholder="Subtask Title"
-                  class="flex-1 border rounded-lg px-3 py-2 bg-white" required />
-                <Button type="button" @click="toggleSubtaskExpanded(index)"
-                  class="px-3 py-2 bg-white border border-zinc-300 text-black rounded-lg hover:bg-zinc-50 text-sm"
-                  :title="subtask.expanded ? 'Collapse details' : 'Expand details'
-                    ">
-                  <span class="inline-block transition-transform duration-200"
-                    :class="{ '-rotate-90': !subtask.expanded }">▼</span>
-                  Details
-                </Button>
-                <Button type="button" @click="removeSubtask(index)"
-                  class="px-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
-                  <XIcon class="h-4 w-4" />
-                </Button>
-              </div>
-
-              <!-- Expanded Subtask Details -->
-              <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4">
-                <!-- Start Date & Due Date -->
-                <div class="grid grid-cols-2 gap-2">
-                  <!-- Start Date -->
-                  <div class="flex flex-col gap-1">
-                    <Label class="text-xs mb-1">Start Date</Label>
-                    <Popover>
-                      <PopoverTrigger as-child>
-                        <Button variant="outline" :class="cn(
-                          'h-8 justify-start text-left font-normal text-xs',
-                          !subtask.startDate && 'text-muted-foreground'
-                        )
-                          ">
-                          <CalendarIcon class="mr-1 h-3 w-3" />
-                          {{
-                            subtask.startDate
-                              ? formatDate(subtask.startDate as DateValue)
-                              : "Select start date"
-                          }}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent class="w-auto p-0">
-                        <Calendar v-model:model-value="subtask.startDate as any" initial-focus />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <!-- Due Date -->
-                  <div class="flex flex-col gap-1">
-                    <Label class="text-xs mb-1">Due Date</Label>
-                    <Popover>
-                      <PopoverTrigger as-child>
-                        <Button variant="outline" :class="cn(
-                          'h-8 justify-start text-left font-normal text-xs',
-                          !subtask.dueDate && 'text-muted-foreground'
-                        )
-                          ">
-                          <CalendarIcon class="mr-1 h-3 w-3" />
-                          {{
-                            subtask.dueDate
-                              ? formatDate(subtask.dueDate as DateValue)
-                              : "Select due date"
-                          }}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent class="w-auto p-0">
-                        <Calendar v-model:model-value="subtask.dueDate as any" initial-focus
-                          :min-value="subtask.startDate as any" />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                <!-- Status -->
-                <div class="flex flex-col gap-1">
-                  <Label class="text-xs mb-1">Status</Label>
-                  <Select v-model="subtask.status">
-                    <SelectTrigger class="h-8">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="not-started">Not Started</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="blocked">Blocked</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <!-- Assignee -->
-                <div class="flex flex-col gap-1">
-                  <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
-                    :staff-members="staffMembers" compact />
-                </div>
-
-                <!-- Notes -->
-                <div class="flex flex-col gap-1">
-                  <Label class="text-xs mb-1">Notes</Label>
-                  <textarea v-model="subtask.notes" rows="2" placeholder="Subtask notes..."
-                    class="w-full border rounded-lg px-2 py-1 text-sm bg-white"></textarea>
-                </div>
-              </div>
-            </div>
-            <Button variant="outline" @click="addSubtask">
-              <PlusIcon class="h-4 w-4" />
-              Add Subtask
-            </Button>
-          </div>
+          <Textarea v-model="description" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm"
+            placeholder="Add notes here..."></Textarea>
         </div>
 
         <DialogFooter class="gap-2">
@@ -255,7 +166,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";
-import { CalendarIcon, XIcon, PlusIcon } from "lucide-vue-next";
+import { CalendarIcon } from "lucide-vue-next";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import {
@@ -265,6 +176,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  NumberField,
+  NumberFieldContent,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+  NumberFieldInput,
+} from "@/components/ui/number-field";
+import { Textarea } from "@/components/ui/textarea";
 import { AssignCombobox } from "@/components/task-modals/assign-combobox";
 
 const supabase = useSupabaseClient();
@@ -305,18 +224,9 @@ const title = ref("");
 const startDate = ref<DateValue>(todayDate);
 const dueDate = ref<DateValue | undefined>(todayDate);
 const status = ref("not-started");
+const priority = ref(1);
+const repeatInterval = ref(0);
 const description = ref("");
-const subtasks = ref<
-  {
-    title: string;
-    startDate: DateValue;
-    dueDate: DateValue | undefined;
-    status: string;
-    notes: string;
-    assignedTo: string[];
-    expanded: boolean;
-  }[]
->([]);
 const assignedTo = ref<string[]>([]);
 
 const staffMembers = ref<{ id: number; fullname: string; email: string }[]>([]);
@@ -437,66 +347,9 @@ function populateForm() {
   }
 
   status.value = props.task.status || "not-started";
+  priority.value = props.task.priority ? Number(props.task.priority) : 1;
+  repeatInterval.value = props.task.repeat_interval ? Number(props.task.repeat_interval) : 0;
   description.value = props.task.notes || "";
-
-  // Handle subtasks if they exist
-  if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
-    subtasks.value = props.task.subtasks.map((subtask: any) => ({
-      title: subtask.title || "",
-      startDate:
-        subtask.start_date && typeof subtask.start_date === "string"
-          ? (() => {
-            try {
-              if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.start_date)) {
-                return parseDate(subtask.start_date);
-              } else {
-                const date = new Date(subtask.start_date);
-                if (!isNaN(date.getTime())) {
-                  const dateString = date.toISOString().split("T")[0];
-                  return dateString ? parseDate(dateString) : todayDate;
-                }
-              }
-              return todayDate;
-            } catch {
-              return todayDate;
-            }
-          })()
-          : todayDate,
-      dueDate:
-        subtask.due_date && typeof subtask.due_date === "string"
-          ? (() => {
-            try {
-              if (/^\d{4}-\d{2}-\d{2}$/.test(subtask.due_date)) {
-                return parseDate(subtask.due_date);
-              } else {
-                const date = new Date(subtask.due_date);
-                if (!isNaN(date.getTime())) {
-                  const dateString = date.toISOString().split("T")[0];
-                  return dateString ? parseDate(dateString) : todayDate;
-                }
-              }
-              return todayDate;
-            } catch {
-              return todayDate;
-            }
-          })()
-          : todayDate,
-      status: subtask.status || "not-started",
-      notes: subtask.notes || "",
-      assignedTo: (() => {
-        // Check assignees array first
-        if (subtask.assignees && Array.isArray(subtask.assignees) && subtask.assignees.length > 0) {
-          const firstAssignee = subtask.assignees[0]?.assigned_to;
-          return firstAssignee && firstAssignee.id ? [String(firstAssignee.id)] : [];
-        }
-        // Fallback to old structure
-        return subtask.assignedTo || (subtask.assignee_id ? [String(subtask.assignee_id)] : []);
-      })(),
-      expanded: false,
-    }));
-  } else {
-    subtasks.value = [];
-  }
 
   // Handle assignees - extract ALL from assignees array
   if (props.task.assignees && Array.isArray(props.task.assignees) && props.task.assignees.length > 0) {
@@ -508,29 +361,6 @@ function populateForm() {
     assignedTo.value = [String(props.task.assignee_id)];
   } else {
     assignedTo.value = [];
-  }
-}
-
-function addSubtask() {
-  subtasks.value.push({
-    title: "",
-    startDate: todayDate,
-    dueDate: todayDate,
-    status: "not-started",
-    notes: "",
-    assignedTo: [],
-    expanded: true,
-  });
-}
-
-function removeSubtask(index: number) {
-  subtasks.value.splice(index, 1);
-}
-
-function toggleSubtaskExpanded(index: number) {
-  const subtask = subtasks.value[index];
-  if (subtask) {
-    subtask.expanded = !subtask.expanded;
   }
 }
 
@@ -569,6 +399,8 @@ async function updateTask() {
         : new Date().toISOString().split("T")[0] || "",
       end_date: dueDate.value ? dueDate.value.toString() : null,
       status: status.value,
+      priority: priority.value.toString(),
+      repeat_interval: repeatInterval.value.toString(),
       notes: description.value || null,
       project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assignedTo.value.map(id => parseInt(id)),
