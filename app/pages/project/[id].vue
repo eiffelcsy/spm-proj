@@ -64,28 +64,14 @@
               <!-- Priority -->
               <div class="flex flex-col">
                 <span class="text-sm text-gray-500 mb-1">Priority</span>
-                <Badge 
-                  :variant="getPriorityVariant(project.priority)" 
-                  class="w-fit"
-                >
-                  {{ project.priority ? project.priority.toUpperCase() : 'MEDIUM' }}
-                </Badge>
+                <span class="text-lg font-semibold">{{ project.priority ? project.priority.toUpperCase() : 'MEDIUM' }}</span>
               </div>
               
               <!-- Status -->
               <div class="flex flex-col">
                 <span class="text-sm text-gray-500 mb-1">Status</span>
-                <span 
-                  class="px-3 py-1 rounded-full text-sm font-medium inline-block w-fit"
-                  :class="{
-                    'bg-gray-100 text-gray-800': project.status === 'todo',
-                    'bg-blue-100 text-blue-800': project.status === 'in-progress',
-                    'bg-green-100 text-green-800': project.status === 'completed',
-                    'bg-red-100 text-red-800': project.status === 'blocked'
-                  }"
-                >
-                  {{ capitalizeStatus(project.status) }}
-                </span>
+                <span class="text-lg font-semibold">{{ capitalizeStatus(project.status) }}</span>
+
               </div>
               
               <div class="flex flex-col">
@@ -104,7 +90,7 @@
               </div>
             </div>
 
-            <!-- Tags Row (NEW) -->
+            <!-- Tags Row -->
             <div v-if="project.tags && project.tags.length > 0" class="mt-4 pt-4 border-t">
               <span class="text-sm text-gray-500 mb-2 block">Tags:</span>
               <div class="flex flex-wrap gap-2">
