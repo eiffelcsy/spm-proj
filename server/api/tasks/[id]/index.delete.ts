@@ -1,5 +1,6 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { TaskDB } from '~/types'
+import { logTaskDeletion } from '../../../utils/activityLogger'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -174,6 +175,9 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Task not found or already deleted'
       })
     }
+
+    // Log task deletion activity
+    await logTaskDeletion(supabase, numericTaskId, currentStaffId)
 
     return {
       success: true,

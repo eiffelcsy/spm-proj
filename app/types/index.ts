@@ -376,13 +376,29 @@ export interface NotificationWithRelations extends NotificationDB {
 }
 
 // ============================================================================
-// ACTIVITY LOG TYPES
+// ACTIVITY TIMELINE TYPES
 // ============================================================================
 
 /**
- * Activity log record from database
- * Maps to 'activity_logs' table in ERD
+ * Activity timeline record from database
+ * Maps to 'activity_timeline' table in ERD
  */
+export interface ActivityTimelineDB {
+  id: string  // UUID
+  task_id: number
+  timestamp: string
+  action: string
+  user_id: number
+}
+
+/**
+ * Activity timeline with staff details
+ */
+export interface ActivityTimelineWithStaff extends ActivityTimelineDB {
+  staff: StaffMember
+}
+
+
 export interface ActivityLogDB {
   id: number
   staff_id: number

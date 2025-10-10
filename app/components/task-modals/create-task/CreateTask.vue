@@ -557,6 +557,21 @@ async function createTask() {
       return
     }
 
+    if (!startDate.value) {
+      errorMessage.value = 'Start date is required.'
+      return
+    }
+
+    if (!dueDate.value) {
+      errorMessage.value = 'Due date is required.'
+      return
+    }
+
+    if (!notes.value.trim()) {
+      errorMessage.value = 'Notes are required.'
+      return
+    }
+
     if (dueDate.value && startDate.value && dueDate.value < startDate.value) {
       errorMessage.value = 'Due date cannot be before start date.'
       return
@@ -591,7 +606,7 @@ async function createTask() {
       status: status.value,
       priority: priority.value.toString(),
       repeat_interval: repeatInterval.value.toString(),
-      notes: notes.value.trim() || 'No notes...',
+      notes: notes.value.trim(),
       project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assigneeIds,
       subtasks: subtasks.value.map(subtask => ({
@@ -600,7 +615,7 @@ async function createTask() {
         due_date: dueDate.value ? dueDate.value.toString() : null,
         status: subtask.status,
         priority: subtask.priority.toString(),
-        notes: subtask.notes.trim() || 'No notes...',
+        notes: subtask.notes.trim(),
         assignee_ids: subtask.assignedTo
           .filter(id => id && id.trim() !== '')
           .map(id => Number(id))

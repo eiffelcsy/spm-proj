@@ -1,5 +1,6 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { TaskDB } from '~/types'
+import { logTaskCreation } from '../../utils/activityLogger'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -41,6 +42,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: parentError.message })
   }
 
+  // Log task creation activity
+  await logTaskCreation(supabase, parentTask!.id, staffRow.id)
   
   const createdTaskId = parentTask!.id
 
@@ -105,6 +108,13 @@ export default defineEventHandler(async (event) => {
       if (subError) {
         await rollbackParent()
         throw subError
+      }
+
+      // Log subtask creation activities
+      if (insertedSubtasks) {
+        for (const subtask of insertedSubtasks) {
+          await logTaskCreation(supabase, subtask.id, staffRow.id)
+        }
       }
 
       const subtaskMappings: any[] = []

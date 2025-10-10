@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { logTaskUpdate, logTaskAssignment, logTaskCompletion } from '../../../utils/activityLogger'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -110,6 +111,21 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // Get current task data to compare changes
+    const { data: currentTask, error: currentTaskError } = await supabase
+      .from('tasks')
+      .select('title, start_date, due_date, status, notes, priority')
+      .eq('id', taskId)
+      .single() as { data: { title: string, start_date: string | null, due_date: string | null, status: string, notes: string, priority: string | null } | null, error: any }
+
+    if (currentTaskError || !currentTask) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch current task data',
+        data: currentTaskError
+      })
+    }
+
     // Validate and prepare the update data
     const updateData: {
       title?: string
@@ -117,6 +133,7 @@ export default defineEventHandler(async (event) => {
       due_date?: string
       status?: string
       notes?: string
+      priority?: string
     } = {}
     
     if (body.task_name) updateData.title = body.task_name
@@ -124,6 +141,7 @@ export default defineEventHandler(async (event) => {
     if (body.end_date !== undefined) updateData.due_date = body.end_date
     if (body.status) updateData.status = body.status
     if (body.notes !== undefined) updateData.notes = body.notes
+    if (body.priority !== undefined) updateData.priority = body.priority
 
     // Update task in database
     const { data: task, error } = await (supabase as any)
@@ -147,8 +165,54 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Log task update activity with detailed changes
+    const changes: Array<{ field: string, oldValue: any, newValue: any }> = []
+    
+    // Helper function to normalize date values for comparison
+    const normalizeDate = (date: string | null) => {
+      if (!date) return null
+      // Convert to ISO date string (YYYY-MM-DD) for consistent comparison
+      return new Date(date).toISOString().split('T')[0]
+    }
+    
+    // Only log changes for fields that are actually being updated and are different
+    if (body.task_name !== undefined && body.task_name !== currentTask.title) {
+      changes.push({ field: 'title', oldValue: currentTask.title, newValue: body.task_name })
+    }
+    if (body.start_date !== undefined && normalizeDate(body.start_date) !== normalizeDate(currentTask.start_date)) {
+      changes.push({ field: 'start_date', oldValue: currentTask.start_date, newValue: body.start_date })
+    }
+    if (body.end_date !== undefined && normalizeDate(body.end_date) !== normalizeDate(currentTask.due_date)) {
+      changes.push({ field: 'due_date', oldValue: currentTask.due_date, newValue: body.end_date })
+    }
+    if (body.status !== undefined && body.status !== currentTask.status) {
+      changes.push({ field: 'status', oldValue: currentTask.status, newValue: body.status })
+    }
+    if (body.notes !== undefined && body.notes !== currentTask.notes) {
+      changes.push({ field: 'notes', oldValue: currentTask.notes, newValue: body.notes })
+    }
+    if (body.priority !== undefined && body.priority !== currentTask.priority) {
+      changes.push({ field: 'priority', oldValue: currentTask.priority, newValue: body.priority })
+    }
+    
+    // Special handling for task completion
+    if (body.status === 'completed' && body.status !== currentTask.status) {
+      await logTaskCompletion(supabase, Number(taskId), currentStaffId)
+    } else if (changes.length > 0) {
+      await logTaskUpdate(supabase, Number(taskId), currentStaffId, changes)
+    }
+
     // Handle assignees update if provided (support both single and multiple)
     if (body.assignee_id !== undefined || body.assignee_ids !== undefined) {
+      // Get current assignees for comparison
+      const { data: currentAssignees } = await supabase
+        .from('task_assignees')
+        .select('assigned_to_staff_id')
+        .eq('task_id', taskId)
+        .eq('is_active', true) as { data: Array<{ assigned_to_staff_id: number }> | null }
+
+      const currentAssigneeIds = currentAssignees?.map(a => a.assigned_to_staff_id) || []
+
       // Convert to array format for unified handling
       let assigneeIdsToSet: number[] = []
       
@@ -202,6 +266,33 @@ export default defineEventHandler(async (event) => {
             statusCode: 500,
             statusMessage: 'Failed to update task assignees',
             data: assignError
+          })
+        }
+
+        // Log specific assignee changes
+        const addedAssignees = assigneeIdsToSet.filter(id => !currentAssigneeIds.includes(id))
+        const removedAssignees = currentAssigneeIds.filter(id => !assigneeIdsToSet.includes(id))
+
+        // Log added assignees
+        for (const assigneeId of addedAssignees) {
+          await logTaskAssignment(supabase, Number(taskId), currentStaffId, assigneeId)
+        }
+
+        // Log removed assignees
+        for (const assigneeId of removedAssignees) {
+          // Get assignee name for better logging
+          const { data: assigneeData } = await supabase
+            .from('staff')
+            .select('fullname')
+            .eq('id', assigneeId)
+            .single() as { data: { fullname: string } | null }
+
+          const assigneeName = assigneeData?.fullname || `user ${assigneeId}`
+          
+          await logActivity(supabase, {
+            task_id: Number(taskId),
+            action: `Unassigned ${assigneeName}`,
+            user_id: currentStaffId
           })
         }
       }
