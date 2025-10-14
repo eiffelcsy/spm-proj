@@ -139,7 +139,7 @@
               <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
                 {{ project.name }}
               </SelectItem>
-              
+
             </SelectContent>
           </Select>
         </div>
