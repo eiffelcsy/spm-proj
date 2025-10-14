@@ -7,12 +7,12 @@
     <SidebarInset>
       <header class="flex h-16 shrink-0 items-center gap-2 border-b px-4">
         <SidebarTrigger class="-ml-1" />
-        <Separator orientation="vertical" class="mr-2 h-4" />
+        <Separator orientation="vertical" class="mr-2 h-4 hidden sm:block" />
         <Breadcrumb class="flex-1">
           <BreadcrumbList>
             <ClientOnly>
               <template v-for="(item, index) in breadcrumbs" :key="index">
-                <BreadcrumbItem v-if="!item.isCurrentPage" class="hidden md:block">
+                <BreadcrumbItem v-if="!item.isCurrentPage" class="hidden sm:block">
                   <BreadcrumbLink 
                     :href="item.href" 
                     @click.prevent="item.href && navigateTo(item.href)"
@@ -22,11 +22,11 @@
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbItem v-else>
-                  <BreadcrumbPage>{{ item.label }}</BreadcrumbPage>
+                  <BreadcrumbPage class="truncate max-w-[200px] sm:max-w-none">{{ item.label }}</BreadcrumbPage>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator 
                   v-if="index < breadcrumbs.length - 1" 
-                  class="hidden md:block" 
+                  class="hidden sm:block" 
                 />
               </template>
               <template #fallback>
@@ -44,7 +44,7 @@
           variant="ghost" 
           size="icon" 
           @click="handleExitDetailPage" 
-          class="text-muted-foreground hover:text-foreground hover:bg-muted"
+          class="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
         >
           <X class="h-4 w-4" />
         </Button>

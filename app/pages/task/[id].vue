@@ -211,6 +211,16 @@
               </CardContent>
           </Card>
 
+          <!-- Comments Section -->
+          <TaskComments 
+            :taskId="String(taskId)" 
+            :canComment="canEdit || canCommentOnTask"
+            :currentUser="currentUserStaff"
+            @comment-added="handleCommentAdded"
+            @comment-updated="handleCommentUpdated"
+            @comment-deleted="handleCommentDeleted"
+          />
+
           <!-- Read-only notice -->
           <div v-if="!canEdit"
               class="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
@@ -276,6 +286,7 @@ import { CreateTaskModal } from "@/components/task-modals/create-task/";
 import { CreateProjectModal } from "@/components/project-modals/create-project";
 import { EditTaskModal } from '@/components/task-modals/edit-task'
 import { DeleteTaskModal } from '@/components/task-modals/delete-task'
+import { TaskComments } from '@/components/comment-modals'
 import {
     ListBulletIcon,
     ClockIcon,
@@ -315,6 +326,7 @@ const isEditModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
 const editableTask = ref<any>(null)
 const currentUserStaffId = ref<number | null>(null)
+const currentUserStaff = ref<any>(null)
 
 // ============================================================================
 // ROUTING & DATA FETCHING
@@ -333,11 +345,14 @@ function fetchTask() {
 // Fetch current user
 async function fetchCurrentUser() {
   try {
-    const user = await $fetch('/api/user/me')
-    currentUserStaffId.value = user.id
+    const response = await $fetch('/api/user/me')
+    const user = response as unknown as { id: number; fullname: string; email: string | null; staff_type: string }
+    currentUserStaffId.value = user?.id || null
+    currentUserStaff.value = user || null
   } catch (err) {
     console.error('Failed to fetch current user:', err)
     currentUserStaffId.value = null
+    currentUserStaff.value = null
   }
 }
 
@@ -372,6 +387,13 @@ const canEdit = computed(() => {
 const canDelete = computed(() => {
   if (!task.value || !task.value.permissions) return false
   return task.value.permissions.canDelete
+})
+
+const canCommentOnTask = computed(() => {
+  if (!task.value || !currentUserStaffId.value) return false
+  // User can comment if they are the creator, assignee, or have edit permissions
+  return canEdit.value || task.value.creator?.id === currentUserStaffId.value || 
+         task.value.assignees?.some((assignee: any) => assignee.assigned_to?.id === currentUserStaffId.value)
 })
 
 // ============================================================================
@@ -516,6 +538,24 @@ async function performDelete() {
  */
 function handleProjectCreated(project: any) {
   isCreateProjectModalOpen.value = false;
+}
+
+/**
+ * Comment event handlers
+ */
+function handleCommentAdded(comment: any) {
+  console.log('Comment added:', comment)
+  // Optionally refresh task data or show notification
+}
+
+function handleCommentUpdated(comment: any) {
+  console.log('Comment updated:', comment)
+  // Optionally refresh task data or show notification
+}
+
+function handleCommentDeleted(commentId: number) {
+  console.log('Comment deleted:', commentId)
+  // Optionally refresh task data or show notification
 }
 
 // ============================================================================
