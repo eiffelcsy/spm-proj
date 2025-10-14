@@ -124,24 +124,6 @@
             </NumberField>
           </div>
 
-        <!-- Project Selection -->
-        <div>
-          <Label class="block text-sm font-medium mb-1">Project</Label>
-          <Select v-model="selectedProjectId">
-            <SelectTrigger>
-              <SelectValue
-                :placeholder="projects.find(p => String(p.id) === selectedProjectId)?.name || 'Select project'" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem :value="'Personal'">
-                Personal
-              </SelectItem>
-              <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
-                {{ project.name }}
-              </SelectItem>
-
-            </SelectContent>
-          </Select>
           <!-- Project Selection -->
           <div>
             <Label class="block text-sm font-medium mb-1">Project</Label>
