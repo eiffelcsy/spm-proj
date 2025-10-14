@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
     repeat_interval: body.repeat_interval ?? null,
     project_id: body.project_id ?? null,
     creator_id: staffRow.id,
+    tags: body.tags || [],
     parent_task_id: null
   }
 
@@ -96,6 +97,7 @@ export default defineEventHandler(async (event) => {
         priority: body.priority ?? null,
         repeat_interval: body.repeat_interval ?? null,
         project_id: s.project_id ?? null,
+        tags: body.tags || [],
         creator_id: staffRow!.id,
         parent_task_id: createdTaskId
       }))

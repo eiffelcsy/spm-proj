@@ -38,7 +38,7 @@ import {
     LayoutDashboard,
     ChevronRight,
     User,
-    Settings,
+    Bell,
     LogOut,
 } from "lucide-vue-next"
 
@@ -48,8 +48,48 @@ import {
 
 const currentUser = ref<{ id: number; fullname: string; email: string | null; staff_type: string } | null>(null)
 const router = useRouter()
+const route = useRoute()
 const supabase = useSupabaseClient()
 const isManager = computed(() => currentUser.value?.staff_type === 'manager')
+
+// ============================================================================
+// ROUTE DETECTION & HIGHLIGHTING
+// ============================================================================
+
+/**
+ * Determine if the current route matches the dashboard or task details from personal
+ */
+const isDashboardActive = computed(() => {
+  if (route.path === '/personal/dashboard') return true
+  if (route.path.startsWith('/task') && route.query.from === 'personal') return true
+  return false
+})
+
+/**
+ * Determine if the current route is within the projects section
+ */
+const isProjectsActive = computed(() => {
+  if (route.path.startsWith('/project')) return true
+  if (route.path.startsWith('/task') && route.query.from === 'project') return true
+  return false
+})
+
+/**
+ * Determine if the current route is the projects dashboard or a specific project page
+ */
+const isProjectsDashboardActive = computed(() => {
+  if (route.path === '/project/dashboard') return true
+  if (route.path.match(/^\/project\/\d+$/)) return true
+  if (route.path.startsWith('/task') && route.query.from === 'project') return true
+  return false
+})
+
+/**
+ * Get highlighting classes for sidebar menu buttons
+ */
+const getActiveClasses = (isActive: boolean) => {
+  return isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
+}
 
 // ============================================================================
 // DATA FETCHING
@@ -82,8 +122,8 @@ async function handleLogout() {
   }
 }
 
-function navigateToSettings() {
-  router.push('/personal/settings')
+function navigateToNotifications() {
+  router.push('/notifications')
 }
 
 // Fetch user data on component mount
@@ -117,7 +157,7 @@ onMounted(() => {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem key="Dashboard">
-              <SidebarMenuButton as-child>
+              <SidebarMenuButton as-child :class="getActiveClasses(isDashboardActive)">
                 <a href="/personal/dashboard">
                   <LayoutDashboard class="size-4" />
                   <span>Dashboard</span>
@@ -133,7 +173,7 @@ onMounted(() => {
             <Collapsible key="Projects" title="Projects" default-open class="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger as-child>
-                  <SidebarMenuButton>
+                  <SidebarMenuButton :class="getActiveClasses(isProjectsActive)">
                     <Folder class="size-4" />
                     <span>Projects</span>
                     <ChevronRight
@@ -143,10 +183,10 @@ onMounted(() => {
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild>
+                      <SidebarMenuSubButton asChild :class="getActiveClasses(isProjectsDashboardActive)">
                         <a href="/project/dashboard">
                           <FolderOpen class="size-4" />
-                          <span>Projects Dashboard</span>
+                          <span>Project Dashboard</span>
                         </a>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
@@ -183,9 +223,9 @@ onMounted(() => {
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent class="w-56" align="end" side="top">
-              <DropdownMenuItem @click="navigateToSettings" class="cursor-pointer">
-                <Settings class="mr-2 size-4" />
-                <span>Settings</span>
+              <DropdownMenuItem @click="navigateToNotifications" class="cursor-pointer">
+                <Bell class="mr-2 size-4" />
+                <span>Notifications</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem @click="handleLogout" class="cursor-pointer">

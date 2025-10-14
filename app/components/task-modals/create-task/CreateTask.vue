@@ -62,6 +62,7 @@
               </PopoverContent>
             </Popover>
           </div>
+          
           <!-- Due Date -->
           <div class="flex flex-col gap-1 justify-end">
             <Label class="mb-1">
@@ -122,7 +123,6 @@
               </NumberFieldContent>
             </NumberField>
           </div>
-        </div>
 
         <!-- Project Selection -->
         <div>
@@ -142,6 +142,37 @@
 
             </SelectContent>
           </Select>
+          <!-- Project Selection -->
+          <div>
+            <Label class="block text-sm font-medium mb-1">Project</Label>
+            <Select v-model="selectedProjectId">
+              <SelectTrigger>
+                <SelectValue
+                  :placeholder="projects.find(p => String(p.id) === selectedProjectId)?.name || 'Select project'" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="'Personal'">
+                  Personal
+                </SelectItem>
+                <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
+                  {{ project.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Tags</Label>
+          <TagsInput v-model="taskTags" class="w-full">
+            <TagsInputItem v-for="tag in taskTags" :key="tag" :value="tag">
+              <TagsInputItemText />
+              <TagsInputItemDelete />
+            </TagsInputItem>
+            <TagsInputInput placeholder="Add tags (eg. #SMU, #Urgent)" />
+          </TagsInput>
+          <p class="text-xs text-muted-foreground mt-1">Place a # before each tag (eg. #SMU) and press the Enter key to add a tag</p>
         </div>
 
         <div>
@@ -257,9 +288,21 @@
                     </NumberField>
                   </div>
                 </div>
+                <!-- Tags -->
+                <div>
+                  <Label class="block text-xs font-medium mb-1">Tags</Label>
+                  <TagsInput v-model="subtask.tags" class="w-full">
+                    <TagsInputItem v-for="tag in subtask.tags" :key="tag" :value="tag">
+                      <TagsInputItemText />
+                      <TagsInputItemDelete />
+                    </TagsInputItem>
+                    <TagsInputInput placeholder="Add tags (eg. #SMU, #Urgent)" />
+                  </TagsInput>
+                  <p class="text-xs text-muted-foreground mt-1">Place a # before each tag (eg. #SMU) and press the Enter key to add a tag</p>
+                </div>
 
                 <!-- Assignee -->
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1 text-xs">
                   <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
                     :staff-members="staffMembers" compact />
                 </div>
@@ -329,6 +372,7 @@ import { parseDate, getLocalTimeZone, today } from '@internationalized/date'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
+import { TagsInput, TagsInputInput, TagsInputItem, TagsInputItemDelete, TagsInputItemText } from '@/components/ui/tags-input'
 import { CalendarIcon, XIcon, PlusIcon } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
@@ -374,6 +418,7 @@ const status = ref('not-started')
 const priority = ref(1)
 const repeatInterval = ref(0)
 const notes = ref('')
+const taskTags = ref<string[]>([])
 const subtasks = ref<{
   title: string;
   startDate: DateValue;
@@ -382,6 +427,7 @@ const subtasks = ref<{
   priority: number;
   repeatInterval: number;
   notes: string;
+  tags: string[];
   assignedTo: string[];
   expanded: boolean;
 }[]>([])
@@ -486,6 +532,7 @@ function addSubtask() {
     repeatInterval: 0,
     notes: '',
     assignedTo: [],
+    tags: [],
     expanded: true
   })
 }
@@ -522,6 +569,7 @@ function resetForm() {
   priority.value = 1
   repeatInterval.value = 0
   notes.value = ''
+  taskTags.value = []
   subtasks.value = []
   assignedTo.value = []
   selectedProjectId.value = ''
@@ -567,7 +615,7 @@ async function createTask() {
       return
     }
 
-    if (!notes.value.trim()) {
+    if (!notes.value || !notes.value.trim()) {
       errorMessage.value = 'Notes are required.'
       return
     }
@@ -607,6 +655,7 @@ async function createTask() {
       priority: priority.value.toString(),
       repeat_interval: repeatInterval.value.toString(),
       notes: notes.value.trim(),
+      tags: taskTags.value,
       project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assigneeIds,
       subtasks: subtasks.value.map(subtask => ({
@@ -616,6 +665,8 @@ async function createTask() {
         status: subtask.status,
         priority: subtask.priority.toString(),
         notes: subtask.notes.trim(),
+        repeat_interval: subtask.repeatInterval.toString(),
+        tags: subtask.tags || [],
         assignee_ids: subtask.assignedTo
           .filter(id => id && id.trim() !== '')
           .map(id => Number(id))

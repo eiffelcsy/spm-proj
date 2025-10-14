@@ -333,9 +333,10 @@ export interface TaskCommentDB {
   task_id: number
   staff_id: number
   content: string
-  is_system_generated: boolean
+ // is_system_generated: boolean
   created_at: string
   updated_at: string
+  deleted_at: string | null
 }
 
 /**
@@ -351,7 +352,7 @@ export interface TaskCommentWithStaff extends TaskCommentDB {
 export interface CommentCreateInput {
   task_id: number
   content: string
-  is_system_generated?: boolean
+  // is_system_generated?: boolean
 }
 
 // ============================================================================
