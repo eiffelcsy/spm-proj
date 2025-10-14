@@ -159,7 +159,7 @@ export function createStatusColumn() {
       const status = row.getValue('status') as string
       return h(Badge, { 
         class: getStatusClasses(status)
-      }, status.replace('-', ' '))
+      }, () => status.replace('-', ' '))
     },
   }
 }

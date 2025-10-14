@@ -1,6 +1,7 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { TaskDB } from '~/types'
 import { logTaskCreation } from '../../utils/activityLogger'
+import { createTaskAssignmentNotification, getTaskDetails } from '../../utils/notificationService'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -83,6 +84,21 @@ export default defineEventHandler(async (event) => {
       if (pmError) {
         await rollbackParent()
         throw pmError
+      }
+
+      // Create notifications for task assignment
+      const taskDetails = await getTaskDetails(supabase, createdTaskId)
+      if (taskDetails) {
+        for (const staffId of parentAssigneeIds) {
+          await createTaskAssignmentNotification(
+            supabase,
+            createdTaskId,
+            staffId,
+            staffRow.id,
+            taskDetails.title,
+            taskDetails.projectName
+          )
+        }
       }
     }
 

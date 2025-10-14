@@ -1,5 +1,11 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import { logTaskUpdate, logTaskAssignment, logTaskCompletion } from '../../../utils/activityLogger'
+import { 
+  createTaskAssignmentNotification, 
+  createTaskUnassignmentNotification,
+  createTaskUpdateNotification,
+  getTaskDetails 
+} from '../../../utils/notificationService'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -205,6 +211,38 @@ export default defineEventHandler(async (event) => {
       await logTaskCompletion(supabase, Number(taskId), currentStaffId)
     } else if (changes.length > 0) {
       await logTaskUpdate(supabase, Number(taskId), currentStaffId, changes)
+      
+      // Create notifications for task updates
+      const taskDetails = await getTaskDetails(supabase, Number(taskId))
+      if (taskDetails) {
+        // Get all assignees for this task
+        const { data: assignees } = await supabase
+          .from('task_assignees')
+          .select('assigned_to_staff_id')
+          .eq('task_id', Number(taskId))
+          .eq('is_active', true) as { data: Array<{ assigned_to_staff_id: number }> | null }
+
+        if (assignees && assignees.length > 0) {
+          // Create a summary of changes for the notification
+          const changesSummary = changes.map(change => {
+            const fieldName = change.field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+            return `${fieldName}: ${change.oldValue} → ${change.newValue}`
+          }).join(', ')
+
+          // Notify all assignees (including the one making the change)
+          for (const assignee of assignees) {
+            await createTaskUpdateNotification(
+              supabase,
+              Number(taskId),
+              assignee.assigned_to_staff_id,
+              currentStaffId,
+              taskDetails.title,
+              changesSummary,
+              taskDetails.projectName
+            )
+          }
+        }
+      }
     }
 
     // Handle assignees update if provided (support both single and multiple)
@@ -278,12 +316,25 @@ export default defineEventHandler(async (event) => {
         const addedAssignees = assigneeIdsToSet.filter(id => !currentAssigneeIds.includes(id))
         const removedAssignees = currentAssigneeIds.filter(id => !assigneeIdsToSet.includes(id))
 
-        // Log added assignees
+        // Log added assignees and create notifications
+        const taskDetails = await getTaskDetails(supabase, Number(taskId))
         for (const assigneeId of addedAssignees) {
           await logTaskAssignment(supabase, Number(taskId), currentStaffId, assigneeId)
+          
+          // Create notification for assignment
+          if (taskDetails) {
+            await createTaskAssignmentNotification(
+              supabase,
+              Number(taskId),
+              assigneeId,
+              currentStaffId,
+              taskDetails.title,
+              taskDetails.projectName
+            )
+          }
         }
 
-        // Log removed assignees
+        // Log removed assignees and create notifications
         for (const assigneeId of removedAssignees) {
           // Get assignee name for better logging
           const { data: assigneeData } = await supabase
@@ -299,6 +350,18 @@ export default defineEventHandler(async (event) => {
             action: `Unassigned ${assigneeName}`,
             user_id: currentStaffId
           })
+
+          // Create notification for unassignment
+          if (taskDetails) {
+            await createTaskUnassignmentNotification(
+              supabase,
+              Number(taskId),
+              assigneeId,
+              currentStaffId,
+              taskDetails.title,
+              taskDetails.projectName
+            )
+          }
         }
       }
     }

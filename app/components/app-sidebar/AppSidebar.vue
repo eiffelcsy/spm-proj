@@ -41,6 +41,7 @@ import {
     Bell,
     LogOut,
 } from "lucide-vue-next"
+import { NotificationDropdown } from "~/components/notification-modals"
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -97,7 +98,7 @@ const getActiveClasses = (isActive: boolean) => {
 
 async function fetchCurrentUser() {
   try {
-    const user = await $fetch('/api/user/me')
+    const user = await $fetch<{ id: number; fullname: string; email: string | null; staff_type: string }>('/api/user/me')
     currentUser.value = user
   } catch (err) {
     console.error('Failed to fetch current user:', err)
@@ -123,7 +124,36 @@ async function handleLogout() {
 }
 
 function navigateToNotifications() {
-  router.push('/notifications')
+  // Get current route to determine context
+  const currentRoute = useRoute()
+  const from = currentRoute.path.includes('/task/') ? 'task' :
+               currentRoute.path.includes('/project/') ? 'project' :
+               currentRoute.path.includes('/personal/') ? 'personal' :
+               'dashboard'
+  
+  // If coming from a task page, also pass the task ID
+  let queryParams = `from=${from}`
+  if (currentRoute.path.includes('/task/')) {
+    const taskId = currentRoute.params.id
+    if (taskId) {
+      queryParams += `&taskId=${taskId}`
+    }
+    
+    // If the task has a projectId in the query params, pass it along
+    const projectId = currentRoute.query.projectId
+    if (projectId) {
+      queryParams += `&projectId=${projectId}`
+    }
+  }
+  // If coming from a project page (not dashboard), also pass the project ID
+  if (currentRoute.path.includes('/project/') && !currentRoute.path.includes('/project/dashboard')) {
+    const projectId = currentRoute.params.id
+    if (projectId) {
+      queryParams += `&projectId=${projectId}`
+    }
+  }
+  
+  router.push(`/notifications?${queryParams}`)
 }
 
 // Fetch user data on component mount
@@ -139,7 +169,7 @@ onMounted(() => {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" as-child>
-            <a href="/personal/dashboard">
+            <NuxtLink to="/personal/dashboard">
               <div class="flex aspect-square size-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 <CheckSquare class="size-6" />
               </div>
@@ -147,7 +177,7 @@ onMounted(() => {
                 <span class="font-semibold text-xl">TaskAIO</span>
                 <span class="text-xs text-sidebar-muted-foreground">Task Management System</span>
               </div>
-            </a>
+            </NuxtLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -158,10 +188,10 @@ onMounted(() => {
           <SidebarMenu>
             <SidebarMenuItem key="Dashboard">
               <SidebarMenuButton as-child :class="getActiveClasses(isDashboardActive)">
-                <a href="/personal/dashboard">
+                <NuxtLink to="/personal/dashboard">
                   <LayoutDashboard class="size-4" />
-                  <span>Dashboard</span>
-                </a>
+                  <span>Personal Dashboard</span>
+                </NuxtLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem key="CreateTask">
@@ -184,10 +214,10 @@ onMounted(() => {
                   <SidebarMenuSub>
                     <SidebarMenuSubItem>
                       <SidebarMenuSubButton asChild :class="getActiveClasses(isProjectsDashboardActive)">
-                        <a href="/project/dashboard">
+                        <NuxtLink to="/project/dashboard">
                           <FolderOpen class="size-4" />
                           <span>Project Dashboard</span>
-                        </a>
+                        </NuxtLink>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem :title="!isManager ? 'Only managers can create projects' : ''">
@@ -225,7 +255,7 @@ onMounted(() => {
             <DropdownMenuContent class="w-56" align="end" side="top">
               <DropdownMenuItem @click="navigateToNotifications" class="cursor-pointer">
                 <Bell class="mr-2 size-4" />
-                <span>Notifications</span>
+                <span>View All Notifications</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem @click="handleLogout" class="cursor-pointer">

@@ -1,5 +1,6 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { CommentCreateInput, TaskCommentWithStaff } from '~/types'
+import { createCommentNotification, getTaskDetails } from '../../../../utils/notificationService'
 
 // Define interfaces for Supabase responses
 interface TaskResponse {
@@ -154,6 +155,32 @@ export default defineEventHandler(async (event) => {
         id: newComment.staff.id,
         fullname: newComment.staff.fullname,
         email: null
+      }
+    }
+
+    // Create notifications for new comment
+    const taskDetails = await getTaskDetails(supabase, Number(taskId))
+    if (taskDetails) {
+        // Get all assignees for this task
+        const { data: assignees } = await supabase
+          .from('task_assignees')
+          .select('assigned_to_staff_id')
+          .eq('task_id', Number(taskId))
+          .eq('is_active', true) as { data: Array<{ assigned_to_staff_id: number }> | null }
+
+      if (assignees && assignees.length > 0) {
+        // Notify all assignees
+        for (const assignee of assignees) {
+          await createCommentNotification(
+            supabase,
+            Number(taskId),
+            assignee.assigned_to_staff_id,
+            currentStaffId,
+            taskDetails.title,
+            body.content,
+            taskDetails.projectName
+          )
+        }
       }
     }
 

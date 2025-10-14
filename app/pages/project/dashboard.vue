@@ -3,7 +3,7 @@
     <!-- Header Section -->
     <div class="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
       <div class="space-y-1">
-        <h1 class="text-3xl font-bold tracking-tight">Projects Dashboard</h1>
+        <h1 class="text-3xl font-bold tracking-tight">Project Dashboard</h1>
       </div>
       <div class="flex items-center space-x-2">
         <Input v-model="searchQuery" placeholder="Search projects" />

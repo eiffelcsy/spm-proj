@@ -376,6 +376,7 @@ export interface NotificationDB {
   is_email_sent: boolean
   scheduled_for: string | null
   created_at: string
+  deleted_at: string | null
 }
 
 /**

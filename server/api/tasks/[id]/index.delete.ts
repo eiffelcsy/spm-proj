@@ -1,6 +1,7 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { TaskDB } from '~/types'
 import { logTaskDeletion } from '../../../utils/activityLogger'
+import { createTaskDeletionNotification, getTaskDetails } from '../../../utils/notificationService'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -178,6 +179,31 @@ export default defineEventHandler(async (event) => {
 
     // Log task deletion activity
     await logTaskDeletion(supabase, numericTaskId, currentStaffId)
+
+    // Create notifications for task deletion
+    const taskDetails = await getTaskDetails(supabase, numericTaskId)
+    if (taskDetails) {
+        // Get all assignees for this task
+        const { data: assignees } = await supabase
+          .from('task_assignees')
+          .select('assigned_to_staff_id')
+          .eq('task_id', numericTaskId)
+          .eq('is_active', true) as { data: Array<{ assigned_to_staff_id: number }> | null }
+
+      if (assignees && assignees.length > 0) {
+        // Notify all assignees
+        for (const assignee of assignees) {
+          await createTaskDeletionNotification(
+            supabase,
+            numericTaskId,
+            assignee.assigned_to_staff_id,
+            currentStaffId,
+            taskDetails.title,
+            taskDetails.projectName
+          )
+        }
+      }
+    }
 
     return {
       success: true,
