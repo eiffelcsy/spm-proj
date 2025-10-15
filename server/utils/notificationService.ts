@@ -6,6 +6,7 @@
  */
 
 import type { NotificationDB, NotificationType } from '~/types'
+import { sendNotificationEmail } from './emailService'
 
 export interface CreateNotificationParams {
   staffId: number
@@ -19,7 +20,7 @@ export interface CreateNotificationParams {
 }
 
 /**
- * Create a notification in the database
+ * Create a notification in the database and send email
  */
 export async function createNotification(
   supabase: any,
@@ -48,7 +49,14 @@ export async function createNotification(
       return null
     }
 
-    return data as NotificationDB
+    const notification = data as NotificationDB
+
+    // Send email notification immediately (don't wait for it)
+    sendEmailForNotification(supabase, notification).catch((emailError) => {
+      console.error('Failed to send email notification:', emailError)
+    })
+
+    return notification
   } catch (error) {
     console.error('Error creating notification:', error)
     return null
@@ -68,7 +76,7 @@ export async function createTaskAssignmentNotification(
 ): Promise<NotificationDB | null> {
   const title = 'Task Assigned'
   const message = projectName 
-    ? `You have been assigned to "${taskTitle}" in project "${projectName}"`
+    ? `You have been assigned to "${taskTitle}" in Project: "${projectName}"`
     : `You have been assigned to "${taskTitle}"`
 
   return createNotification(supabase, {
@@ -94,7 +102,7 @@ export async function createTaskUnassignmentNotification(
 ): Promise<NotificationDB | null> {
   const title = 'Task Unassigned'
   const message = projectName 
-    ? `You have been removed from "${taskTitle}" in project "${projectName}"`
+    ? `You have been removed from "${taskTitle}" in Project: "${projectName}"`
     : `You have been removed from "${taskTitle}"`
 
   return createNotification(supabase, {
@@ -120,12 +128,12 @@ export async function createTaskDeletionNotification(
 ): Promise<NotificationDB | null> {
   const title = 'Task Deleted'
   const message = projectName 
-    ? `Task "${taskTitle}" in project "${projectName}" has been deleted`
+    ? `Task "${taskTitle}" in Project: "${projectName}" has been deleted`
     : `Task "${taskTitle}" has been deleted`
 
   return createNotification(supabase, {
     staffId: assigneeStaffId,
-    type: 'task_updated',
+    type: 'task_deleted',
     title,
     message,
     relatedTaskId: taskId,
@@ -147,7 +155,7 @@ export async function createTaskUpdateNotification(
 ): Promise<NotificationDB | null> {
   const title = 'Task Updated'
   const message = projectName 
-    ? `Task "${taskTitle}" in project "${projectName}" has been updated: ${changes}`
+    ? `Task "${taskTitle}" in Project: "${projectName}" has been updated: ${changes}`
     : `Task "${taskTitle}" has been updated: ${changes}`
 
   return createNotification(supabase, {
@@ -174,7 +182,7 @@ export async function createDeadlineReminderNotification(
 ): Promise<NotificationDB | null> {
   const title = 'Task Due Soon'
   const message = projectName 
-    ? `Task "${taskTitle}" in project "${projectName}" is due in 24 hours (Priority: ${priority})`
+    ? `Task "${taskTitle}" in Project: "${projectName}" is due in 24 hours (Priority: ${priority})`
     : `Task "${taskTitle}" is due in 24 hours (Priority: ${priority})`
 
   return createNotification(supabase, {
@@ -204,7 +212,7 @@ export async function createCommentNotification(
     : commentMessage
   
   const message = projectName 
-    ? `New comment on "${taskTitle}" in project "${projectName}": "${truncatedComment}"`
+    ? `New comment on "${taskTitle}" in Project: "${projectName}": "${truncatedComment}"`
     : `New comment on "${taskTitle}": "${truncatedComment}"`
 
   return createNotification(supabase, {
@@ -278,59 +286,18 @@ export async function getTaskDetails(
   }
 }
 
-/**
- * Get staff details for notifications
- */
-export async function getStaffDetails(
-  supabase: any,
-  staffId: number
-): Promise<{ fullname: string } | null> {
-  try {
-    const { data, error } = await supabase
-      .from('staff')
-      .select('fullname')
-      .eq('id', staffId)
-      .single()
-
-    if (error || !data) {
-      console.error('Failed to fetch staff details:', error)
-      return null
-    }
-
-    return { fullname: data.fullname }
-  } catch (error) {
-    console.error('Error fetching staff details:', error)
-    return null
-  }
-}
 
 /**
- * Permanently delete old soft-deleted notifications (cleanup function)
- * This should be run periodically to clean up old deleted notifications
+ * Send email for a notification using complex templates
  */
-export async function cleanupDeletedNotifications(
+async function sendEmailForNotification(
   supabase: any,
-  daysOld: number = 30
-): Promise<number> {
+  notification: NotificationDB
+): Promise<void> {
   try {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld)
-    
-    const { data, error } = await supabase
-      .from('notifications')
-      .delete()
-      .not('deleted_at', 'is', null)
-      .lt('deleted_at', cutoffDate.toISOString())
-      .select('id')
-
-    if (error) {
-      console.error('Failed to cleanup deleted notifications:', error)
-      return 0
-    }
-
-    return data?.length || 0
+    // Use the complex template system
+    await sendNotificationEmail(supabase, notification)
   } catch (error) {
-    console.error('Error cleaning up deleted notifications:', error)
-    return 0
+    console.error('Error sending email for notification:', error)
   }
 }

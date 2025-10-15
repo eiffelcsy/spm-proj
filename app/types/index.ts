@@ -27,6 +27,7 @@ export type NotificationType =
   | 'deadline_reminder' 
   | 'task_assigned' 
   | 'task_updated' 
+  | 'task_deleted'
   | 'comment_added' 
   | 'mention' 
   | 'project_invitation'
