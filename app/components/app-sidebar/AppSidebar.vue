@@ -64,6 +64,23 @@
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+
+      <!-- Admin Section -->
+      <SidebarGroup v-if="isAdmin">
+        <SidebarGroupLabel>Administration</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton as-child :is-active="isAdminActive" class="no-hover">
+                <NuxtLink to="/admin/users">
+                  <Users class="size-4" />
+                  <span>User Management</span>
+                </NuxtLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
     </SidebarContent>
 
     <SidebarFooter>
@@ -83,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { cn } from '@/lib/utils'
 import {
@@ -106,6 +123,7 @@ import {
   PlusCircle,
   FolderPlus,
   LogOut,
+  Users,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -120,6 +138,21 @@ defineEmits(['create-task', 'create-project'])
 
 const isPersonalActive = computed(() => route.path.startsWith('/personal'))
 const isProjectActive = computed(() => route.path.startsWith('/project'))
+const isAdminActive = computed(() => route.path.startsWith('/admin'))
+const isAdmin = ref(false)
+
+onMounted(async () => {
+  try {
+    // Check if current user is admin by fetching user data
+    const response = await $fetch('/api/user/me')
+    if (response.id && response.staff_type === 'admin') {
+      isAdmin.value = true
+    }
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    isAdmin.value = false
+  }
+})
 
 async function handleLogout() {
   try {
