@@ -40,6 +40,7 @@ import {
     User,
     Bell,
     LogOut,
+    UserCog, // <-- 1. IMPORTED NEW ICON
 } from "lucide-vue-next"
 import { NotificationDropdown } from "~/components/notification-modals"
 
@@ -52,6 +53,7 @@ const router = useRouter()
 const route = useRoute()
 const supabase = useSupabaseClient()
 const isManager = computed(() => currentUser.value?.staff_type === 'manager')
+const isAdmin = computed(() => currentUser.value?.staff_type === 'admin') // <-- 2. ADDED ADMIN CHECK
 
 // ============================================================================
 // ROUTE DETECTION & HIGHLIGHTING
@@ -84,6 +86,11 @@ const isProjectsDashboardActive = computed(() => {
   if (route.path.startsWith('/task') && route.query.from === 'project') return true
   return false
 })
+
+/**
+ * Determine if the current route is within the admin section
+ */
+const isAdminPanelActive = computed(() => route.path.startsWith('/admin')) // <-- 3. ADDED ACTIVE CHECK FOR ADMIN
 
 /**
  * Get highlighting classes for sidebar menu buttons
@@ -231,6 +238,16 @@ onMounted(() => {
                 </CollapsibleContent>
               </SidebarMenuItem>
             </Collapsible>
+
+            <SidebarMenuItem v-if="isAdmin" key="AdminPanel">
+              <SidebarMenuButton as-child :class="getActiveClasses(isAdminPanelActive)">
+                <NuxtLink to="/admin/users">
+                  <UserCog class="size-4" />
+                  <span>User Management</span>
+                </NuxtLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

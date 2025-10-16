@@ -348,6 +348,15 @@ export function useBreadcrumbs() {
         href: undefined, // Current page shouldn't be clickable
         isCurrentPage: true
       })
+    } else if (pathSegments[0] === 'admin') {
+      // Handle admin routes
+      if (pathSegments[1] === 'users') {
+        items.push({
+          label: 'User Management',
+          href: '/admin/users',
+          isCurrentPage: true
+        })
+      }
     } else {
       // Fallback for unknown routes
       items.push({

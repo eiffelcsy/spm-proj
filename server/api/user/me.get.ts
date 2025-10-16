@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
         .from('staff')
         .select('id, fullname, staff_type')
         .eq('user_id', user.id)
-        .maybeSingle() as { data: { id: number, fullname: string } | null, error: any }
+        .maybeSingle() as { data: { id: number, fullname: string, staff_type: string } | null, error: any }
 
     if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
