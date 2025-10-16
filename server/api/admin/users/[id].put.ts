@@ -39,10 +39,8 @@ export default defineEventHandler(async (event) => {
     staff_type, 
     fullname, 
     contact_number, 
-    dob, 
     designation, 
     department, 
-    address 
   } = body
 
   // Validate staff_type
@@ -55,10 +53,8 @@ export default defineEventHandler(async (event) => {
   if (staff_type !== undefined) updateData.staff_type = staff_type
   if (fullname !== undefined) updateData.fullname = fullname
   if (contact_number !== undefined) updateData.contact_number = contact_number
-  if (dob !== undefined) updateData.dob = dob
   if (designation !== undefined) updateData.designation = designation
   if (department !== undefined) updateData.department = department
-  if (address !== undefined) updateData.address = address
 
   if (Object.keys(updateData).length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'No valid fields to update' })

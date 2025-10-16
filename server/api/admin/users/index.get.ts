@@ -5,12 +5,9 @@ interface StaffRow {
   fullname: string
   user_id: string
   contact_number?: string
-  dob?: string
-  date_joined?: string
   staff_type?: string
   designation?: string
   department?: string
-  address?: string
   created_at?: string
 }
 
@@ -41,7 +38,7 @@ export default defineEventHandler(async (event) => {
   // Get all staff members with their details
   const { data: staffData, error: staffFetchError } = await supabase
     .from('staff')
-    .select('id, fullname, user_id, contact_number, dob, date_joined, staff_type, designation, department, address, created_at')
+    .select('id, fullname, user_id, contact_number, staff_type, designation, department,  created_at')
     .order('fullname', { ascending: true })
 
   if (staffFetchError) {
@@ -77,12 +74,9 @@ export default defineEventHandler(async (event) => {
     fullname: staff.fullname,
     email: emailMap.get(staff.user_id) ?? null,
     contact_number: staff.contact_number,
-    dob: staff.dob,
-    date_joined: staff.date_joined,
     staff_type: staff.staff_type || 'staff',
     designation: staff.designation,
     department: staff.department,
-    address: staff.address,
     user_id: staff.user_id,
     created_at: staff.created_at
   }))

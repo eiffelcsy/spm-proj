@@ -7,19 +7,16 @@
     </div>
     
     <div class="mb-4">
-      <!-- Error message -->
       <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
         {{ error }}
         <button @click="fetchUsers" class="ml-2 underline">Try again</button>
       </div>
 
-      <!-- Loading state -->
       <div v-if="isLoading" class="flex justify-center items-center py-8">
         <div class="text-gray-500">Loading users...</div>
       </div>
 
       <div v-else>
-        <!-- Users Table -->
         <div class="bg-white rounded-lg border">
           <div class="p-4">
             <div class="flex items-center justify-between mb-4">
@@ -59,13 +56,7 @@
                         {{ user.staff_type }}
                       </Badge>
                     </td>
-                    <td class="p-3 text-gray-600">
-                      {{ user.date_joined ? new Intl.DateTimeFormat('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      }).format(new Date(user.date_joined)) : '—' }}
-                    </td>
+                    <td class="p-3 text-gray-600">{{ user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' }}</td>
                     <td class="p-3">
                       <Button
                         variant="outline"
@@ -88,7 +79,6 @@
         </div>
       </div>
 
-      <!-- Edit User Modal -->
       <Dialog v-model:open="isEditModalOpen">
         <DialogContent class="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -112,8 +102,7 @@
                 <Label for="contact_number">Contact Number</Label>
                 <Input 
                   id="contact_number"
-                  :value="editingUser.contact_number || ''" 
-                  @input="editingUser.contact_number = ($event.target as HTMLInputElement).value"
+                  v-model="editingUser.contact_number"
                   placeholder="Enter contact number"
                 />
               </div>
@@ -136,8 +125,7 @@
                 <Label for="designation">Designation</Label>
                 <Input 
                   id="designation"
-                  :value="editingUser.designation || ''" 
-                  @input="editingUser.designation = ($event.target as HTMLInputElement).value"
+                  v-model="editingUser.designation"
                   placeholder="Enter designation"
                 />
               </div>
@@ -145,44 +133,11 @@
                 <Label for="department">Department</Label>
                 <Input 
                   id="department"
-                  :value="editingUser.department || ''" 
-                  @input="editingUser.department = ($event.target as HTMLInputElement).value"
+                  v-model="editingUser.department"
                   placeholder="Enter department"
                 />
               </div>
             </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <Label for="dob">Date of Birth</Label>
-                <Input 
-                  id="dob"
-                  :value="editingUser.dob || ''" 
-                  @input="editingUser.dob = ($event.target as HTMLInputElement).value"
-                  type="date"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="date_joined">Date Joined</Label>
-                <Input 
-                  id="date_joined"
-                  :value="editingUser.date_joined || ''" 
-                  @input="editingUser.date_joined = ($event.target as HTMLInputElement).value"
-                  type="date"
-                />
-              </div>
-            </div>
-
-            <div class="space-y-2">
-              <Label for="address">Address</Label>
-              <Input 
-                id="address"
-                :value="editingUser.address || ''" 
-                @input="editingUser.address = ($event.target as HTMLInputElement).value"
-                placeholder="Enter address"
-              />
-            </div>
-
             <div class="space-y-2">
               <Label for="staff_type">Staff Type</Label>
               <Select v-model="editingUser.staff_type">
@@ -250,13 +205,10 @@ interface User {
   id: number
   fullname: string
   email: string | null
-  contact_number?: string
-  dob?: string
-  date_joined?: string
+  contact_number?: string | null
   staff_type: string
-  designation?: string
-  department?: string
-  address?: string
+  designation?: string | null
+  department?: string | null
   user_id: string
   created_at: string
 }
@@ -270,12 +222,9 @@ const editingUser = ref<User>({
   fullname: '',
   email: '',
   contact_number: '',
-  dob: '',
-  date_joined: '',
   staff_type: 'staff',
   designation: '',
   department: '',
-  address: '',
   user_id: '',
   created_at: ''
 })
@@ -313,12 +262,9 @@ function closeEditModal() {
     fullname: '',
     email: '',
     contact_number: '',
-    dob: '',
-    date_joined: '',
     staff_type: 'staff',
     designation: '',
     department: '',
-    address: '',
     user_id: '',
     created_at: ''
   }
@@ -332,17 +278,19 @@ async function updateUser() {
     updateError.value = ''
     updateSuccess.value = ''
 
+    // The backend API might expect null instead of an empty string for optional fields.
+    // v-model will set them to an empty string, so we can convert them back to null here if needed.
+    const body = {
+      fullname: editingUser.value.fullname,
+      contact_number: editingUser.value.contact_number || null,
+      designation: editingUser.value.designation || null,
+      department: editingUser.value.department || null,
+      staff_type: editingUser.value.staff_type
+    }
+
     const response = await $fetch(`/api/admin/users/${editingUser.value.id}`, {
       method: 'PUT',
-      body: {
-        fullname: editingUser.value.fullname,
-        contact_number: editingUser.value.contact_number,
-        dob: editingUser.value.dob,
-        designation: editingUser.value.designation,
-        department: editingUser.value.department,
-        address: editingUser.value.address,
-        staff_type: editingUser.value.staff_type
-      }
+      body: body
     })
 
     if (response.success) {
