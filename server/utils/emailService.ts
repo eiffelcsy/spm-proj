@@ -262,21 +262,19 @@ export function generateDeadlineReminderEmail(
   taskTitle: string,
   projectName: string | null,
   dueDate: string,
-  priority: string,
+  priority: number,
   taskUrl: string
 ): EmailTemplate {
-  const subject = `⚠️ Task Due Soon: ${taskTitle}`
+  const subject = `Task Due Soon: ${taskTitle}`
   const projectText = projectName ? ` in Project: ${projectName}` : ''
   const formattedDueDate = new Date(dueDate).toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: 'numeric'
   })
   
-  const priorityEmoji = priority === 'high' ? '🔴' : priority === 'medium' ? '🟡' : '🟢'
+  const priorityEmoji = priority >= 8 ? '🔴' : priority >= 5 ? '🟡' : '🟢'
   
   const html = `
     <!DOCTYPE html>
@@ -304,17 +302,17 @@ export function generateDeadlineReminderEmail(
           ${projectName ? `<div class="project-info">📁 Project: ${projectName}</div>` : ''}
           
           <p>Hello!</p>
-          <p>This is a reminder that you have a task due within 24 hours.</p>
+          <p>This is a reminder that you have a task due tomorrow.</p>
           
           <div class="deadline-info">
             <strong>⏰ Due Date:</strong> ${formattedDueDate}
           </div>
           
           <div class="priority-info">
-            <strong>Priority:</strong> ${priorityEmoji} ${priority.toUpperCase()}
+            <strong>Priority:</strong> ${priorityEmoji} Level ${priority}
           </div>
           
-          <p>Please prioritize this task and ensure it's completed on time.</p>
+          <p>Please prioritise this task and ensure it's completed on time.</p>
           
           <a href="${taskUrl}" class="cta-button" style="color: white !important;">View Task Details</a>
           
@@ -335,7 +333,7 @@ This is a reminder that you have a task due within 24 hours.
 
 Task: ${taskTitle}${projectText}
 Due Date: ${formattedDueDate}
-Priority: ${priority.toUpperCase()}
+Priority: Level ${priority}
 
 Please prioritize this task and ensure it's completed on time.
 

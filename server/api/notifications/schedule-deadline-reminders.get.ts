@@ -1,5 +1,5 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
-import { createDeadlineReminderNotification, getTaskDetails } from '../../utils/notificationService'
+import { createDeadlineReminderNotification } from '../../utils/notificationService'
 
 /**
  * Scheduled job to create deadline reminder notifications
@@ -13,8 +13,7 @@ export default defineEventHandler(async (event) => {
     const now = new Date()
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
     
-    // Format dates for database query (YYYY-MM-DD)
-    const todayStr = now.toISOString().split('T')[0]
+    // Format date for database query (YYYY-MM-DD)
     const tomorrowStr = tomorrow.toISOString().split('T')[0]
     
     // Find tasks due tomorrow
@@ -78,7 +77,7 @@ export default defineEventHandler(async (event) => {
           assignee.assigned_to_staff_id,
           task.title,
           task.due_date,
-          task.priority || 'Not set',
+          task.priority,
           task.project?.name
         )
 
