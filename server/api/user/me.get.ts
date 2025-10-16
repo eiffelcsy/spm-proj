@@ -11,16 +11,12 @@ export default defineEventHandler(async (event) => {
 
     const { data: staffRow, error: staffError } = await supabase
         .from('staff')
-        .select('id, fullname, staff_type')
+        .select('id')
         .eq('user_id', user.id)
-        .maybeSingle() as { data: { id: number, fullname: string, staff_type: string } | null, error: any }
+        .maybeSingle() as { data: { id: number } | null, error: any }
 
     if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
 
-    return { 
-        id: staffRow.id, 
-        fullname: staffRow.fullname,
-        staff_type: staffRow.staff_type
-    }
+    return { id: staffRow.id }
 })
