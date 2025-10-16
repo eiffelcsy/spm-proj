@@ -176,12 +176,8 @@ export async function createDeadlineReminderNotification(
   taskId: number,
   assigneeStaffId: number,
   taskTitle: string,
-  dueDate: string,
   priority: string,
-  projectName?: string,
-  status?: string,
-  notes?: string,
-  startDate?: string
+  projectName?: string
 ): Promise<NotificationDB | null> {
   const title = 'Task Due Soon'
   const message = projectName 

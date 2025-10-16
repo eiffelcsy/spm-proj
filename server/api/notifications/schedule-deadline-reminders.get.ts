@@ -76,7 +76,6 @@ export default defineEventHandler(async (event) => {
           task.id,
           assignee.assigned_to_staff_id,
           task.title,
-          task.due_date,
           task.priority,
           task.project?.name
         )
