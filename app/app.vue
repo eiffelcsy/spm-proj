@@ -25,7 +25,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { NotificationPopup } from "~/components/notification-modals"
 
 const notifications = useNotifications()
@@ -34,9 +34,12 @@ const router = useRouter()
 const supabase = useSupabaseClient()
 const isProcessingAuth = ref(false)
 
-const navigateToTask = (taskId) => {
+const navigateToTask = (taskId: number) => {
   router.push(`/task/${taskId}`)
 }
+
+// Store cleanup function
+let cleanupSubscription: (() => Promise<void> | void) | null = null
 
 // Handle auth callback from email confirmation
 const handleAuthCallback = async () => {
@@ -88,6 +91,13 @@ const handleAuthCallback = async () => {
 // Initialize notifications and handle auth callback when app starts
 onMounted(async () => {
   await handleAuthCallback()
-  await initialize()
+  cleanupSubscription = await initialize()
+})
+
+// Cleanup subscription when component unmounts
+onBeforeUnmount(async () => {
+  if (cleanupSubscription) {
+    await cleanupSubscription()
+  }
 })
 </script>

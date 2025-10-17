@@ -6,10 +6,11 @@
  * - Notification popup display
  * - Notification history management
  * - Auto-fade functionality
- * - WebSocket-like real-time updates via polling
+ * - Real-time updates via Supabase subscriptions
  */
 
 import type { NotificationWithRelations, NotificationType } from '~/types'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface NotificationState {
   notifications: NotificationWithRelations[]
@@ -34,6 +35,9 @@ const globalActivePopup = ref<NotificationWithRelations | null>(null)
 // Global timer for popup auto-hide
 let globalPopupTimer: NodeJS.Timeout | null = null
 let globalPopupStartTime: number | null = null
+
+// Global realtime subscription channel
+let globalRealtimeChannel: RealtimeChannel | null = null
 
 // Ensure the ref is always in sync with the state
 watch(() => globalState.activePopup, (newValue) => {
@@ -107,7 +111,7 @@ export const useNotifications = () => {
   const deleteNotification = async (notificationId: number) => {
     try {
       await $fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE'
+        method: 'DELETE' as any
       })
       
       // Update local state
@@ -212,34 +216,163 @@ export const useNotifications = () => {
   // ============================================================================
 
   /**
-   * Start polling for new notifications
+   * Setup Supabase realtime subscription for notifications
    */
-  const startPolling = () => {
-    // Poll every 5 seconds for new notifications
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await $fetch<{ notifications: NotificationWithRelations[] }>('/api/notifications')
-        const newNotifications = response.notifications || []
-        
-        // Check for new notifications (excluding soft-deleted)
-        const existingIds = new Set(state.notifications.map(n => n.id))
-        const newNotificationsList = newNotifications.filter(n => !existingIds.has(n.id) && !n.deleted_at)
-        
-        // Show popups for new notifications
-        newNotificationsList.forEach(notification => {
-          showPopup(notification)
-        })
-        
-        // Update the notifications list with server data
-        state.notifications = newNotifications
-        state.unreadCount = state.notifications.filter(n => !n.is_read).length
-      } catch (error) {
-        console.error('Failed to poll for notifications:', error)
-      }
-    }, 5000) // 5 seconds for better responsiveness
+  const setupRealtimeSubscription = async () => {
+    const supabase = useSupabaseClient()
+    const user = useSupabaseUser()
+    
+    if (!user.value) {
+      console.warn('Cannot setup realtime subscription: user not authenticated')
+      return () => {}
+    }
+
+    // Get current user's staff ID
+    const { data: staffData, error: staffError } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('user_id', user.value.id)
+      .single()
+
+    if (staffError || !staffData) {
+      console.error('Failed to fetch staff ID for realtime subscription:', staffError)
+      return () => {}
+    }
+
+    const currentStaffId = (staffData as { id: number }).id
+
+    // Cleanup existing subscription if any
+    if (globalRealtimeChannel) {
+      await supabase.removeChannel(globalRealtimeChannel)
+      globalRealtimeChannel = null
+    }
+
+    // Create a new channel for this user's notifications
+    const channel = supabase
+      .channel(`notifications:staff_id=eq.${currentStaffId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `staff_id=eq.${currentStaffId}`
+        },
+        async (payload) => {
+          console.log('New notification received:', payload.new)
+          
+          // Fetch the full notification with relations
+          const { data: newNotification, error } = await supabase
+            .from('notifications')
+            .select(`
+              *,
+              triggered_by:triggered_by_staff_id (
+                id,
+                fullname
+              ),
+              related_task:related_task_id (
+                id,
+                title,
+                project_id
+              ),
+              related_project:related_project_id (
+                id,
+                name
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single()
+
+          if (!error && newNotification) {
+            const notification = newNotification as NotificationWithRelations
+            
+            // Check if notification already exists (prevent duplicates)
+            const existingIndex = state.notifications.findIndex(n => n.id === notification.id)
+            if (existingIndex === -1) {
+              // Add to notifications list
+              state.notifications = [notification, ...state.notifications]
+              
+              // Show popup for new notification and update unread count
+              if (!notification.deleted_at) {
+                showPopup(notification)
+                if (!notification.is_read) {
+                  state.unreadCount++
+                }
+              }
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `staff_id=eq.${currentStaffId}`
+        },
+        (payload) => {
+          console.log('Notification updated:', payload.new)
+          
+          // Update the notification in the list
+          const index = state.notifications.findIndex(n => n.id === payload.new.id)
+          if (index !== -1) {
+            const oldNotification = state.notifications[index]
+            if (oldNotification) {
+              const wasRead = oldNotification.is_read
+              const isNowRead = (payload.new as any).is_read
+              
+              // Update the notification
+              state.notifications[index] = {
+                ...oldNotification,
+                ...(payload.new as any)
+              }
+              
+              // Update unread count if read status changed
+              if (!wasRead && isNowRead) {
+                state.unreadCount = Math.max(0, state.unreadCount - 1)
+              } else if (wasRead && !isNowRead) {
+                state.unreadCount++
+              }
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `staff_id=eq.${currentStaffId}`
+        },
+        (payload) => {
+          console.log('Notification deleted:', payload.old)
+          
+          // Remove from notifications list
+          const notification = state.notifications.find(n => n.id === payload.old.id)
+          if (notification) {
+            state.notifications = state.notifications.filter(n => n.id !== payload.old.id)
+            if (!notification.is_read) {
+              state.unreadCount = Math.max(0, state.unreadCount - 1)
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Notification subscription status:', status)
+      })
+
+    // Store the channel globally for cleanup
+    globalRealtimeChannel = channel
 
     // Return cleanup function
-    return () => clearInterval(pollInterval)
+    return async () => {
+      if (globalRealtimeChannel) {
+        await supabase.removeChannel(globalRealtimeChannel)
+        globalRealtimeChannel = null
+      }
+    }
   }
 
   // ============================================================================
@@ -341,7 +474,7 @@ export const useNotifications = () => {
    */
   const initialize = async () => {
     await fetchNotifications()
-    return startPolling()
+    return setupRealtimeSubscription()
   }
 
   return {
@@ -362,7 +495,6 @@ export const useNotifications = () => {
     hidePopup,
     toggleDropdown,
     closeDropdown,
-    startPolling,
     initialize,
     
     // Utilities
