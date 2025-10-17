@@ -38,15 +38,14 @@
             </ClientOnly>
           </BreadcrumbList>
         </Breadcrumb>
-        <!-- Exit button for task and project detail pages -->
+        <!-- Notification bell button -->
         <Button 
-          v-if="route.path.startsWith('/task/') || route.path.match(/^\/project\/\d+$/)"
           variant="ghost" 
-          size="icon" 
-          @click="handleExitDetailPage" 
-          class="text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+          @click="goToNotifications" 
+          class="text-foreground hover:bg-amber-100 shrink-0 mr-4 font-normal"
         >
-          <X class="h-4 w-4" />
+          <Bell class="h-4 w-4 mr-0.5" />
+          <span>Notifications</span>
         </Button>
       </header>
       <main class="flex-1 overflow-auto">
@@ -57,16 +56,15 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { AppSidebar } from '@/components/app-sidebar'
 import { useBreadcrumbs } from '@/composables/useBreadcrumbs'
-import { X } from 'lucide-vue-next'
+import { Bell } from 'lucide-vue-next'
 
-const route = useRoute()
 const router = useRouter()
 
 // Use the breadcrumbs composable
@@ -80,24 +78,8 @@ function openCreateProjectModal() {
   window.dispatchEvent(new CustomEvent('open-create-project-modal'))
 }
 
-function handleExitDetailPage() {
-  const from = route.query.from
-  const projectId = route.query.projectId
-  
-  // For task pages
-  if (route.path.startsWith('/task/')) {
-    if (from === 'project' && projectId) {
-      router.push(`/project/${projectId}`)
-    } else if (from === 'project') {
-      router.push('/project/dashboard')
-    } else {
-      router.push('/personal/dashboard')
-    }
-  }
-  // For project detail pages
-  else if (route.path.match(/^\/project\/\d+$/)) {
-    router.push('/project/dashboard')
-  }
+function goToNotifications() {
+  router.push('/notifications')
 }
 </script>
 

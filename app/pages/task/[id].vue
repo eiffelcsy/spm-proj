@@ -1,5 +1,18 @@
 <template>
   <div class="w-full mx-auto p-8 md:px-12 lg:max-w-5xl xl:max-w-7xl">
+      <!-- Exit button in top right corner of page -->
+      <Button 
+        v-if="task"
+        variant="ghost" 
+        size="icon" 
+        @click="goToDashboard" 
+        class="fixed top-20 right-6 text-muted-foreground hover:text-red-600 hover:bg-red-50 z-50"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </Button>
+      
       <div v-if="task" class="space-y-6">
           <!-- Main Task Card -->
           <Card>

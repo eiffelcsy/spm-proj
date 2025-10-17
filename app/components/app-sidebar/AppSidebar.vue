@@ -20,13 +20,6 @@ import {
   CollapsibleContent,
   Collapsible,
 } from "@/components/ui/collapsible"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 import {
     CheckSquare,
@@ -34,16 +27,13 @@ import {
     Folder,
     FolderOpen,
     FolderPlus,
-    ChevronsUpDown,
     LayoutDashboard,
     ChevronRight,
     User,
-    Bell,
     LogOut,
     UserCog,
     FileChartColumn,
 } from "lucide-vue-next"
-import { NotificationDropdown } from "~/components/notification-modals"
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -134,39 +124,6 @@ async function handleLogout() {
     console.error('Error logging out:', error)
     alert('Logout failed. Please try again.')
   }
-}
-
-function navigateToNotifications() {
-  // Get current route to determine context
-  const currentRoute = useRoute()
-  const from = currentRoute.path.includes('/task/') ? 'task' :
-               currentRoute.path.includes('/project/') ? 'project' :
-               currentRoute.path.includes('/personal/') ? 'personal' :
-               'dashboard'
-  
-  // If coming from a task page, also pass the task ID
-  let queryParams = `from=${from}`
-  if (currentRoute.path.includes('/task/')) {
-    const taskId = currentRoute.params.id
-    if (taskId) {
-      queryParams += `&taskId=${taskId}`
-    }
-    
-    // If the task has a projectId in the query params, pass it along
-    const projectId = currentRoute.query.projectId
-    if (projectId) {
-      queryParams += `&projectId=${projectId}`
-    }
-  }
-  // If coming from a project page (not dashboard), also pass the project ID
-  if (currentRoute.path.includes('/project/') && !currentRoute.path.includes('/project/dashboard')) {
-    const projectId = currentRoute.params.id
-    if (projectId) {
-      queryParams += `&projectId=${projectId}`
-    }
-  }
-  
-  router.push(`/notifications?${queryParams}`)
 }
 
 // Fetch user data on component mount
@@ -271,31 +228,24 @@ onMounted(() => {
     <SidebarFooter>
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <SidebarMenuButton size="lg" class="cursor-pointer">
-                <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <User class="size-4" />
-                </div>
-                <div class="flex flex-col gap-0.5 leading-none">
-                  <span class="font-semibold">{{ currentUser?.fullname || 'Loading...' }}</span>
-                  <span class="text-xs text-sidebar-muted-foreground">{{ currentUser?.email || 'Loading...' }}</span>
-                </div>
-                <ChevronsUpDown class="ml-auto" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent class="w-56" align="end" side="top">
-              <DropdownMenuItem @click="navigateToNotifications" class="cursor-pointer">
-                <Bell class="mr-2 size-4" />
-                <span>View All Notifications</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="handleLogout" class="cursor-pointer">
-                <LogOut class="mr-2 size-4" />
-                <span>Logout</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div class="flex items-center gap-2 px-2 py-2">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <User class="size-4" />
+              </div>
+              <div class="flex flex-col gap-0.5 leading-none min-w-0">
+                <span class="font-semibold text-sm">{{ currentUser?.fullname || 'Loading...' }}</span>
+                <span class="text-xs text-sidebar-muted-foreground truncate">{{ currentUser?.email || 'Loading...' }}</span>
+              </div>
+            </div>
+            <button 
+              @click="handleLogout" 
+              class="flex items-center justify-center p-2.5 rounded-md hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer"
+              title="Logout"
+            >
+              <LogOut class="size-4" />
+            </button>
+          </div>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarFooter>

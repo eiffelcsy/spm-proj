@@ -1,24 +1,26 @@
 <template>
   <div class="w-full mx-auto p-8 md:px-12 lg:max-w-6xl xl:max-w-7xl">
+    <!-- Exit button in top right corner of page -->
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      @click="goBack" 
+      class="fixed top-20 right-6 text-muted-foreground hover:text-red-600 hover:bg-red-50 z-50"
+    >
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </Button>
 
     <!-- Header -->
     <div class="mb-8">
-      <div class="flex items-start justify-between">
-        <div>
-          <h1 class="text-3xl font-bold mb-6">
-            Notifications
-          </h1>
-          <p class="text-gray-600 dark:text-gray-400">
-            Stay updated with all your task-related notifications
-          </p>
-        </div>
-        <button
-          @click="goBack"
-          class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          title="Close"
-        >
-          <X class="w-6 h-6" />
-        </button>
+      <div>
+        <h1 class="text-3xl font-bold mb-6">
+          Notifications
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+          Stay updated with all your task-related notifications
+        </p>
       </div>
     </div>
 
@@ -190,7 +192,8 @@
 </template>
 
 <script setup>
-import { Bell, Trash2, RefreshCw, X } from 'lucide-vue-next'
+import { Bell, Trash2, RefreshCw } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 
 definePageMeta({
   layout: 'with-sidebar'
