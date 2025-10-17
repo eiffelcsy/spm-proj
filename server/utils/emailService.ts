@@ -435,7 +435,7 @@ export function generateTaskDeletionEmail(
   deleterName: string,
   taskUrl: string
 ): EmailTemplate {
-  const subject = `🗑️ Task Deleted: ${taskTitle}`
+  const subject = `Task Deleted: ${taskTitle}`
   const projectText = projectName ? ` in Project: ${projectName}` : ''
   
   const html = `
