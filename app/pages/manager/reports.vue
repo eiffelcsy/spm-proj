@@ -16,7 +16,7 @@
         <div class="space-y-2">
           <Label for="user-filter">Filter by User</Label>
           <Select v-model="selectedUserId">
-            <SelectTrigger>
+            <SelectTrigger class="w-full">
               <SelectValue placeholder="All Users" />
             </SelectTrigger>
             <SelectContent>
@@ -36,7 +36,7 @@
         <div class="space-y-2">
           <Label for="project-filter">Filter by Project</Label>
           <Select v-model="selectedProjectId">
-            <SelectTrigger>
+            <SelectTrigger class="w-full">
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
             <SelectContent>

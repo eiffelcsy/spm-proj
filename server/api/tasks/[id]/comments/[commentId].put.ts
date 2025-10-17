@@ -57,12 +57,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get current user's staff ID
+    // Get current user's staff ID and department
     const { data: staffData, error: staffError } = await supabase
       .from('staff')
-      .select('id, fullname')
+      .select('id, fullname, department')
       .eq('user_id', user.id)
-      .single() as { data: StaffResponse | null, error: any }
+      .single() as { data: { id: number; fullname: string; department: string | null } | null, error: any }
 
     if (staffError || !staffData) {
       throw createError({
@@ -72,6 +72,62 @@ export default defineEventHandler(async (event) => {
     }
 
     const currentStaffId = staffData.id
+    const currentDepartment = staffData.department
+
+    // Verify task exists and user has department-based access
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('id')
+      .eq('id', taskId)
+      .is('deleted_at', null)
+      .single()
+
+    if (taskError || !task) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Task not found'
+      })
+    }
+
+    // Get task assignees
+    const { data: assigneeRows } = await supabase
+      .from('task_assignees')
+      .select('assigned_to_staff_id')
+      .eq('task_id', taskId)
+      .eq('is_active', true)
+
+    // Check visibility: user can only edit comments if someone from their department is assigned
+    if (currentDepartment) {
+      const { data: departmentStaff, error: deptError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('department', currentDepartment)
+      
+      if (deptError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch department staff',
+          data: deptError
+        })
+      }
+      
+      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
+      const hasAssigneeFromDepartment = assigneeRows?.some((row: any) => 
+        departmentStaffIds.includes(row.assigned_to_staff_id)
+      )
+      
+      if (!hasAssigneeFromDepartment) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to edit comments on this task'
+        })
+      }
+    } else {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to edit comments on this task'
+      })
+    }
 
     // Verify comment exists and belongs to the task
     const { data: comment, error: commentError } = await supabase

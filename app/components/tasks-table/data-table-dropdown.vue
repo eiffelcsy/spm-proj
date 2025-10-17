@@ -67,10 +67,6 @@ function openDeleteModal() {
   isDeleteModalOpen.value = true
 }
 
-function closeDeleteModal() {
-  isDeleteModalOpen.value = false
-}
-
 </script>
 
 <template>
@@ -105,8 +101,9 @@ function closeDeleteModal() {
 
   <!-- Delete confirmation modal -->
   <DeleteTaskModal
-    :isOpen="isDeleteModalOpen"
-    @close="closeDeleteModal"
-    @delete-complete="deleteTask"
+    :open="isDeleteModalOpen"
+    :task="{ id: task.id, title: task.title }"
+    @update:open="(value) => isDeleteModalOpen = value"
+    @confirm="deleteTask"
   />
 </template>

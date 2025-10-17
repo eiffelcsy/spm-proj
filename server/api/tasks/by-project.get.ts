@@ -22,10 +22,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get current user's staff ID
+  // Get current user's staff ID and department
   const { data: staffIdData, error: staffIdError } = await supabase
     .from('staff')
-    .select('id')
+    .select('id, department')
     .eq('user_id', user.id)
     .single()
 
@@ -36,32 +36,64 @@ export default defineEventHandler(async (event) => {
       data: staffIdError
     })
   }
-  const currentStaffId = (staffIdData as { id: number }).id
+  const currentStaffId = (staffIdData as { id: number; department: string | null }).id
+  const currentDepartment = (staffIdData as { id: number; department: string | null }).department
   
-  // Verify user is a member of the project
-  const { data: projectMember, error: memberError } = await supabase
-    .from('project_members')
+  // Verify project exists (excluding soft-deleted projects)
+  const { data: projectExists, error: projectError } = await supabase
+    .from('projects')
     .select('id')
-    .eq('project_id', projectId)
-    .eq('staff_id', currentStaffId)
+    .eq('id', projectId)
+    .is('deleted_at', null)
     .maybeSingle()
 
-  if (memberError) {
+  if (projectError) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to verify project membership',
-      data: memberError
+      statusMessage: 'Failed to verify project',
+      data: projectError
     })
   }
 
-  if (!projectMember) {
+  if (!projectExists) {
     throw createError({
-      statusCode: 403,
-      statusMessage: 'You are not a member of this project'
+      statusCode: 404,
+      statusMessage: 'Project not found'
     })
   }
+
+  // Note: We no longer check if user is a project member
+  // Instead, we check if they can see any tasks based on department visibility
+  // This allows users to view projects where their department colleagues are assigned tasks
 
   try {
+    // Get staff IDs in the same department as current user
+    let departmentStaffIds: number[] = []
+    if (currentDepartment) {
+      const { data: departmentStaff, error: deptError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('department', currentDepartment)
+      
+      if (deptError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch department staff',
+          data: deptError
+        })
+      }
+      
+      departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
+    }
+
+    // If user has no department or department has no members, they can't see any tasks
+    if (departmentStaffIds.length === 0) {
+      return {
+        tasks: [],
+        count: 0
+      }
+    }
+
     // Fetch tasks for the specified project (excluding soft-deleted tasks)
     const { data: tasks, error } = await supabase
       .from('tasks')
@@ -92,9 +124,45 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // Filter tasks: only include tasks where someone from the user's department is assigned
+    const taskIds = tasks.map((t: any) => t.id)
+    const { data: taskAssignees, error: assigneeError } = await supabase
+      .from('task_assignees')
+      .select('task_id, assigned_to_staff_id')
+      .in('task_id', taskIds)
+      .eq('is_active', true)
+
+    if (assigneeError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to fetch task assignees',
+        data: assigneeError
+      })
+    }
+
+    // Build a set of task IDs that have at least one assignee from the user's department
+    const visibleTaskIds = new Set<number>()
+    if (taskAssignees) {
+      for (const assignee of taskAssignees) {
+        if (departmentStaffIds.includes(assignee.assigned_to_staff_id)) {
+          visibleTaskIds.add(assignee.task_id)
+        }
+      }
+    }
+
+    // Filter tasks to only include visible ones
+    const visibleTasks = tasks.filter((task: any) => visibleTaskIds.has(task.id))
+
+    if (visibleTasks.length === 0) {
+      return {
+        tasks: [],
+        count: 0
+      }
+    }
+
     // Populate creator, assignees, and project information for each task
     const enrichedTasks = await Promise.all(
-      tasks.map(async (task: any) => {
+      visibleTasks.map(async (task: any) => {
         // Fetch creator information
         let creator = null
         if (task.creator_id) {

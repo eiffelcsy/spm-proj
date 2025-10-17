@@ -225,8 +225,10 @@ async function fetchData() {
   try {
     error.value = null
 
-    // Fetch real tasks from Supabase
-    const fetchedTasks = await $fetch('/api/tasks')
+    // Fetch tasks for this specific project with department-based filtering
+    const fetchedTasks = await $fetch('/api/tasks/by-project', {
+      params: { project_id: projectId.value }
+    })
 
     // Handle the API response structure { tasks: [...], count: number }
     if (fetchedTasks && Array.isArray(fetchedTasks.tasks)) {
@@ -343,6 +345,7 @@ const nonOverdueTasks = computed(() => {
 })
 
 // Filtered tasks based on selected project (excluding overdue tasks)
+// Note: Tasks are already filtered by department in the API, so we just need to filter by project
 const filteredTasks = computed(() => {
   const tasksToFilter = nonOverdueTasks.value
 
@@ -351,23 +354,20 @@ const filteredTasks = computed(() => {
     return []
   }
 
-  return tasksToFilter.filter(task => {
-    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.project_id === parseInt(projectId.value)
-  })
+  // Tasks from /api/tasks/by-project are already filtered by department
+  return tasksToFilter
 })
 
 // Filtered overdue tasks based on selected project
+// Note: Tasks are already filtered by department in the API
 const filteredOverdueTasks = computed(() => {
   // Ensure rawTasks.value is an array
   if (!Array.isArray(rawTasks.value)) {
     return []
   }
 
-  return overdueTasks.value.filter(task => {
-    const rawTask = rawTasks.value.find(rt => rt.id === task.id)
-    return rawTask?.project_id === parseInt(projectId.value)
-  })
+  // Tasks from /api/tasks/by-project are already filtered by department
+  return overdueTasks.value
 })
 
 // Check if current user is the project owner
@@ -399,7 +399,8 @@ function getProjectTaskCount(): number {
   if (!Array.isArray(rawTasks.value)) {
     return 0
   }
-  return rawTasks.value.filter(task => task.project_id === parseInt(projectId.value)).length
+  // Tasks are already filtered by project in fetchData, so just return the count
+  return rawTasks.value.length
 }
 
 function formatDate(date: any): string {

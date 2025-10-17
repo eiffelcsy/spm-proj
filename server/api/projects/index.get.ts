@@ -14,49 +14,42 @@ export default defineEventHandler(async (event) => {
 
     const { data: staffRow, error: staffError } = await supabase
         .from('staff')
-        .select('id')
+        .select('id, department')
         .eq('user_id', user.id)
-        .maybeSingle() as { data: { id: number } | null, error: any }
+        .maybeSingle() as { data: { id: number; department: string | null } | null, error: any }
 
     if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
 
-    // Get project IDs where the user is a member
-    const { data: projectMembers, error: membersError } = await supabase
-        .from('project_members')
-        .select('project_id')
-        .eq('staff_id', staffRow.id)
+    const currentStaffId = staffRow.id
+    const currentDepartment = staffRow.department
 
-    if (membersError) {
-        throw createError({ statusCode: 500, statusMessage: membersError.message })
-    }
-
-    // Get projects where user is the owner
-    const { data: ownedProjects, error: ownedError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('owner_id', staffRow.id)
-        .is('deleted_at', null)
-
-    if (ownedError) {
-        throw createError({ statusCode: 500, statusMessage: ownedError.message })
-    }
-
-    // Combine member project IDs and owned project IDs
-    const memberProjectIds = projectMembers ? projectMembers.map((pm: any) => pm.project_id) : []
-    const ownedProjectIds = ownedProjects ? ownedProjects.map((p: any) => p.id) : []
-    const allProjectIds = [...new Set([...memberProjectIds, ...ownedProjectIds])]
-
-    // If user has no projects (not member or owner of any), return empty array
-    if (allProjectIds.length === 0) {
+    // If user has no department, they can't see any projects
+    if (!currentDepartment) {
         return []
     }
 
-    // Fetch all projects where user is either member or owner (excluding soft-deleted projects)
+    // Get all staff IDs in the same department
+    const { data: departmentStaff, error: deptError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('department', currentDepartment)
+
+    if (deptError) {
+        throw createError({ statusCode: 500, statusMessage: deptError.message })
+    }
+
+    const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
+
+    if (departmentStaffIds.length === 0) {
+        return []
+    }
+
+    // Fetch all projects (excluding soft-deleted projects)
+    // We no longer filter by membership here - visibility is determined by task assignments
     const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .in('id', allProjectIds)
         .is('deleted_at', null)
         .order('created_at', { ascending: false }) as { data: ProjectDB[] | null, error: any }
 
@@ -64,5 +57,52 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 500, statusMessage: projectsError.message })
     }
 
-    return projects || []
+    if (!projects || projects.length === 0) {
+        return []
+    }
+
+    // Filter projects: only include projects that have at least one task assigned to someone in the user's department
+    const visibleProjectIds = new Set<number>()
+
+    for (const project of projects) {
+        // Get all tasks for this project
+        const { data: projectTasks, error: tasksError } = await supabase
+            .from('tasks')
+            .select('id')
+            .eq('project_id', project.id)
+            .is('deleted_at', null)
+
+        if (tasksError || !projectTasks || projectTasks.length === 0) {
+            continue
+        }
+
+        const taskIds = projectTasks.map((t: any) => t.id)
+
+        // Get task assignees for all tasks in this project
+        const { data: taskAssignees, error: assigneeError } = await supabase
+            .from('task_assignees')
+            .select('assigned_to_staff_id')
+            .in('task_id', taskIds)
+            .eq('is_active', true)
+
+        if (assigneeError) {
+            continue
+        }
+
+        // Check if any assignee is from the user's department
+        if (taskAssignees) {
+            const hasDepartmentAssignee = taskAssignees.some((assignee: any) => 
+                departmentStaffIds.includes(assignee.assigned_to_staff_id)
+            )
+
+            if (hasDepartmentAssignee) {
+                visibleProjectIds.add(project.id)
+            }
+        }
+    }
+
+    // Filter projects to only include visible ones
+    const visibleProjects = projects.filter((project: ProjectDB) => visibleProjectIds.has(project.id))
+
+    return visibleProjects
 })

@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const currentStaffId = (staffIdData as { id: number }).id
   
   try {
-    // Get task IDs where user is an assignee
+    // Get task IDs where current user is an assignee (personal dashboard shows only tasks assigned to user)
     const { data: assignedTaskIds, error: assigneeError } = await supabase
       .from('task_assignees')
       .select('task_id')
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
 
     const assignedTaskIdList = assignedTaskIds?.map((row: any) => row.task_id) || []
 
-    // Fetch overdue tasks where user is creator OR assignee (excluding soft-deleted tasks)
+    // Fetch overdue tasks where current user is an assignee (excluding soft-deleted tasks)
     let query = supabase
       .from('tasks')
       .select('*')
@@ -54,12 +54,12 @@ export default defineEventHandler(async (event) => {
       .is('deleted_at', null)
       .order('due_date', { ascending: true })
 
-    // If user has assigned tasks, include them in the query
+    // Only show tasks where user is assigned
     if (assignedTaskIdList.length > 0) {
-      query = query.or(`creator_id.eq.${currentStaffId},id.in.(${assignedTaskIdList.join(',')})`)
+      query = query.in('id', assignedTaskIdList)
     } else {
-      // If no assigned tasks, just get tasks created by user
-      query = query.eq('creator_id', currentStaffId)
+      // If no assigned tasks, return empty result
+      query = query.eq('id', -1) // This will return no results
     }
 
     const { data: tasks, error } = await query

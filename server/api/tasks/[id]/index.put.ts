@@ -36,10 +36,10 @@ export default defineEventHandler(async (event) => {
 
   try {
 
-    // Get current user's staff ID
+    // Get current user's staff ID and department
     const { data: staffIdData, error: staffIdError } = await supabase
       .from('staff')
-      .select('id')
+      .select('id, department')
       .eq('user_id', user.id)
       .single()
 
@@ -50,7 +50,8 @@ export default defineEventHandler(async (event) => {
         data: staffIdError
       })
     }
-    const currentStaffId = (staffIdData as { id: number }).id
+    const currentStaffId = (staffIdData as { id: number; department: string | null }).id
+    const currentDepartment = (staffIdData as { id: number; department: string | null }).department
 
     // Check if task exists before checking permissions (excluding soft-deleted tasks)
     const { data: taskExists, error: fetchError } = await supabase
@@ -80,6 +81,43 @@ export default defineEventHandler(async (event) => {
       .select('assigned_to_staff_id')
       .eq('task_id', taskId)
       .eq('is_active', true)
+
+    // Check visibility: user can only edit task if someone from their department is assigned
+    if (currentDepartment) {
+      // Get all staff IDs in the same department
+      const { data: departmentStaff, error: deptError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('department', currentDepartment)
+      
+      if (deptError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch department staff',
+          data: deptError
+        })
+      }
+      
+      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
+      
+      // Check if any assignee is from the user's department
+      const hasAssigneeFromDepartment = assigneeRows?.some((row: any) => 
+        departmentStaffIds.includes(row.assigned_to_staff_id)
+      )
+      
+      if (!hasAssigneeFromDepartment) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to view or edit this task'
+        })
+      }
+    } else {
+      // If user has no department, they can't edit any tasks
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to view or edit this task'
+      })
+    }
 
     // Check if task is assigned to anyone
     const isTaskAssigned = assigneeRows && assigneeRows.length > 0

@@ -227,7 +227,10 @@ async function fetchData() {
 
 async function fetchTasks() {
     try {
-        const fetchedTasks = await $fetch('/api/tasks')
+        // Fetch tasks for this specific project with department-based filtering
+        const fetchedTasks = await $fetch('/api/tasks/by-project', {
+            params: { project_id: projectId.value }
+        })
 
         if (fetchedTasks && Array.isArray(fetchedTasks.tasks)) {
             rawTasks.value = fetchedTasks.tasks
