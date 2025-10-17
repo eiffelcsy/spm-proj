@@ -114,9 +114,9 @@ export default defineEventHandler(async (event) => {
 
       const assignedTaskIds = assignedTasks?.map(t => t.task_id) || []
       
-      // Filter tasks to only those assigned to the user or created by the user
+      // Filter tasks to only those assigned to the user
       filteredTasks = filteredTasks.filter(task => 
-        assignedTaskIds.includes(task.id) || task.creator_id === filters.user_id
+        assignedTaskIds.includes(task.id)
       )
     }
 
@@ -167,14 +167,22 @@ export default defineEventHandler(async (event) => {
     const enrichedTasks = await Promise.all(
       filteredTasks.map(async (task) => {
         // Fetch assignees
-        const { data: assignees } = await supabase
+        let assignees: any[] = []
+        const { data: assigneeRows } = await supabase
           .from('task_assignees')
-          .select(`
-            assigned_to_staff_id,
-            staff:staff!task_assignees_assigned_to_staff_id_fkey(id, fullname)
-          `)
+          .select('assigned_to_staff_id')
           .eq('task_id', task.id)
           .eq('is_active', true)
+
+        if (assigneeRows && assigneeRows.length > 0) {
+          const staffIds = assigneeRows.map((row: any) => row.assigned_to_staff_id)
+          const { data: staffList } = await supabase
+            .from('staff')
+            .select('id, fullname')
+            .in('id', staffIds)
+
+          assignees = staffList || []
+        }
 
         // Fetch project info
         let project = null
@@ -190,7 +198,7 @@ export default defineEventHandler(async (event) => {
 
         return {
           ...task,
-          assignees: assignees?.map((a: any) => a.staff) || [],
+          assignees,
           project
         }
       })

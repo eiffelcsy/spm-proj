@@ -503,6 +503,74 @@ export interface TaskCompletionReportData {
   generatedAt: string
 }
 
+/**
+ * Logged time report metrics
+ * Used in manager reports page
+ */
+export interface LoggedTimeMetrics {
+  totalHours: number
+  totalTasks: number
+  completedTasks: number
+  inProgressTasks: number
+  avgHoursPerTask: number
+  groupCount: number
+}
+
+/**
+ * Task with time information
+ * Used in logged time reports
+ */
+export interface TaskWithTime {
+  id: number
+  title: string
+  status: string
+  created_at: string
+  completed_at: string | null
+  project_id: number | null
+  project_name: string | null
+  department: string | null
+  logged_hours: number
+  is_in_progress: boolean
+}
+
+/**
+ * Grouped time data for projects or departments
+ * Used in logged time reports
+ */
+export interface GroupedTimeData {
+  name: string
+  total_hours: number
+  completed_tasks: number
+  in_progress_tasks: number
+  avg_hours_per_task: number
+  tasks: TaskWithTime[]
+}
+
+/**
+ * Logged time report filters
+ * Used in manager reports page
+ */
+export interface LoggedTimeFilters {
+  grouping?: 'project' | 'department'
+  project_id?: number
+  department?: string
+  start_date?: string
+  end_date?: string
+  projectName?: string | null
+  departmentName?: string | null
+}
+
+/**
+ * Logged time report data
+ * Used in manager reports page
+ */
+export interface LoggedTimeReportData {
+  metrics: LoggedTimeMetrics
+  groupedData: GroupedTimeData[]
+  filters: LoggedTimeFilters
+  generatedAt: string
+}
+
 // ============================================================================
 // FORM STATE TYPES (UI Components)
 // ============================================================================
