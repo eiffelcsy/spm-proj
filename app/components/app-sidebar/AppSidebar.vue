@@ -40,7 +40,8 @@ import {
     User,
     Bell,
     LogOut,
-    UserCog, // <-- 1. IMPORTED NEW ICON
+    UserCog,
+    FileChartColumn,
 } from "lucide-vue-next"
 import { NotificationDropdown } from "~/components/notification-modals"
 
@@ -91,6 +92,11 @@ const isProjectsDashboardActive = computed(() => {
  * Determine if the current route is within the admin section
  */
 const isAdminPanelActive = computed(() => route.path.startsWith('/admin')) // <-- 3. ADDED ACTIVE CHECK FOR ADMIN
+
+/**
+ * Determine if the current route is within the manager section
+ */
+const isManagerPanelActive = computed(() => route.path.startsWith('/manager'))
 
 /**
  * Get highlighting classes for sidebar menu buttons
@@ -238,6 +244,15 @@ onMounted(() => {
                 </CollapsibleContent>
               </SidebarMenuItem>
             </Collapsible>
+
+            <SidebarMenuItem v-if="isManager" key="ManagerPanel">
+              <SidebarMenuButton as-child :class="getActiveClasses(isManagerPanelActive)">
+                <NuxtLink to="/manager/reports">
+                  <FileChartColumn class="size-4" />
+                  <span>Manage Reports</span>
+                </NuxtLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem> 
 
             <SidebarMenuItem v-if="isAdmin" key="AdminPanel">
               <SidebarMenuButton as-child :class="getActiveClasses(isAdminPanelActive)">

@@ -357,6 +357,15 @@ export function useBreadcrumbs() {
           isCurrentPage: true
         })
       }
+    } else if (pathSegments[0] === 'manager') {
+      // Handle admin routes
+      if (pathSegments[1] === 'reports') {
+        items.push({
+          label: 'Manage Reports',
+          href: '/manager/reports',
+          isCurrentPage: true
+        })
+      }
     } else {
       // Fallback for unknown routes
       items.push({

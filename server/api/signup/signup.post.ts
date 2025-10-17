@@ -1,12 +1,12 @@
 // file: server/api/login/signup.post.ts
 
 import { defineEventHandler, readBody } from 'h3';
-import { serverSupabaseClient } from '#supabase/server';
+import { serverSupabaseServiceRole } from '#supabase/server';
 
 export default defineEventHandler(async (event) => {
   // 1. Capture fullname along with email and password
   const { email, password, fullname } = await readBody(event);
-  const supabase = await serverSupabaseClient(event);
+  const supabase = await serverSupabaseServiceRole(event);
 
   if (!supabase) {
     throw createError({
@@ -39,30 +39,21 @@ export default defineEventHandler(async (event) => {
   const newUser = authData.user;
 
   // --- Step 2: Insert a new row into the public 'staff' table ---
+  // Using service role to bypass RLS since user is not authenticated during signup
   const { error: staffInsertError } = await (supabase as any)
     .from('staff')
     .insert([{
       user_id: newUser.id, // Link to the auth.users table
-      email: newUser.email,
-      fullname: fullname, // Use the fullname from the request body
-      // You can add default values for other columns here
-      // e.g., staff_type: 'staff'
+      fullname: fullname,
+      staff_type: 'staff',
     }]);
 
-  // --- Step 3: Handle potential errors and clean up ---
   if (staffInsertError) {
-    // If the staff profile creation fails, delete the newly created user
-    // to prevent orphaned auth users. This is a crucial cleanup step.
-    await supabase.auth.admin.deleteUser(newUser.id);
-    
     throw createError({
       statusCode: 500,
-      statusMessage: `Could not create staff profile: ${staffInsertError.message}`,
+      statusMessage: staffInsertError.message,
     });
   }
 
-  return { 
-    success: true, 
-    message: 'Please check your email to confirm your account!' 
-  };
+  return { success: true, message: 'Please check your email to confirm your account!' };
 });

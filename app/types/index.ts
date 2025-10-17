@@ -462,6 +462,47 @@ export interface ReportWithRelations extends ReportDB {
   generated_by_staff: StaffMember
 }
 
+/**
+ * Task completion report metrics
+ * Used in manager reports page
+ */
+export interface TaskCompletionMetrics {
+  totalTasks: number
+  completedTasks: number
+  completedPercentage: string
+  inProgressTasks: number
+  inProgressPercentage: string
+  notStartedTasks: number
+  notStartedPercentage: string
+  blockedTasks: number
+  blockedPercentage: string
+  projectedTasks: number
+}
+
+/**
+ * Task completion report filters
+ * Used in manager reports page
+ */
+export interface TaskCompletionFilters {
+  user_id?: number
+  project_id?: number
+  start_date?: string
+  end_date?: string
+  userName?: string | null
+  projectName?: string | null
+}
+
+/**
+ * Task completion report data
+ * Used in manager reports page
+ */
+export interface TaskCompletionReportData {
+  metrics: TaskCompletionMetrics
+  tasks: TaskFromAPI[]
+  filters: TaskCompletionFilters
+  generatedAt: string
+}
+
 // ============================================================================
 // FORM STATE TYPES (UI Components)
 // ============================================================================
