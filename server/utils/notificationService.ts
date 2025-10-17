@@ -176,7 +176,6 @@ export async function createDeadlineReminderNotification(
   taskId: number,
   assigneeStaffId: number,
   taskTitle: string,
-  dueDate: string,
   priority: string,
   projectName?: string
 ): Promise<NotificationDB | null> {
