@@ -133,9 +133,6 @@
                   :placeholder="projects.find(p => String(p.id) === selectedProjectId)?.name || 'Select project'" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem :value="'Personal'">
-                  Personal
-                </SelectItem>
                 <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
                   {{ project.name }}
                 </SelectItem>
@@ -420,7 +417,7 @@ const staffMembers = ref<StaffMember[]>([])
 
 // projects dropdown
 const projects = ref<{ id: number; name: string }[]>([])
-const selectedProjectId = ref<string | 'Personal'>('');
+const selectedProjectId = ref<string>('');
 
 // Load staff members when modal opens
 watch(() => props.isOpen, async (isOpen) => {
@@ -450,14 +447,9 @@ watch(() => props.isOpen, async (isOpen) => {
 
     // Default project selection
     if (props.project) {
-      selectedProjectId.value = String(props.project);
-      console.log('Setting project from prop:', props.project);
-    } else if (projects.value.length > 0) {
-      selectedProjectId.value = 'Select project';
-      console.log('No project prop, defaulting to first project:', selectedProjectId.value);
+      selectedProjectId.value = String(props.project)
     } else {
-      selectedProjectId.value = 'None'
-      console.log('No project prop, setting to empty string')
+      selectedProjectId.value = '' // require user to pick a project
     }
 
     // Fetch assignees based on project
@@ -607,8 +599,12 @@ async function createTask() {
       return
     }
 
-    // Filter out empty/invalid assignees
-    const validAssignees = assignedTo.value.filter(id => id && id.trim() !== '')
+    if (!selectedProjectId.value || !projects.value.find(p => String(p.id) === selectedProjectId.value)) {
+      errorMessage.value = 'Please select a valid project.'
+      return
+    }
+
+    const validAssignees = assignedTo.value.filter(id => id && String(id).trim() !== '')
 
     if (validAssignees.length === 0) {
       errorMessage.value = 'At least one assignee is required.'
