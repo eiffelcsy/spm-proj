@@ -127,17 +127,27 @@
           <!-- Project Selection -->
           <div>
             <Label class="block text-sm font-medium mb-1">Project</Label>
-            <Select v-model="selectedProjectId">
-              <SelectTrigger>
-                <SelectValue
-                  :placeholder="projects.find(p => String(p.id) === selectedProjectId)?.name || 'Select project'" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
-                  {{ project.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <template v-if="isProjectLocked">
+              <div class="bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-3">
+                <div class="text-sm font-medium">
+                  {{ lockedProjectName || (projects.find(p => String(p.id) === selectedProjectId)?.name)}}
+                </div>
+              </div>
+            </template>
+            <!-- Normal selectable project dropdown -->
+            <template v-else>
+              <Select v-model="selectedProjectId">
+                <SelectTrigger>
+                  <SelectValue
+                    :placeholder="projects.find(p => String(p.id) === selectedProjectId)?.name || 'Select project'" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="project in projects" :key="project.id" :value="String(project.id)">
+                    {{ project.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </template>
           </div>
         </div>
 
@@ -257,8 +267,8 @@
                     </NumberField>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <Label class="text-xs mb-1">Repeat Interval</Label>
-                    <NumberField v-model="subtask.repeatInterval" :min="0" :max="10" :default-value="0" class="h-8">
+                    <Label class="text-xs mb-1">Repeat Interval (in Days)</Label>
+                    <NumberField v-model="subtask.repeatInterval" :min="0" :default-value="0" class="h-8">
                       <NumberFieldContent>
                         <NumberFieldDecrement />
                         <NumberFieldInput class="text-xs" />
@@ -282,8 +292,14 @@
 
                 <!-- Assignee -->
                 <div class="flex flex-col gap-1 text-xs">
-                  <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
-                    :staff-members="staffMembers" compact />
+                  <!-- limit subtask assignee options to the parent task assignees -->
+                  <AssignCombobox
+                    v-model="subtask.assignedTo"
+                    label="Assign To"
+                    placeholder="Select assignee"
+                    :staff-members="staffMembers.filter(s => assignedTo.includes(String(s.id)))"
+                    compact
+                  />
                 </div>
 
                 <!-- Notes -->
@@ -335,7 +351,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import {
   Dialog,
   DialogContent,
@@ -419,7 +435,7 @@ const staffMembers = ref<StaffMember[]>([])
 const projects = ref<{ id: number; name: string }[]>([])
 const selectedProjectId = ref<string>('');
 
-// Load staff members when modal opens
+// Load staff members & projects when modal opens
 watch(() => props.isOpen, async (isOpen) => {
   if (!isOpen) return
   try {
@@ -430,55 +446,67 @@ watch(() => props.isOpen, async (isOpen) => {
     priority.value = 1
     repeatInterval.value = 0
     notes.value = ''
-    assignedTo.value = props.currentUser ? [props.currentUser] : []
     subtasks.value = []
     errorMessage.value = ''
     successMessage.value = ''
 
     // Load projects
     try {
-      const fetchedProjects = await $fetch('/api/projects');
+      const fetchedProjects = await $fetch('/api/projects')
       projects.value = Array.isArray(fetchedProjects)
         ? fetchedProjects.map((p: any) => ({ id: p.id, name: p.name }))
-        : [];
+        : []
     } catch (err) {
-      projects.value = [];
+      projects.value = []
     }
 
-    // Default project selection
     if (props.project) {
       selectedProjectId.value = String(props.project)
     } else {
-      selectedProjectId.value = '' // require user to pick a project
+      selectedProjectId.value = ''
     }
 
-    // Fetch assignees based on project
-    if (props.project) {
-
-      // If project exists, fetch project members as possible assignees
-      staffMembers.value = (await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/project-members', {
-        params: { project_id: props.project }
-      }))
-        .map(staff => ({
-          ...staff,
-          fullname: staff.fullname,
-          email: staff.email ?? `${staff.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
+    try {
+      const fetchedStaff = await $fetch('/api/staff')
+      if (Array.isArray(fetchedStaff)) {
+        staffMembers.value = fetchedStaff.map((s: any) => ({
+          id: s.id,
+          fullname: s.fullname ?? s.name ?? `${s.first_name ?? ''} ${s.last_name ?? ''}`.trim(),
+          email: s.email ?? ''
         }))
-    } else {
-      // If no project, only show current user as assignee option
-      if (props.currentUser) {
-        const currentUserData = await $fetch<{ id: number; fullname: string; email?: string }>('/api/user/me')
-        staffMembers.value = [{
-          id: currentUserData.id,
-          fullname: currentUserData.fullname,
-          email: currentUserData.email ?? `${currentUserData.fullname.toLowerCase().replace(/\s+/g, '.')}@needtochangethiscode.com`
-        }]
       } else {
         staffMembers.value = []
       }
+    } catch (err) {
+      try {
+        if (selectedProjectId.value) {
+          const pm = await $fetch<{ id: number; fullname: string; email?: string }[]>('/api/project-members', {
+            params: { project_id: selectedProjectId.value }
+          })
+          staffMembers.value = pm.map(staff => ({
+            id: staff.id,
+            fullname: staff.fullname,
+            email: staff.email ?? ''
+          }))
+        } else if (props.currentUser) {
+          const currentUserData = await $fetch<{ id: number; fullname: string; email?: string }>('/api/user/me')
+          staffMembers.value = [{
+            id: currentUserData.id,
+            fullname: currentUserData.fullname,
+            email: currentUserData.email ?? ''
+          }]
+        } else {
+          staffMembers.value = []
+        }
+      } catch (err2) {
+        console.error('Failed to load fallback staff', err2)
+        staffMembers.value = []
+      }
     }
+
+    assignedTo.value = props.currentUser ? [props.currentUser] : []
   } catch (err) {
-    console.error('Failed to load staff', err)
+    console.error('Failed to initialize create task modal', err)
   }
 })
 
@@ -572,6 +600,15 @@ function handleSuccessOk() {
   emit('close')
 }
 
+watch(assignedTo, (newAssigned) => {
+  const allowed = newAssigned ?? []
+  for (const st of subtasks.value) {
+    if (Array.isArray(st.assignedTo) && st.assignedTo.length) {
+      st.assignedTo = st.assignedTo.filter(id => allowed.includes(String(id)))
+    }
+  }
+}, { immediate: true })
+
 async function createTask() {
   try {
     if (!title.value.trim()) {
@@ -614,6 +651,64 @@ async function createTask() {
     if (validAssignees.length > 5) {
       errorMessage.value = 'Maximum 5 assignees allowed.'
       return
+    }
+
+    // validate each subtask (title, dates, notes, date ranges, assignees)
+    for (let i = 0; i < subtasks.value.length; i++) {
+      const sub = subtasks.value[i]
+      const n = i + 1
+
+      if (!sub || !sub.title || !sub.title.trim()) {
+        errorMessage.value = `Subtask ${n}: Title is required.`
+        return
+      }
+
+      if (!sub.startDate) {
+        errorMessage.value = `Subtask ${n}: Start date is required.`
+        return
+      }
+
+      if (!sub.dueDate) {
+        errorMessage.value = `Subtask ${n}: Due date is required.`
+        return
+      }
+
+      if (!sub.notes || !sub.notes.trim()) {
+        errorMessage.value = `Subtask ${n}: Notes are required.`
+        return
+      }
+
+      if (sub.dueDate && sub.startDate && sub.dueDate < sub.startDate) {
+        errorMessage.value = `Subtask ${n}: Due date cannot be before start date.`
+        return
+      }
+
+      // ensure subtask dates fall within main task date range
+      if (startDate.value && sub.startDate && sub.startDate < startDate.value) {
+        errorMessage.value = `Subtask ${n}: Start date cannot be before main task start date.`
+        return
+      }
+      if (dueDate.value && sub.dueDate && sub.dueDate > dueDate.value) {
+        errorMessage.value = `Subtask ${n}: Due date cannot be after main task due date.`
+        return
+      }
+
+      const validSubAssignees = (sub.assignedTo ?? []).filter(id => id && String(id).trim() !== '')
+      if (validSubAssignees.length === 0) {
+        errorMessage.value = `Subtask ${n}: At least one assignee is required.`
+        return
+      }
+      if (validSubAssignees.length > 5) {
+        errorMessage.value = `Subtask ${n}: Maximum 5 assignees allowed.`
+        return
+      }
+
+      // ensure subtask assignees are subset of parent assignees
+      const invalid = validSubAssignees.find(id => !assignedTo.value.includes(String(id)))
+      if (invalid) {
+        errorMessage.value = `Subtask ${n}: assignees must be chosen from the parent task assignees.`
+        return
+      }
     }
 
     errorMessage.value = ''
@@ -685,4 +780,10 @@ function formatDate(date: DateValue) {
   const year = jsDate.getFullYear()
   return `${day}/${month}/${year}`
 }
+
+// when parent passes props.project the project selection must be locked
+const isProjectLocked = computed(() => !!props.project)
+const lockedProjectName = computed(() => {
+  return projects.value.find(p => String(p.id) === String(selectedProjectId.value))?.name ?? ''
+})
 </script>
