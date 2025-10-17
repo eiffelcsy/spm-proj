@@ -12,6 +12,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.19",
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19",
+    "@fullcalendar/vue3": "^6.1.19",
     "@nuxtjs/supabase": "^1.6.2",
     "@radix-icons/vue": "^1.0.0",
     "@supabase/supabase-js": "^2.57.4",

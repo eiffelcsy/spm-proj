@@ -59,14 +59,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Progress bar for auto-fade -->
-      <div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-b-lg overflow-hidden">
-        <div 
-          class="h-full bg-blue-500 transition-all duration-100 ease-linear"
-          :style="{ width: `${progressWidth}%` }"
-        />
-      </div>
     </div>
   </Transition>
 </template>
@@ -85,26 +77,7 @@ const emit = defineEmits<{
   navigateToTask: [taskId: number]
 }>()
 
-const { formatNotificationTime, getPopupRemainingTime, getNotificationIcon, getNotificationColor, getIconBackgroundClass } = useNotifications()
-
-// Reactive progress bar width
-const progressWidth = ref(100)
-
-// Update progress bar every 100ms
-let progressInterval: NodeJS.Timeout | null = null
-
-onMounted(() => {
-  progressInterval = setInterval(() => {
-    progressWidth.value = getPopupRemainingTime()
-  }, 100)
-})
-
-onUnmounted(() => {
-  if (progressInterval) {
-    clearInterval(progressInterval)
-  }
-})
-
+const { formatNotificationTime, getNotificationIcon, getNotificationColor, getIconBackgroundClass } = useNotifications()
 
 // ============================================================================
 // ICON MAPPING
