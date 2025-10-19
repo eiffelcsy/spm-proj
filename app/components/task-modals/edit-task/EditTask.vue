@@ -133,6 +133,19 @@
             placeholder="Add notes here..."></Textarea>
         </div>
 
+        <!-- Tags -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Tags</Label>
+          <TagsInput v-model="tags" class="w-full">
+            <TagsInputItem v-for="tag in tags" :key="tag" :value="tag">
+              <TagsInputItemText />
+              <TagsInputItemDelete />
+            </TagsInputItem>
+            <TagsInputInput placeholder="Add tags (eg. #SMU, #Urgent)" />
+          </TagsInput>
+          <p class="text-xs text-muted-foreground mt-1">Place a # before each tag (eg. #SMU) and press the Enter key to add a tag</p>
+        </div>
+
         <DialogFooter class="gap-2">
           <Button variant="outline" @click="$emit('update:open', false)">
             Cancel
@@ -184,6 +197,7 @@ import {
   NumberFieldInput,
 } from "@/components/ui/number-field";
 import { Textarea } from "@/components/ui/textarea";
+import { TagsInput, TagsInputInput, TagsInputItem, TagsInputItemDelete, TagsInputItemText } from "@/components/ui/tags-input";
 import { AssignCombobox } from "@/components/task-modals/assign-combobox";
 
 const supabase = useSupabaseClient();
@@ -227,6 +241,7 @@ const status = ref("not-started");
 const priority = ref(1);
 const repeatInterval = ref(0);
 const description = ref("");
+const tags = ref<string[]>([]);
 const assignedTo = ref<string[]>([]);
 
 const staffMembers = ref<{ id: number; fullname: string; email: string }[]>([]);
@@ -350,6 +365,7 @@ function populateForm() {
   priority.value = props.task.priority ? Number(props.task.priority) : 1;
   repeatInterval.value = props.task.repeat_interval ? Number(props.task.repeat_interval) : 0;
   description.value = props.task.notes || "";
+  tags.value = props.task.tags || [];
 
   // Handle assignees - extract ALL from assignees array
   if (props.task.assignees && Array.isArray(props.task.assignees) && props.task.assignees.length > 0) {
@@ -402,6 +418,7 @@ async function updateTask() {
       priority: priority.value.toString(),
       repeat_interval: repeatInterval.value.toString(),
       notes: description.value || null,
+      tags: tags.value,
       project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assignedTo.value.map(id => parseInt(id)),
     };

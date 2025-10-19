@@ -8,7 +8,8 @@ import {
   createStartDateColumn, 
   createDueDateColumn, 
   createStatusColumn,
-  createAssigneesColumn
+  createAssigneesColumn,
+  createTagsColumn
 } from './column-helpers'
 
 
@@ -31,6 +32,7 @@ export const columns: ColumnDef<Task>[] = [
     },
   },
   createAssigneesColumn(),
+  createTagsColumn(),
   createStatusColumn(),
   {
     id: 'actions',

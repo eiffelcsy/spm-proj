@@ -2,7 +2,7 @@
 import { h, computed } from 'vue'
 import DataTableColumnHeader from '../data-table-column-header.vue'
 import DropdownAction from '../data-table-dropdown.vue'
-import { formatDate, createStartDateColumn, createStatusColumn, createAssigneesColumn } from './column-helpers'
+import { formatDate, createStartDateColumn, createStatusColumn, createAssigneesColumn, createTagsColumn } from './column-helpers'
 
 export const overdueColumns = computed(() => [
     {
@@ -42,6 +42,7 @@ export const overdueColumns = computed(() => [
     },
 },
     createAssigneesColumn(),
+    createTagsColumn(),
     createStatusColumn(),
     {
       id: 'actions',

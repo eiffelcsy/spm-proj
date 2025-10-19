@@ -137,6 +137,7 @@ function transformTask(task: any): Task {
     status: task.status || "not-started",
     notes: task.notes,
     priority: task.priority,
+    tags: task.tags || [],
     assignees: task.assignees?.map((a: any) => ({
       id: a.assigned_to?.id || a.id,
       fullname: a.assigned_to?.fullname || a.fullname

@@ -233,3 +233,52 @@ export function createAssigneesColumn() {
   }
 }
 
+/**
+ * Create a reusable tags column
+ */
+export function createTagsColumn() {
+  return {
+    accessorKey: 'tags',
+    header: ({ column }: any) => h(DataTableColumnHeader, { 
+      column: column,
+      title: 'Tags'
+    }),
+    cell: ({ row }: any) => {
+      const tags = row.getValue('tags') as string[] | undefined
+      if (!tags || tags.length === 0) {
+        return h('div', { class: 'text-gray-400 italic text-sm' }, 'No tags')
+      }
+      
+      // Show up to 3 tags, with a "+X more" indicator if there are more
+      const visibleTags = tags.slice(0, 3)
+      const remainingCount = tags.length - 3
+      
+      return h('div', { class: 'flex flex-wrap gap-1 max-w-[200px]' }, [
+        ...visibleTags.map((tag: string) => 
+          h(Badge, { 
+            variant: 'outline',
+            class: 'text-xs px-1.5 py-0.5'
+          }, () => tag)
+        ),
+        ...(remainingCount > 0 ? [
+          h(Badge, { 
+            variant: 'secondary',
+            class: 'text-xs px-1.5 py-0.5'
+          }, () => `+${remainingCount}`)
+        ] : [])
+      ])
+    },
+    filterFn: (row: any, id: string, value: string[]) => {
+      const tags = row.getValue(id) as string[] | undefined
+      if (!tags || tags.length === 0) {
+        return value.includes('no-tags')
+      }
+      
+      // Check if any of the task's tags match the filter
+      return tags.some((tag: string) => value.includes(tag.toLowerCase()))
+    },
+    enableSorting: false,
+    enableFiltering: true,
+  }
+}
+

@@ -179,6 +179,7 @@ export default defineEventHandler(async (event) => {
       notes?: string
       priority?: string
       repeat_interval?: number
+      tags?: string[]
     } = {}
     
     if (body.task_name) updateData.title = body.task_name
@@ -188,6 +189,7 @@ export default defineEventHandler(async (event) => {
     if (body.notes !== undefined) updateData.notes = body.notes
     if (body.priority !== undefined) updateData.priority = body.priority
     if (body.repeat_interval !== undefined) updateData.repeat_interval = body.repeat_interval
+    if (body.tags !== undefined) updateData.tags = body.tags
 
     // Update task in database
     const { data: task, error } = await (supabase as any)
@@ -242,6 +244,9 @@ export default defineEventHandler(async (event) => {
     }
     if (body.repeat_interval !== undefined && String(body.repeat_interval) !== String(currentTask.repeat_interval)) {
       changes.push({ field: 'repeat_interval', oldValue: currentTask.repeat_interval, newValue: body.repeat_interval })
+    }
+    if (body.tags !== undefined && JSON.stringify(body.tags) !== JSON.stringify(currentTask.tags)) {
+      changes.push({ field: 'tags', oldValue: currentTask.tags, newValue: body.tags })
     }
     
     // Special handling for task completion

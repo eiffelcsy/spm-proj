@@ -337,7 +337,14 @@ function transformTask(task: any): Task {
     startDate: new Date(task.start_date),
     dueDate: new Date(task.due_date),
     project: task.project,
-    status: task.status
+    status: task.status,
+    notes: task.notes,
+    priority: task.priority,
+    tags: task.tags || [],
+    assignees: task.assignees?.map((a: any) => ({
+      id: a.assigned_to?.id || a.id,
+      fullname: a.assigned_to?.fullname || a.fullname
+    }))
   }
 }
 

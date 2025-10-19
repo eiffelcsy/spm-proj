@@ -9,6 +9,7 @@ export const taskSchema = z.object({
   status: z.enum(['not-started', 'in-progress', 'completed', 'blocked']),
   notes: z.string().optional(),
   priority: z.number().optional(),
+  tags: z.array(z.string()).optional(),
   assignees: z.array(z.object({
     assigned_to: z.object({
       id: z.number().nullable(),

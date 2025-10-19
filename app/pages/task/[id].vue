@@ -111,6 +111,29 @@
                                   {{ getRepeatFrequencyDisplay(task.repeat_interval) }}
                               </div>
                           </div>
+                          <div>
+                              <div class="flex items-center text-sm font-medium text-muted-foreground mb-1">
+                                  <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                  </svg>
+                                  Tags
+                              </div>
+                              <div class="ml-6">
+                                  <div v-if="task.tags && task.tags.length > 0" class="flex flex-wrap gap-1">
+                                      <Badge 
+                                          v-for="tag in task.tags" 
+                                          :key="tag"
+                                          variant="outline"
+                                          class="text-xs px-2 py-1"
+                                      >
+                                          {{ tag }}
+                                      </Badge>
+                                  </div>
+                                  <div v-else class="text-sm text-muted-foreground italic">
+                                      No tags
+                                  </div>
+                              </div>
+                          </div>
                       </div>
 
                       <!-- People Section -->
@@ -241,10 +264,6 @@
               <span>This view is read-only. Only the creator or assignee can edit this {{ isSubtask ? 'subtask' :
                   'task'
                   }}.</span>
-
-              <div>
-                DEBUG: {{ task }}
-              </div>
           </div>
       </div>
 
@@ -322,6 +341,7 @@ import {
   createDueDateColumn,
   createStatusColumn,
   createPriorityColumn,
+  createTagsColumn,
   formatDate,
   isOverdue,
   getStatusClasses,
@@ -626,6 +646,7 @@ const subtaskColumns = [
   createStartDateColumn(),
   createDueDateColumn({ showOverdue: true }),
   createPriorityColumn(),
+  createTagsColumn(),
   createStatusColumn(),
 ]
 
