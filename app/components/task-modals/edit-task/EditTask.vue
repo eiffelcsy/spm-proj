@@ -105,6 +105,13 @@
               </NumberFieldContent>
             </NumberField>
           </div>
+
+          <div v-if="task.project">
+          <Label class="block text-sm font-medium mb-1">Project Title</Label>
+          <Input v-model="task.project.name" type="text" 
+            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            readonly/>
+          </div>
         </div>
 
         <!-- Project Link (if task belongs to a project) -->
@@ -114,11 +121,17 @@
           <div variant="link" class="h-auto p-0 text-sm font-medium text-primary hover:underline"> {{ task.project.name}} </div>
         </div> -->
       
-        <div v-if="task.project">
-          <Label class="block text-sm font-medium mb-1">Project Title</Label>
-          <Input v-model="task.project.name" type="text" 
-            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            readonly/>
+        <!-- Tags -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Tags</Label>
+          <TagsInput v-model="tags" class="w-full">
+            <TagsInputItem v-for="tag in tags" :key="tag" :value="tag">
+              <TagsInputItemText />
+              <TagsInputItemDelete />
+            </TagsInputItem>
+            <TagsInputInput placeholder="Add tags (eg. #SMU, #Urgent)" />
+          </TagsInput>
+          <p class="text-xs text-muted-foreground mt-1">Place a # before each tag (eg. #SMU) and press the Enter key to add a tag</p>
         </div>
 
         <div class="flex flex-col gap-1">
@@ -133,17 +146,127 @@
             placeholder="Add notes here..."></Textarea>
         </div>
 
-        <!-- Tags -->
+        <!-- Subtasks  -->
         <div>
-          <Label class="block text-sm font-medium mb-1">Tags</Label>
-          <TagsInput v-model="tags" class="w-full">
-            <TagsInputItem v-for="tag in tags" :key="tag" :value="tag">
-              <TagsInputItemText />
-              <TagsInputItemDelete />
-            </TagsInputItem>
-            <TagsInputInput placeholder="Add tags (eg. #SMU, #Urgent)" />
-          </TagsInput>
-          <p class="text-xs text-muted-foreground mt-1">Place a # before each tag (eg. #SMU) and press the Enter key to add a tag</p>
+          <Label class="block text-sm font-medium mb-2">Subtasks</Label>
+          <div class="border rounded-lg p-3 mb-3">
+            <div v-for="(subtask, index) in subtasks" :key="index" class="border rounded-lg p-3 mb-3">
+              <div class="flex gap-2 mb-2">
+                <Input v-model="subtask.title" type="text" placeholder="Subtask Title"
+                  class="flex-1 border rounded-lg px-3 py-2 bg-white" required />
+                <Button type="button" @click="toggleSubtaskExpanded(index)" variant="outline" class="px-3 py-2"
+                  :title="subtask.expanded ? 'Collapse details' : 'Expand details'">
+                  <span class="inline-block transition-transform duration-200"
+                    :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
+                </Button>
+                <Button type="button" @click="removeSubtask(index)" variant="destructive" class="px-2">
+                  <XIcon class="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div v-if="subtask.expanded" class="space-y-3 mt-3 pl-4">
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs mb-1">Start Date</Label>
+                    <Popover>
+                      <PopoverTrigger as-child>
+                        <Button variant="outline" :class="cn(
+                          'h-8 justify-start text-left font-normal text-xs',
+                          !subtask.startDate && 'text-muted-foreground',
+                        )">
+                          <CalendarIcon class="mr-1 h-3 w-3" />
+                          {{ subtask.startDate ? formatDate(subtask.startDate as DateValue) : "Select start date" }}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent class="w-auto p-0">
+                        <Calendar v-model:model-value="subtask.startDate as any" initial-focus />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs mb-1">Due Date</Label>
+                    <Popover>
+                      <PopoverTrigger as-child>
+                        <Button variant="outline" :class="cn(
+                          'h-8 justify-start text-left font-normal text-xs',
+                          !subtask.dueDate && 'text-muted-foreground',
+                        )">
+                          <CalendarIcon class="mr-1 h-3 w-3" />
+                          {{ subtask.dueDate ? formatDate(subtask.dueDate as DateValue) : "Select due date" }}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent class="w-auto p-0">
+                        <Calendar v-model:model-value="subtask.dueDate as any" initial-focus :min-value="subtask.startDate as any" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs mb-1">Status</Label>
+                    <Select v-model="subtask.status">
+                      <SelectTrigger class="h-8">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not-started">Not Started</SelectItem>
+                        <SelectItem value="in-progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="blocked">Blocked</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs mb-1">Priority</Label>
+                    <NumberField v-model="subtask.priority" :min="1" :max="10" :default-value="1" class="h-8">
+                      <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput class="text-xs" />
+                        <NumberFieldIncrement />
+                      </NumberFieldContent>
+                    </NumberField>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs mb-1">Repeat Interval (in Days)</Label>
+                    <NumberField v-model="subtask.repeatInterval" :min="0" :default-value="0" class="h-8">
+                      <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput class="text-xs" />
+                        <NumberFieldIncrement />
+                      </NumberFieldContent>
+                    </NumberField>
+                  </div>
+                </div>
+
+                <div>
+                  <Label class="block text-xs font-medium mb-1">Tags</Label>
+                  <TagsInput v-model="subtask.tags" class="w-full">
+                    <TagsInputItem v-for="tag in subtask.tags" :key="tag" :value="tag">
+                      <TagsInputItemText />
+                      <TagsInputItemDelete />
+                    </TagsInputItem>
+                    <TagsInputInput placeholder="Add tags (eg. #SMU, #Urgent)" />
+                  </TagsInput>
+                </div>
+
+                <div class="flex flex-col gap-1 text-xs">
+                  <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
+                    :staff-members="staffMembers.filter(s => assignedTo.includes(String(s.id)))" compact />
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs mb-1">Notes</Label>
+                  <Textarea v-model="subtask.notes" rows="2" placeholder="Add subtask notes here..."
+                    class="w-full border rounded-lg px-2 py-1 text-sm bg-white"></Textarea>
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" @click="addSubtask">
+              <PlusIcon class="h-4 w-4 mr-2" />
+              Add Subtask
+            </Button>
+          </div>
         </div>
 
         <DialogFooter class="gap-2">
@@ -160,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -179,7 +302,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";
-import { CalendarIcon } from "lucide-vue-next";
+import { CalendarIcon, XIcon, PlusIcon } from 'lucide-vue-next'
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import {
@@ -243,7 +366,18 @@ const repeatInterval = ref(0);
 const description = ref("");
 const tags = ref<string[]>([]);
 const assignedTo = ref<string[]>([]);
-
+const subtasks = ref<{
+  title: string;
+  startDate: DateValue | undefined;
+  dueDate: DateValue | undefined;
+  status: string;
+  priority: number;
+  repeatInterval: number;
+  notes: string;
+  tags: string[];
+  assignedTo: string[];
+  expanded: boolean;
+}[]>([])
 const staffMembers = ref<{ id: number; fullname: string; email: string }[]>([]);
 
 // projects dropdown
@@ -378,11 +512,84 @@ function populateForm() {
   } else {
     assignedTo.value = [];
   }
+
+  // add subtasks mapping
+  subtasks.value = []
+  if (props.task.subtasks && Array.isArray(props.task.subtasks)) {
+    subtasks.value = props.task.subtasks.map((st: any) => ({
+      id: st.id ?? undefined, // <-- include existing subtask id so server can update
+      title: st.title || st.task_name || '',
+      startDate: parseDateValue(st.start_date || st.startDate),
+      dueDate: parseDateValue(st.due_date || st.dueDate || st.end_date),
+      status: st.status || 'not-started',
+      priority: st.priority ? Number(st.priority) : 1,
+      repeatInterval: st.repeat_interval ? Number(st.repeat_interval) : 0,
+      notes: st.notes || '',
+      tags: st.tags || [],
+      assignedTo: Array.isArray(st.assignees) ? st.assignees.map((a: any) => String(a.assigned_to?.id ?? a.assigned_to_id ?? a.id)) : (st.assignee_ids ? st.assignee_ids.map((id: any) => String(id)) : []),
+      expanded: false
+    }))
+  }
 }
 
-async function updateTask() {
-  // Basic validation
+// ensure subtask dates remain valid when parent dates change
+watch(startDate, (newStart) => {
+  for (const s of subtasks.value) {
+    if (s.startDate && newStart && s.startDate.compare(newStart as DateValue) < 0) {
+      s.startDate = newStart
+    }
+  }
+})
+watch(dueDate, (newDue) => {
+  for (const s of subtasks.value) {
+    if (s.dueDate && newDue && s.dueDate.compare(newDue as DateValue) > 0) {
+      s.dueDate = newDue
+    }
+  }
+})
+
+const parseDateValue = (dateStr: any): DateValue | undefined => {
+  if (!dateStr) return undefined
   try {
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return parseDate(dateStr)
+    }
+    const d = new Date(dateStr)
+    if (!isNaN(d.getTime())) {
+      return parseDate(d.toISOString().split('T')[0])
+    }
+  } catch (_) {}
+  return undefined
+}
+
+const addSubtask = () => {
+  subtasks.value.push({
+    title: '',
+    startDate: today(getLocalTimeZone()),
+    dueDate: today(getLocalTimeZone()),
+    status: 'not-started',
+    priority: 1,
+    repeatInterval: 0,
+    notes: '',
+    tags: [],
+    assignedTo: [],
+    expanded: true
+  })
+}
+
+const removeSubtask = (index: number) => {
+  subtasks.value.splice(index, 1)
+}
+
+const toggleSubtaskExpanded = (index: number) => {
+  const s = subtasks.value[index]
+  if (s) s.expanded = !s.expanded
+}
+
+// extend updateTask to validate and include subtasks
+async function updateTask() {
+  try {
+    // Basic validation
     if (!title.value.trim()) {
       errorMessage.value = "Task title is required.";
       return;
@@ -408,6 +615,58 @@ async function updateTask() {
       return;
     }
 
+    // validate subtasks
+    for (let i = 0; i < subtasks.value.length; i++) {
+      const sub = subtasks.value[i]
+      const n = i + 1
+      if (!sub || !sub.title || !sub.title.trim()) {
+        errorMessage.value = `Subtask ${n}: Title is required.`
+        return
+      }
+      if (!sub.startDate) {
+        errorMessage.value = `Subtask ${n}: Start date is required.`
+        return
+      }
+      if (!sub.dueDate) {
+        errorMessage.value = `Subtask ${n}: Due date is required.`
+        return
+      }
+      if (!sub.notes || !sub.notes.trim()) {
+        errorMessage.value = `Subtask ${n}: Notes are required.`
+        return
+      }
+      if (sub.dueDate && sub.startDate && sub.dueDate < sub.startDate) {
+        errorMessage.value = `Subtask ${n}: Due date cannot be before start date.`
+        return
+      }
+      // ensure subtask dates fall within main task date range
+      if (startDate.value && sub.startDate && sub.startDate < startDate.value) {
+        errorMessage.value = `Subtask ${n}: Start date cannot be before main task start date.`
+        return
+      }
+      if (dueDate.value && sub.dueDate && sub.dueDate > dueDate.value) {
+        errorMessage.value = `Subtask ${n}: Due date cannot be after main task due date.`
+        return
+      }
+
+      const validSubAssignees = (sub.assignedTo ?? []).filter(id => id && String(id).trim() !== '')
+      if (validSubAssignees.length === 0) {
+        errorMessage.value = `Subtask ${n}: At least one assignee is required.`
+        return
+      }
+      if (validSubAssignees.length > 5) {
+        errorMessage.value = `Subtask ${n}: Maximum 5 assignees allowed.`
+        return
+      }
+
+      // ensure subtask assignees are subset of parent assignees
+      const invalid = validSubAssignees.find(id => !assignedTo.value.includes(String(id)))
+      if (invalid) {
+        errorMessage.value = `Subtask ${n}: assignees must be chosen from the parent task assignees.`
+        return
+      }
+    }
+
     const taskData: any = {
       task_name: title.value,
       start_date: startDate.value
@@ -421,6 +680,18 @@ async function updateTask() {
       tags: tags.value,
       project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assignedTo.value.map(id => parseInt(id)),
+      subtasks: subtasks.value.map(sub => ({
+        id: sub.id ? Number(sub.id) : undefined, // <-- send id for existing subtasks
+        title: sub.title,
+        start_date: sub.startDate ? sub.startDate.toString() : null,
+        due_date: sub.dueDate ? sub.dueDate.toString() : null,
+        status: sub.status,
+        priority: sub.priority.toString(),
+        repeat_interval: sub.repeatInterval.toString(),
+        notes: sub.notes || null,
+        tags: sub.tags || [],
+        assignee_ids: (sub.assignedTo || []).map(id => Number(id))
+      }))
     };
 
     // Update task via API endpoint

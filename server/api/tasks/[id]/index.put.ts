@@ -213,6 +213,97 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // --- NEW: handle subtasks payload (create new or update existing) ---
+    if (Array.isArray(body.subtasks)) {
+      for (const s of body.subtasks) {
+        try {
+          const subPayload: any = {
+            title: s.title,
+            start_date: s.start_date ?? null,
+            due_date: s.due_date ?? null,
+            status: s.status,
+            priority: s.priority !== undefined ? String(s.priority) : null,
+            repeat_interval: s.repeat_interval !== undefined ? s.repeat_interval : null,
+            notes: s.notes ?? null,
+            tags: s.tags ?? []
+          }
+
+          if (s.id) {
+            // update existing subtask (ensure it's a subtask of this parent)
+            const { data: existingSub, error: fetchSubErr } = await supabase
+              .from('tasks')
+              .select('id, parent_task_id')
+              .eq('id', s.id)
+              .single()
+
+            if (fetchSubErr || !existingSub) {
+              // skip or report error
+              throw createError({ statusCode: 400, statusMessage: `Subtask id ${s.id} not found` })
+            }
+
+            // ensure parent_task_id is this taskId (or update it)
+            await supabase
+              .from('tasks')
+              .update({ ...subPayload, parent_task_id: Number(taskId) })
+              .eq('id', s.id)
+          } else {
+            // insert new subtask
+            const insertObj = { ...subPayload, parent_task_id: Number(taskId), creator_id: currentStaffId }
+            const { data: inserted, error: insertErr } = await supabase
+              .from('tasks')
+              .insert(insertObj)
+              .select()
+              .single()
+
+            if (insertErr) {
+              throw createError({ statusCode: 500, statusMessage: 'Failed to create subtask', data: insertErr })
+            }
+
+            // set s.id for assignee handling below
+            s.id = inserted?.id
+          }
+
+          // Handle subtask assignees if provided
+          if (Array.isArray(s.assignee_ids)) {
+            const subtaskId = Number(s.id)
+            // enforce max 5
+            if (s.assignee_ids.length === 0) {
+              throw createError({ statusCode: 400, statusMessage: `Subtask ${s.title || subtaskId}: at least one assignee required` })
+            }
+            if (s.assignee_ids.length > 5) {
+              throw createError({ statusCode: 400, statusMessage: 'Maximum 5 assignees allowed per subtask' })
+            }
+
+            // deactivate existing for subtask
+            await supabase
+              .from('task_assignees')
+              .update({ is_active: false })
+              .eq('task_id', subtaskId)
+
+            // upsert new assignees
+            const mappings = s.assignee_ids.map((sid: any) => ({
+              task_id: subtaskId,
+              assigned_to_staff_id: Number(sid),
+              assigned_by_staff_id: currentStaffId,
+              is_active: true
+            }))
+
+            const { error: upsertErr } = await supabase
+              .from('task_assignees')
+              .upsert(mappings, { onConflict: 'task_id,assigned_to_staff_id' })
+
+            if (upsertErr) {
+              throw createError({ statusCode: 500, statusMessage: 'Failed to set subtask assignees', data: upsertErr })
+            }
+          }
+        } catch (subErr: any) {
+          // bubble up first subtask error
+          if (subErr.statusCode) throw subErr
+          throw createError({ statusCode: 500, statusMessage: 'Failed processing subtasks', data: subErr })
+        }
+      }
+    }
+
     // Log task update activity with detailed changes
     const changes: Array<{ field: string, oldValue: any, newValue: any }> = []
     
