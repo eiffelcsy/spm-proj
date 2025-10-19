@@ -237,9 +237,10 @@ const canEditComment = (comment: TaskCommentWithStaff) => {
 }
 
 const canDeleteComment = (comment: TaskCommentWithStaff) => {
-  // change this once the admin role is implemented so that only admin can delete comments
+  // Only managers can delete comments
+  //edit this once the admin role is implemented so that only admin can delete comments
   if (!props.currentUser) return false
-  return props.currentUser.department === 'managing director'
+  return props.currentUser.staff_type === 'manager'
 }
 
 // ============================================================================

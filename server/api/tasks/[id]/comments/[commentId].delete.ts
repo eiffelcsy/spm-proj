@@ -22,22 +22,21 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get current user's staff ID and department
+    // Get current user's staff_type
     const { data: staffData, error: staffError } = await supabase
       .from('staff')
-      .select('id, department')
+      .select('staff_type')
       .eq('user_id', user.id)
-      .single() as { data: { id: number; department: string | null } | null, error: any }
+      .single() as { data: { staff_type: string } | null, error: any }
 
     if (staffError || !staffData) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'Failed to fetch staff ID'
+        statusMessage: 'Failed to fetch staff information'
       })
     }
 
-    const currentStaffId = staffData.id
-    const currentDepartment = staffData.department
+    const currentStaffType = staffData.staff_type
 
     // Verify comment exists and belongs to the task
     const { data: comment, error: commentError } = await supabase
@@ -54,14 +53,13 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Comment not found'
       })
     }
-    // Check if user is a managing director
-    /////// change this once the admin role is implemented so that only admin can delete comments
-    const isManagingDirector = currentDepartment === 'managing director'
+    // Check if user is a manager
+    const isManager = currentStaffType === 'manager'
     
-    if (!isManagingDirector) {
+    if (!isManager) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Access denied - Only managing directors can delete comments'
+        statusMessage: 'Access denied - Only managers can delete comments'
       })
     }
 
