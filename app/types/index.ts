@@ -79,6 +79,8 @@ export interface StaffMember {
   id: number
   fullname: string
   email: string | null
+  department?: string | null
+  staff_type?: string
 }
 
 /**

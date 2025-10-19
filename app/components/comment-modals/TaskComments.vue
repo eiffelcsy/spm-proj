@@ -118,7 +118,7 @@
             </div>
             
             <!-- Comment Actions -->
-            <div v-if="canEditComment(comment)" class="flex items-center space-x-1 ml-2">
+            <div v-if="canEditComment(comment) || canDeleteComment(comment)" class="flex items-center space-x-1 ml-2">
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
                   <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
@@ -126,11 +126,15 @@
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" side="top">
-                  <DropdownMenuItem @click="startEdit(comment)">
+                  <DropdownMenuItem 
+                    v-if="canEditComment(comment)"
+                    @click="startEdit(comment)"
+                  >
                     <Pencil1Icon class="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem 
+                    v-if="canDeleteComment(comment)"
                     @click="deleteComment(comment.id)"
                     class="text-red-600 focus:text-red-600"
                   >
@@ -227,8 +231,15 @@ const commentToDelete = ref<number | null>(null)
 // ============================================================================
 
 const canEditComment = (comment: TaskCommentWithStaff) => {
-  // Allow everyone to edit/delete comments for now
-  return true
+  // Users can edit their own comments
+  if (!props.currentUser) return false
+  return comment.staff_id === props.currentUser.id
+}
+
+const canDeleteComment = (comment: TaskCommentWithStaff) => {
+  // change this once the admin role is implemented so that only admin can delete comments
+  if (!props.currentUser) return false
+  return props.currentUser.department === 'managing director'
 }
 
 // ============================================================================

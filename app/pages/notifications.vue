@@ -1,11 +1,11 @@
 <template>
-  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-6xl xl:max-w-7xl">
+  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-6xl xl:max-w-7xl relative">
     <!-- Exit button in top right corner of page -->
     <Button 
       variant="ghost" 
       size="icon" 
       @click="goBack" 
-      class="fixed top-20 right-6 text-muted-foreground hover:text-red-600 hover:bg-red-50 z-50"
+      class="absolute top-8 -right-4 text-muted-foreground hover:text-red-600 hover:bg-red-50 z-50"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>

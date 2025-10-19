@@ -39,61 +39,6 @@ export default defineEventHandler(async (event) => {
     const currentStaffId = staffData.id
     const currentDepartment = staffData.department
 
-    // Verify task exists and user has department-based access
-    const { data: task, error: taskError } = await supabase
-      .from('tasks')
-      .select('id')
-      .eq('id', taskId)
-      .is('deleted_at', null)
-      .single()
-
-    if (taskError || !task) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Task not found'
-      })
-    }
-
-    // Get task assignees
-    const { data: assigneeRows } = await supabase
-      .from('task_assignees')
-      .select('assigned_to_staff_id')
-      .eq('task_id', taskId)
-      .eq('is_active', true)
-
-    // Check visibility: user can only delete comments if someone from their department is assigned
-    if (currentDepartment) {
-      const { data: departmentStaff, error: deptError } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('department', currentDepartment)
-      
-      if (deptError) {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Failed to fetch department staff',
-          data: deptError
-        })
-      }
-      
-      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
-      const hasAssigneeFromDepartment = assigneeRows?.some((row: any) => 
-        departmentStaffIds.includes(row.assigned_to_staff_id)
-      )
-      
-      if (!hasAssigneeFromDepartment) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: 'You do not have permission to delete comments on this task'
-        })
-      }
-    } else {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'You do not have permission to delete comments on this task'
-      })
-    }
-
     // Verify comment exists and belongs to the task
     const { data: comment, error: commentError } = await supabase
       .from('task_comments')
@@ -101,7 +46,7 @@ export default defineEventHandler(async (event) => {
       .eq('id', commentId)
       .eq('task_id', taskId)
       .is('deleted_at', null)
-      .single()
+      .single() as { data: { id: number; task_id: number; staff_id: number } | null, error: any }
 
     if (commentError || !comment) {
       throw createError({
@@ -109,20 +54,21 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Comment not found'
       })
     }
-
-    // Check if user is the author of the comment
-    if (comment.staff_id !== currentStaffId) {
+    // Check if user is a managing director
+    /////// change this once the admin role is implemented so that only admin can delete comments
+    const isManagingDirector = currentDepartment === 'managing director'
+    
+    if (!isManagingDirector) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Access denied - You can only delete your own comments'
+        statusMessage: 'Access denied - Only managing directors can delete comments'
       })
     }
 
     // Soft delete the comment
     const deletedAt = new Date().toISOString()
-    console.log(`Attempting to soft delete comment ${commentId} with deleted_at: ${deletedAt}`)
     
-    const { data: updateData, error: deleteError } = await supabase
+    const { data: updateData, error: deleteError } = await (supabase as any)
       .from('task_comments')
       .update({
         deleted_at: deletedAt
@@ -130,10 +76,7 @@ export default defineEventHandler(async (event) => {
       .eq('id', commentId)
       .select()
 
-    console.log('Update result:', { updateData, deleteError })
-
     if (deleteError) {
-      console.error('Delete error:', deleteError)
       throw createError({
         statusCode: 500,
         statusMessage: 'Failed to delete comment',
@@ -142,7 +85,6 @@ export default defineEventHandler(async (event) => {
     }
 
     if (!updateData || updateData.length === 0) {
-      console.error('No rows were updated')
       throw createError({
         statusCode: 404,
         statusMessage: 'Comment not found or already deleted'

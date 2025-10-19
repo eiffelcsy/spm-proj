@@ -1,12 +1,12 @@
 <template>
-  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-5xl xl:max-w-7xl">
+  <div class="w-full mx-auto p-8 md:px-12 lg:max-w-5xl xl:max-w-7xl relative">
       <!-- Exit button in top right corner of page -->
       <Button 
         v-if="task"
         variant="ghost" 
         size="icon" 
         @click="goToDashboard" 
-        class="fixed top-20 right-6 text-muted-foreground hover:text-red-600 hover:bg-red-50 z-50"
+        class="absolute top-8 -right-4 text-muted-foreground hover:text-red-600 hover:bg-red-50 z-50"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -359,7 +359,7 @@ function fetchTask() {
 async function fetchCurrentUser() {
   try {
     const response = await $fetch('/api/user/me')
-    const user = response as unknown as { id: number; fullname: string; email: string | null; staff_type: string }
+    const user = response as unknown as { id: number; fullname: string; email: string | null; staff_type: string; department: string | null }
     currentUserStaffId.value = user?.id || null
     currentUserStaff.value = user || null
   } catch (err) {
