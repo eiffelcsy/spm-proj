@@ -14,12 +14,25 @@ interface DataTableToolbarProps {
   table: Table<any>
   showCreateButton?: boolean
   showRefreshButton?: boolean
+  assigneeOptions?: Array<{ id: number; fullname: string }>
 }
 
 const props = defineProps<DataTableToolbarProps>()
 const emit = defineEmits(['create-task', 'refresh-tasks'])
 
 const isFiltered = computed(() => props.table.getState().columnFilters.length > 0)
+
+// Convert assignee options to filter format
+const assigneeFilterOptions = computed(() => {
+  if (!props.assigneeOptions || props.assigneeOptions.length === 0) {
+    return []
+  }
+  
+  return props.assigneeOptions.map(assignee => ({
+    label: assignee.fullname,
+    value: assignee.id.toString()
+  }))
+})
 
 defineOptions({
   name: 'DataTableToolbar'
@@ -40,6 +53,13 @@ defineOptions({
         :column="table.getColumn('status')"
         title="Status"
         :options="statuses"
+      />
+      
+      <DataTableFacetedFilter
+        v-if="table.getColumn('assignees') && assigneeFilterOptions.length > 0"
+        :column="table.getColumn('assignees')"
+        title="Assignees"
+        :options="assigneeFilterOptions"
       />
 
       <Button

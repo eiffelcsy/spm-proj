@@ -192,3 +192,44 @@ export function createPriorityColumn() {
   }
 }
 
+export function createAssigneesColumn() {
+  return {
+    accessorKey: 'assignees',
+    header: ({ column }: any) => h(DataTableColumnHeader, { 
+      column: column,
+      title: 'Assignees'
+    }),
+    cell: ({ row }: any) => {
+      const assignees = row.getValue('assignees') as any[] | undefined
+      if (!assignees || assignees.length === 0) {
+        return h('div', { class: 'text-gray-400 italic text-sm' }, 'Unassigned')
+      }
+      
+      const assigneeNames = assignees
+        .map((a: any) => a.assigned_to?.fullname || 'Unassigned')
+        .filter((name: string, index: number, self: string[]) => self.indexOf(name) === index) // Remove duplicates
+        .join(', ')
+      
+      return h('div', { 
+        class: 'text-sm max-w-[200px] truncate',
+        title: assigneeNames // Show full names on hover
+      }, assigneeNames)
+    },
+    filterFn: (row: any, id: string, value: string[]) => {
+      const assignees = row.getValue(id) as any[] | undefined
+      if (!assignees || assignees.length === 0) {
+        // If filtering for "Unassigned" and task has no assignees
+        return value.includes('unassigned')
+      }
+      
+      // Check if any of the task's assignees match the filter
+      return assignees.some((a: any) => {
+        const assigneeId = a.assigned_to?.id?.toString()
+        return assigneeId && value.includes(assigneeId)
+      })
+    },
+    enableSorting: false,
+    enableFiltering: true,
+  }
+}
+

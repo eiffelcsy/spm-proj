@@ -10,8 +10,14 @@ export const taskSchema = z.object({
   notes: z.string().optional(),
   priority: z.number().optional(),
   assignees: z.array(z.object({
-    id: z.number(),
-    fullname: z.string()
+    assigned_to: z.object({
+      id: z.number().nullable(),
+      fullname: z.string()
+    }),
+    assigned_by: z.object({
+      id: z.number(),
+      fullname: z.string()
+    }).nullable()
   })).optional()
 })
 

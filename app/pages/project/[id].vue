@@ -138,7 +138,7 @@
               Overdue Tasks ({{ filteredOverdueTasks.length }})
             </h3>
             <DataTable :columns="overdueColumns" :data="filteredOverdueTasks" @rowClick="goToTask"
-              :hideToolbar="true" />
+              :hideToolbar="true" :assigneeOptions="assigneeOptions" />
           </div>
         </div>
 
@@ -151,7 +151,7 @@
           </h3>
           <div class="transition-all duration-300 ease-in-out">
             <DataTable :columns="columns" :data="filteredTasks" @rowClick="goToTask" :showCreateButton="true"
-              :showRefreshButton="true" @create-task="openCreateModal" @refresh-tasks="fetchData" />
+              :showRefreshButton="true" :assigneeOptions="assigneeOptions" @create-task="openCreateModal" @refresh-tasks="fetchData" />
           </div>
         </div>
       </div>
@@ -202,6 +202,7 @@ import EditProjectModal from '@/components/project-modals/edit-project-modal.vue
 import DeleteProjectModal from '@/components/project-modals/delete-project-modal.vue'
 import { ManageCollaboratorsModal } from '@/components/project-modals/manage-collaborators'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 // ============================================================================
 // ROUTING
@@ -222,6 +223,7 @@ const project = ref<any>(null)
 const rawTasks = ref<any[]>([])
 const currentUserStaffId = ref<number | null>(null)
 const projectCollaboratorsCount = ref<number>(0)
+const uniqueAssignees = ref<Array<{ id: number; fullname: string }>>([])
 
 // Modal states
 const isModalOpen = ref(false)
@@ -330,8 +332,9 @@ function transformTask(task: any): Task {
     title: task.title,
     startDate: new Date(task.start_date),
     dueDate: new Date(task.due_date),
-    project: task.project,
-    status: task.status
+    project: task.project?.name || task.project || 'Unknown',
+    status: task.status,
+    assignees: task.assignees || []
   }
 }
 
@@ -387,6 +390,25 @@ const isProjectOwner = computed(() => {
   return currentUserStaffId.value !== null &&
     project.value?.owner_id !== null &&
     currentUserStaffId.value === project.value.owner_id
+})
+
+// Extract unique assignees from all tasks
+const assigneeOptions = computed(() => {
+  const assigneeMap = new Map<number, string>()
+  
+  rawTasks.value.forEach((task: any) => {
+    if (task.assignees && Array.isArray(task.assignees)) {
+      task.assignees.forEach((assignee: any) => {
+        if (assignee.assigned_to?.id && assignee.assigned_to?.fullname) {
+          assigneeMap.set(assignee.assigned_to.id, assignee.assigned_to.fullname)
+        }
+      })
+    }
+  })
+  
+  return Array.from(assigneeMap.entries())
+    .map(([id, fullname]) => ({ id, fullname }))
+    .sort((a, b) => a.fullname.localeCompare(b.fullname))
 })
 
 // ============================================================================
