@@ -452,7 +452,7 @@ watch(() => props.isOpen, async (isOpen) => {
 
     // Load projects
     try {
-      const fetchedProjects = await $fetch('/api/projects')
+      const fetchedProjects = await $fetch('/api/projects/active')
       projects.value = Array.isArray(fetchedProjects)
         ? fetchedProjects.map((p: any) => ({ id: p.id, name: p.name }))
         : []
