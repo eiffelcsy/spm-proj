@@ -26,6 +26,62 @@
               </Button>
             </div>
             
+            <!-- Search, Filter and Sort Controls -->
+            <div class="flex items-center gap-4 mb-4">
+              <div class="flex items-center gap-2">
+                <Label for="search-name" class="text-sm font-medium">Search by Name:</Label>
+                <Input 
+                  id="search-name"
+                  v-model="searchQuery"
+                  placeholder="Enter name to search..."
+                  class="w-48"
+                />
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <Label for="role-filter" class="text-sm font-medium">Filter by Role:</Label>
+                <Select v-model="selectedRole">
+                  <SelectTrigger class="w-40">
+                    <SelectValue placeholder="All Roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <Label for="sort-by" class="text-sm font-medium">Sort by:</Label>
+                <Select v-model="sortBy">
+                  <SelectTrigger class="w-40">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="role">Role</SelectItem>
+                    <SelectItem value="date">Date Joined</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <Label for="sort-order" class="text-sm font-medium">Order:</Label>
+                <Select v-model="sortOrder">
+                  <SelectTrigger class="w-32">
+                    <SelectValue placeholder="Order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             <div class="overflow-x-auto">
               <table class="w-full">
                 <thead>
@@ -40,7 +96,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="user in users" :key="user.id" class="border-b hover:bg-gray-50">
+                  <tr v-for="user in filteredAndSortedUsers" :key="user.id" class="border-b hover:bg-gray-50">
                     <td class="p-3 font-medium">{{ user.fullname }}</td>
                     <td class="p-3 text-gray-600">{{ user.email || '—' }}</td>
                     <td class="p-3 text-gray-600">{{ user.designation || '—' }}</td>
@@ -71,10 +127,107 @@
                 </tbody>
               </table>
               
-              <div v-if="users.length === 0" class="text-center py-8 text-gray-500">
-                No staff members found.
+              <div v-if="filteredAndSortedUsers.length === 0" class="text-center py-8 text-gray-500">
+                <div v-if="searchQuery.trim()">
+                  No users found matching "{{ searchQuery }}".
+                </div>
+                <div v-else-if="selectedRole !== 'all'">
+                  No {{ selectedRole }} members found.
+                </div>
+                <div v-else>
+                  No staff members found.
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Change Confirmation Dialog -->
+      <div v-if="isRoleConfirmOpen" class="fixed inset-0 z-50 flex items-center justify-center" style="background-color: rgba(0, 0, 0, 0.5);" @click="cancelRoleChange">
+        <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 p-6" @click.stop>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Confirm Role Change</h3>
+            <button @click="cancelRoleChange" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <p class="text-gray-600 mb-4">Are you sure you want to change this user's role?</p>
+          
+          <div class="space-y-4">
+            <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="flex items-center gap-2 mb-2">
+                <User class="w-4 h-4" />
+                <span class="font-medium">{{ editingUser.fullname }}</span>
+              </div>
+              <div class="text-sm text-gray-600">
+                <span>Current Role: </span>
+                <Badge :variant="originalRole === 'admin' ? 'default' : 'secondary'"
+                       :class="originalRole === 'admin' ? 'bg-blue-100 text-blue-800' : originalRole === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
+                  {{ originalRole }}
+                </Badge>
+              </div>
+              <div class="text-sm text-gray-600 mt-1">
+                <span>New Role: </span>
+                <Badge :variant="pendingRoleChange === 'admin' ? 'default' : 'secondary'"
+                       :class="pendingRoleChange === 'admin' ? 'bg-blue-100 text-blue-800' : pendingRoleChange === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
+                  {{ pendingRoleChange }}
+                </Badge>
+              </div>
+            </div>
+
+            <!-- Warning for Manager/Admin roles -->
+            <div v-if="pendingRoleChange === 'manager' || pendingRoleChange === 'admin'" 
+                 class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div class="flex items-start gap-2">
+                <Shield class="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h4 class="font-medium text-yellow-800 mb-1">Important Notice</h4>
+                  <p class="text-sm text-yellow-700">
+                    <span v-if="pendingRoleChange === 'admin'">
+                      Admin users have full system access and can manage all users, projects, and system settings.
+                    </span>
+                    <span v-else-if="pendingRoleChange === 'manager'">
+                      Manager users can create and manage projects, assign tasks, and view reports.
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+            <Button type="button" variant="outline" @click="cancelRoleChange">
+              Cancel
+            </Button>
+            <Button type="button" @click="confirmRoleChange" :disabled="isUpdating">
+              {{ isUpdating ? 'Updating...' : 'Confirm Role Change' }}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success Notification -->
+      <div v-if="isSuccessOpen" class="fixed inset-0 z-50 flex items-center justify-center" style="background-color: rgba(0, 0, 0, 0.5);" @click="isSuccessOpen = false">
+        <div class="bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 p-6" @click.stop>
+          <div class="flex items-center gap-2 mb-4">
+            <Shield class="w-5 h-5 text-green-600" />
+            <h3 class="text-lg font-semibold text-green-600">Role Updated Successfully</h3>
+          </div>
+          <div class="py-4">
+            <p class="text-gray-700">
+              {{ successUserInfo.fullname }}'s role has been successfully updated to 
+              <Badge :variant="successUserInfo.staff_type === 'admin' ? 'default' : 'secondary'"
+                     :class="successUserInfo.staff_type === 'admin' ? 'bg-blue-100 text-blue-800' : successUserInfo.staff_type === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
+                {{ successUserInfo.staff_type }}
+              </Badge>
+            </p>
+          </div>
+          <div class="flex justify-end">
+            <Button @click="closeSuccessAndEdit">Close</Button>
           </div>
         </div>
       </div>
@@ -174,7 +327,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useSupabaseUser } from '#imports'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -232,6 +385,73 @@ const isUpdating = ref(false)
 const updateError = ref('')
 const updateSuccess = ref('')
 
+// Role change confirmation variables
+const isRoleConfirmOpen = ref(false)
+const isSuccessOpen = ref(false)
+const pendingRoleChange = ref('')
+const originalRole = ref('')
+const selectKey = ref(0)
+const successUserInfo = ref({ fullname: '', staff_type: '' })
+
+// Filter, sort, and search variables
+const searchQuery = ref('')
+const selectedRole = ref('all')
+const sortBy = ref('name')
+const sortOrder = ref('asc')
+
+// Computed property for filtered and sorted users
+const filteredAndSortedUsers = computed(() => {
+  let filtered = users.value
+
+  // Search by name
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(user => 
+      user.fullname.toLowerCase().includes(query)
+    )
+  }
+
+  // Filter by role
+  if (selectedRole.value !== 'all') {
+    filtered = filtered.filter(user => user.staff_type === selectedRole.value)
+  }
+
+  // Sort the filtered results
+  return filtered.sort((a, b) => {
+    let aValue: any
+    let bValue: any
+
+    switch (sortBy.value) {
+      case 'name':
+        aValue = a.fullname.toLowerCase()
+        bValue = b.fullname.toLowerCase()
+        break
+      case 'role':
+        // Define role hierarchy for sorting
+        const roleOrder = { admin: 3, manager: 2, staff: 1 }
+        aValue = roleOrder[a.staff_type as keyof typeof roleOrder] || 0
+        bValue = roleOrder[b.staff_type as keyof typeof roleOrder] || 0
+        break
+      case 'date':
+        aValue = new Date(a.created_at).getTime()
+        bValue = new Date(b.created_at).getTime()
+        break
+      case 'email':
+        aValue = (a.email || '').toLowerCase()
+        bValue = (b.email || '').toLowerCase()
+        break
+      default:
+        aValue = a.fullname.toLowerCase()
+        bValue = b.fullname.toLowerCase()
+    }
+
+    if (sortOrder.value === 'desc') {
+      return aValue < bValue ? 1 : aValue > bValue ? -1 : 0
+    } else {
+      return aValue > bValue ? 1 : aValue < bValue ? -1 : 0
+    }
+  })
+})
 
 async function fetchUsers() {
   try {
@@ -250,6 +470,8 @@ async function fetchUsers() {
 
 function openEditModal(user: User) {
   editingUser.value = { ...user }
+  originalRole.value = user.staff_type
+  selectKey.value = 0
   updateError.value = ''
   updateSuccess.value = ''
   isEditModalOpen.value = true
@@ -270,9 +492,69 @@ function closeEditModal() {
   }
   updateError.value = ''
   updateSuccess.value = ''
+  originalRole.value = ''
+}
+
+// Role change handling functions
+function closeSuccessAndEdit() {
+  isSuccessOpen.value = false
+  closeEditModal()
+}
+
+function cancelRoleChange() {
+  // Revert the role back to original
+  editingUser.value.staff_type = originalRole.value
+  
+  // Close confirmation dialog and reset pending change
+  isRoleConfirmOpen.value = false
+  pendingRoleChange.value = ''
+  
+  // Reopen the edit modal
+  isEditModalOpen.value = true
+}
+
+async function confirmRoleChange() {
+  // Store user info for success popup before update
+  successUserInfo.value = {
+    fullname: editingUser.value.fullname,
+    staff_type: editingUser.value.staff_type
+  }
+  
+  // Close confirmation dialog
+  isRoleConfirmOpen.value = false
+  
+  // Update original role for future comparisons
+  originalRole.value = editingUser.value.staff_type
+  
+  // Perform the actual update
+  await performUserUpdate()
+  
+  // Show success notification if update was successful
+  if (!updateError.value) {
+    isSuccessOpen.value = true
+  }
 }
 
 async function updateUser() {
+  console.log('updateUser called - Current role:', editingUser.value.staff_type, 'Original role:', originalRole.value)
+  
+  // Check if role has changed
+  if (editingUser.value.staff_type !== originalRole.value) {
+    console.log('Role changed! Showing confirmation dialog')
+    // Close the edit modal first
+    isEditModalOpen.value = false
+    // Show role change confirmation
+    pendingRoleChange.value = editingUser.value.staff_type
+    isRoleConfirmOpen.value = true
+    return
+  }
+  
+  console.log('No role change, proceeding with normal update')
+  // If no role change, proceed with normal update
+  await performUserUpdate()
+}
+
+async function performUserUpdate() {
   try {
     isUpdating.value = true
     updateError.value = ''
@@ -300,9 +582,13 @@ async function updateUser() {
       if (index !== -1) {
         users.value[index] = { ...users.value[index], ...editingUser.value }
       }
-      setTimeout(() => {
-        closeEditModal()
-      }, 1500)
+      
+      // Only auto-close if it's not a role change (role changes show success popup)
+      if (editingUser.value.staff_type === originalRole.value) {
+        setTimeout(() => {
+          closeEditModal()
+        }, 1500)
+      }
     }
   } catch (err: any) {
     console.error('Error updating user:', err)
