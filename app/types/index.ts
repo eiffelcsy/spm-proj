@@ -59,16 +59,13 @@ export type ReportStatus = 'generating' | 'completed' | 'failed'
  */
 export interface StaffDB {
   id: number
-  auth_user_id: string
-  full_name: string
-  date_of_birth: string | null
-  department: string | null
+  fullname: string
   designation: string | null
-  contact_number: string | null
-  role: StaffRole
-  is_active: boolean
+  department: string | null
+  contact_number: number | null  
+  staff_type: string | null
   created_at: string
-  updated_at: string
+  user_id: string  // UUID foreign key
 }
 
 /**
@@ -108,15 +105,14 @@ export interface ProjectDB {
   id: number
   name: string
   description: string | null
-  priority: ProjectPriority
-  due_date: string | null
-  assigned_user_ids?: number[]
-  tags: string[]
   owner_id: number
-  status: ProjectStatus
   created_at: string
   updated_at: string
+  due_date: string | null
   deleted_at: string | null
+  priority: string
+  tags: string[]
+  status: string
 }
 
 /**
@@ -167,9 +163,11 @@ export interface ProjectMemberDB {
   id: number
   project_id: number
   staff_id: number
-  role: ProjectMemberRole
+  created_at: string
+  role: string  // project_roles_enum
   invited_at: string
   joined_at: string | null
+  deleted_at: string | null
 }
 
 /**
@@ -199,12 +197,13 @@ export interface TaskDB {
   status: TaskStatus
   start_date: string | null
   due_date: string | null
-  priority: string | null
-  repeat_interval: number | null
   created_at: string
   updated_at: string
   completed_at: string | null
+  priority: number | null
+  repeat_interval: number | null
   deleted_at: string | null
+  tags: string[]
 }
 
 /**
@@ -247,6 +246,7 @@ export interface TaskForUI {
   status: TaskStatus
   notes?: string
   priority?: number
+  tags?: string[]
   assignees?: Array<{
     id: number
     fullname: string
@@ -271,20 +271,22 @@ export interface TaskCreateInput {
   start_date?: string | null
   due_date?: string | null
   status?: TaskStatus
-  priority?: string | null
+  priority?: number | null
   repeat_interval?: number | null
   notes?: string  // Will default to 'No notes...' if not provided
   project_id?: number | null
   assignee_ids?: number[]
   assigned_by_staff_id?: number | null
+  tags?: string[]
   subtasks?: Array<{
     title: string
     start_date?: string | null
     due_date?: string | null
     status?: TaskStatus
-    priority?: string
+    priority?: number | null
     notes?: string  // Will default to 'No notes...' if not provided
     assignee_ids?: number[]
+    tags?: string[]
   }>
 }
 
@@ -299,6 +301,8 @@ export interface TaskUpdateInput {
   status: TaskStatus
   notes: string  // NOT NULL in database
   assignee_id?: number | null
+  tags?: string[]
+  priority?: number | null
 }
 
 // ============================================================================
@@ -316,6 +320,7 @@ export interface TaskAssigneeDB {
   assigned_by_staff_id: number
   assigned_at: string
   is_active: boolean
+  deleted_at: string | null
 }
 
 /**
@@ -339,7 +344,7 @@ export interface TaskCommentDB {
   task_id: number
   staff_id: number
   content: string
- // is_system_generated: boolean
+  // is_system_generated: boolean
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -407,7 +412,8 @@ export interface ActivityTimelineDB {
   task_id: number
   timestamp: string
   action: string
-  user_id: number
+  staff_id: number  
+  deleted_at: string | null
 }
 
 /**
@@ -593,6 +599,7 @@ export interface SubtaskFormState {
   repeatInterval: number | null
   notes: string
   assignedTo: string[]  // Array of staff IDs as strings
+  tags: string[]  // Array of tag strings
   expanded: boolean
 }
 
@@ -671,7 +678,8 @@ export function transformTaskForUI(
     project: projectName || apiTask.project?.name || 'personal',
     status: apiTask.status,
     notes: apiTask.notes || undefined,
-    priority: apiTask.priority ? parseInt(apiTask.priority) : undefined,
+    priority: apiTask.priority || undefined,
+    tags: apiTask.tags || [],
     assignees: apiTask.assignees?.map(a => ({
       id: a.assigned_to.id,
       fullname: a.assigned_to.fullname
