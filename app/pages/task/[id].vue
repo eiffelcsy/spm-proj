@@ -210,8 +210,8 @@
               </CardContent>
           </Card>
 
-          <!-- Activity Timeline Card -->
-          <Card>
+          <!-- Activity Timeline Card (admins only) -->
+          <Card v-if="currentUserStaff?.isAdmin">
               <CardHeader>
                   <CardTitle class="flex items-center space-x-2">
                       <ClockIcon class="h-5 w-5" />
