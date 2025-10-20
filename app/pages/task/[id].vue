@@ -379,7 +379,7 @@ function fetchTask() {
 async function fetchCurrentUser() {
   try {
     const response = await $fetch('/api/user/me')
-    const user = response as unknown as { id: number; fullname: string; email: string | null; staff_type: string; department: string | null }
+    const user = response as unknown as { id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean; department: string | null }
     currentUserStaffId.value = user?.id || null
     currentUserStaff.value = user || null
   } catch (err) {

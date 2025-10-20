@@ -80,7 +80,10 @@ export interface StaffMember {
   fullname: string
   email: string | null
   department?: string | null
+  // Transition away from staff_type; prefer booleans below
   staff_type?: string
+  isManager?: boolean
+  isAdmin?: boolean
 }
 
 /**

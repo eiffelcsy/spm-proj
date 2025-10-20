@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     // Get staff record
     const { data: staffRow, error: staffError } = await supabase
         .from('staff')
-        .select('id, staff_type')
+        .select('id, is_manager')
         .eq('user_id', user.id)
         .maybeSingle() as { data: { id: number } | null, error: any }
 
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
 
     // Check if user is a manager
-    if (staffRow.staff_type !== 'manager') {
+    if (!staffRow.is_manager) {
         throw createError({
             statusCode: 403,
             statusMessage: "Only managers can edit projects.",

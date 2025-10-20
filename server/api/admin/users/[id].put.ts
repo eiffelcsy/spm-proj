@@ -14,18 +14,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Not authenticated' })
   }
 
-  // Check if the current user is an admin
+  // Check if the current user is an admin (boolean)
   const { data: currentStaff, error: staffError } = await supabase
     .from('staff')
-    .select('id, staff_type')
+    .select('id, is_admin')
     .eq('user_id', user.id)
-    .maybeSingle() as { data: { id: number, staff_type: string } | null, error: any }
+    .maybeSingle() as { data: { id: number, is_admin: boolean } | null, error: any }
 
   if (staffError) {
     throw createError({ statusCode: 500, statusMessage: staffError.message })
   }
 
-  if (!currentStaff || currentStaff.staff_type !== 'admin') {
+  if (!currentStaff || !currentStaff.is_admin) {
     throw createError({ statusCode: 403, statusMessage: 'Access denied. Admin privileges required.' })
   }
 
@@ -36,21 +36,18 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const { 
-    staff_type, 
+    is_admin,
+    is_manager,
     fullname, 
     contact_number, 
     designation, 
     department, 
   } = body
 
-  // Validate staff_type
-  if (staff_type && !['admin', 'manager', 'staff'].includes(staff_type)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid staff type. Must be "admin", "manager", or "staff"' })
-  }
-
   // Build update object
   const updateData: Record<string, any> = {}
-  if (staff_type !== undefined) updateData.staff_type = staff_type
+  if (is_admin !== undefined) updateData.is_admin = !!is_admin
+  if (is_manager !== undefined) updateData.is_manager = !!is_manager
   if (fullname !== undefined) updateData.fullname = fullname
   if (contact_number !== undefined) updateData.contact_number = contact_number
   if (designation !== undefined) updateData.designation = designation

@@ -45,7 +45,8 @@ export default defineEventHandler(async (event) => {
     .insert([{
       user_id: newUser.id, // Link to the auth.users table
       fullname: fullname,
-      staff_type: 'staff',
+      is_manager: false,
+      is_admin: false,
     }]);
 
   if (staffInsertError) {

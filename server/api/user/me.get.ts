@@ -11,9 +11,9 @@ export default defineEventHandler(async (event) => {
 
     const { data: staffRow, error: staffError } = await supabase
         .from('staff')
-        .select('id, fullname, staff_type, department')
+        .select('id, fullname, is_manager, is_admin, department')
         .eq('user_id', user.id)
-        .maybeSingle() as { data: { id: number, fullname: string, staff_type: string, department: string | null } | null, error: any }
+        .maybeSingle() as { data: { id: number, fullname: string, is_manager: boolean, is_admin: boolean, department: string | null } | null, error: any }
 
     if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
@@ -22,7 +22,8 @@ export default defineEventHandler(async (event) => {
         id: staffRow.id,
         fullname: staffRow.fullname,
         email: user.email || null,
-        staff_type: staffRow.staff_type,
+        isManager: !!staffRow.is_manager,
+        isAdmin: !!staffRow.is_admin,
         department: staffRow.department
     }
 })

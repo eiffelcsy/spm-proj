@@ -22,12 +22,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get current user's staff_type
+    // Get current user's role booleans
     const { data: staffData, error: staffError } = await supabase
       .from('staff')
-      .select('staff_type')
+      .select('is_manager, is_admin')
       .eq('user_id', user.id)
-      .single() as { data: { staff_type: string } | null, error: any }
+      .single() as { data: { is_manager: boolean, is_admin: boolean } | null, error: any }
 
     if (staffError || !staffData) {
       throw createError({
@@ -36,7 +36,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const currentStaffType = staffData.staff_type
+    const isManager = !!staffData.is_manager
+    const isAdmin = !!staffData.is_admin
 
     // Verify comment exists and belongs to the task
     const { data: comment, error: commentError } = await supabase
@@ -53,13 +54,11 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Comment not found'
       })
     }
-    // Check if user is a manager
-    const isManager = currentStaffType === 'manager'
-    
-    if (!isManager) {
+    // Check permission: managers or admins can delete comments
+    if (!isManager && !isAdmin) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Access denied - Only managers can delete comments'
+        statusMessage: 'Access denied - Only managers or admins can delete comments'
       })
     }
 

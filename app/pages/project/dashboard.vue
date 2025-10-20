@@ -259,13 +259,13 @@ const rawTasks = ref<any[]>([])
 // DATA FETCHING
 // ============================================================================
 
-const currentUserStaffType = ref<string | null>(null)
+const currentUserIsManager = ref<boolean>(false)
 
 async function fetchCurrentUser() {
   try {
     const user = await $fetch('/api/user/me')
     currentUserStaffId.value = user.id
-    currentUserStaffType.value = user.staff_type
+    currentUserIsManager.value = !!user.isManager
   } catch (err) {
     console.error('Failed to fetch current user:', err)
     currentUserStaffId.value = null
@@ -273,7 +273,7 @@ async function fetchCurrentUser() {
   }
 }
 
-const isManager = computed(() => currentUserStaffType.value === 'manager')
+const isManager = computed(() => currentUserIsManager.value)
 
 async function fetchProjects() {
   try {

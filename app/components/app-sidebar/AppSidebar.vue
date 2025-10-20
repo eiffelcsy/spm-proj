@@ -39,12 +39,12 @@ import {
 // STATE MANAGEMENT
 // ============================================================================
 
-const currentUser = ref<{ id: number; fullname: string; email: string | null; staff_type: string } | null>(null)
+const currentUser = ref<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean } | null>(null)
 const router = useRouter()
 const route = useRoute()
 const supabase = useSupabaseClient()
-const isManager = computed(() => currentUser.value?.staff_type === 'manager')
-const isAdmin = computed(() => currentUser.value?.staff_type === 'admin') // <-- 2. ADDED ADMIN CHECK
+const isManager = computed(() => !!currentUser.value?.isManager)
+const isAdmin = computed(() => !!currentUser.value?.isAdmin)
 
 // ============================================================================
 // ROUTE DETECTION & HIGHLIGHTING
@@ -101,7 +101,7 @@ const getActiveClasses = (isActive: boolean) => {
 
 async function fetchCurrentUser() {
   try {
-    const user = await $fetch<{ id: number; fullname: string; email: string | null; staff_type: string }>('/api/user/me')
+    const user = await $fetch<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean }>('/api/user/me')
     currentUser.value = user
   } catch (err) {
     console.error('Failed to fetch current user:', err)

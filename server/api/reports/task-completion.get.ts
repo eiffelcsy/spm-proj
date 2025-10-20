@@ -18,10 +18,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get current user's staff record to verify they're a manager
+  // Get current user's staff record to verify they're a manager/admin via booleans
   const { data: staffData, error: staffError } = await supabase
     .from('staff')
-    .select('id, staff_type')
+    .select('id, is_manager, is_admin')
     .eq('user_id', user.id)
     .single()
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify user is a manager or admin
-  if (staffData.staff_type !== 'manager' && staffData.staff_type !== 'admin') {
+  if (!staffData.is_manager && !staffData.is_admin) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Access denied - Only managers and admins can generate reports'

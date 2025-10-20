@@ -102,15 +102,18 @@
                     <td class="p-3 text-gray-600">{{ user.designation || '—' }}</td>
                     <td class="p-3 text-gray-600">{{ user.department || '—' }}</td>
                     <td class="p-3">
-                      <Badge 
-                        :variant="user.staff_type === 'admin' ? 'default' : 'secondary'"
-                        :class="user.staff_type === 'admin' ? 'bg-blue-100 text-blue-800' : user.staff_type === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'"
-                      >
-                        <Shield v-if="user.staff_type === 'admin'" class="w-3 h-3 mr-1" />
-                        <User v-else-if="user.staff_type === 'manager'" class="w-3 h-3 mr-1" />
-                        <User v-else class="w-3 h-3 mr-1" />
-                        {{ user.staff_type }}
-                      </Badge>
+                      <div class="flex flex-wrap gap-1">
+                        <Badge
+                          v-for="role in displayRoles(user)"
+                          :key="role"
+                          :variant="role === 'admin' ? 'default' : 'secondary'"
+                          :class="role === 'admin' ? 'bg-blue-100 text-blue-800' : role === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'"
+                        >
+                          <Shield v-if="role === 'admin'" class="w-3 h-3 mr-1" />
+                          <User v-else class="w-3 h-3 mr-1" />
+                          {{ role }}
+                        </Badge>
+                      </div>
                     </td>
                     <td class="p-3 text-gray-600">{{ user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' }}</td>
                     <td class="p-3">
@@ -164,36 +167,42 @@
                 <span class="font-medium">{{ editingUser.fullname }}</span>
               </div>
               <div class="text-sm text-gray-600">
-                <span>Current Role: </span>
-                <Badge :variant="originalRole === 'admin' ? 'default' : 'secondary'"
-                       :class="originalRole === 'admin' ? 'bg-blue-100 text-blue-800' : originalRole === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
-                  {{ originalRole }}
-                </Badge>
+                <span>Current Roles: </span>
+                <span class="inline-flex gap-1">
+                  <Badge v-for="r in displayRoles({ is_admin: originalIsAdmin, is_manager: originalIsManager })" :key="r"
+                         :variant="r === 'admin' ? 'default' : 'secondary'"
+                         :class="r === 'admin' ? 'bg-blue-100 text-blue-800' : r === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
+                    {{ r }}
+                  </Badge>
+                </span>
               </div>
               <div class="text-sm text-gray-600 mt-1">
-                <span>New Role: </span>
-                <Badge :variant="pendingRoleChange === 'admin' ? 'default' : 'secondary'"
-                       :class="pendingRoleChange === 'admin' ? 'bg-blue-100 text-blue-800' : pendingRoleChange === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
-                  {{ pendingRoleChange }}
-                </Badge>
+                <span>New Roles: </span>
+                <span class="inline-flex gap-1">
+                  <Badge v-for="r in displayRoles(editingUser)" :key="r"
+                         :variant="r === 'admin' ? 'default' : 'secondary'"
+                         :class="r === 'admin' ? 'bg-blue-100 text-blue-800' : r === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
+                    {{ r }}
+                  </Badge>
+                </span>
               </div>
             </div>
 
-            <!-- Warning for Manager/Admin roles -->
-            <div v-if="pendingRoleChange === 'manager' || pendingRoleChange === 'admin'" 
+            <!-- Warning for selected roles -->
+            <div v-if="hasAdmin(editingUser) || hasManager(editingUser)" 
                  class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div class="flex items-start gap-2">
                 <Shield class="w-5 h-5 text-yellow-600 mt-0.5" />
                 <div>
-                  <h4 class="font-medium text-yellow-800 mb-1">Important Notice</h4>
-                  <p class="text-sm text-yellow-700">
-                    <span v-if="pendingRoleChange === 'admin'">
-                      Admin users have full system access and can manage all users, projects, and system settings.
-                    </span>
-                    <span v-else-if="pendingRoleChange === 'manager'">
-                      Manager users can create and manage projects, assign tasks, and view reports.
-                    </span>
-                  </p>
+                  <h4 class="font-medium text-yellow-800 mb-2">Access and Permissions</h4>
+                  <ul class="text-sm text-yellow-800 list-disc pl-5 space-y-1">
+                    <li v-if="hasAdmin(editingUser)">
+                      Admin: Full system access; manage users, projects, and global settings.
+                    </li>
+                    <li v-if="hasManager(editingUser)">
+                      Manager: Create/manage projects, assign tasks, and view team reports.
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -219,11 +228,14 @@
           </div>
           <div class="py-4">
             <p class="text-gray-700">
-              {{ successUserInfo.fullname }}'s role has been successfully updated to 
-              <Badge :variant="successUserInfo.staff_type === 'admin' ? 'default' : 'secondary'"
-                     :class="successUserInfo.staff_type === 'admin' ? 'bg-blue-100 text-blue-800' : successUserInfo.staff_type === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
-                {{ successUserInfo.staff_type }}
-              </Badge>
+              {{ successUserInfo.fullname }}'s roles have been updated to 
+              <span class="inline-flex gap-1">
+                <Badge v-for="r in displayRoles(successUserInfo)" :key="r"
+                       :variant="r === 'admin' ? 'default' : 'secondary'"
+                       :class="r === 'admin' ? 'bg-blue-100 text-blue-800' : r === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">
+                  {{ r }}
+                </Badge>
+              </span>
             </p>
           </div>
           <div class="flex justify-end">
@@ -255,7 +267,8 @@
                 <Label for="contact_number">Contact Number</Label>
                 <Input 
                   id="contact_number"
-                  v-model="editingUser.contact_number"
+                  :model-value="editingUser.contact_number ?? ''"
+                  @update:modelValue="val => editingUser.contact_number = val ? String(val) : ''"
                   placeholder="Enter contact number"
                 />
               </div>
@@ -278,7 +291,8 @@
                 <Label for="designation">Designation</Label>
                 <Input 
                   id="designation"
-                  v-model="editingUser.designation"
+                  :model-value="editingUser.designation ?? ''"
+                  @update:modelValue="val => editingUser.designation = val ? String(val) : ''"
                   placeholder="Enter designation"
                 />
               </div>
@@ -286,23 +300,24 @@
                 <Label for="department">Department</Label>
                 <Input 
                   id="department"
-                  v-model="editingUser.department"
+                  :model-value="editingUser.department ?? ''"
+                  @update:modelValue="val => editingUser.department = val ? String(val) : ''"
                   placeholder="Enter department"
                 />
               </div>
             </div>
             <div class="space-y-2">
-              <Label for="staff_type">Staff Type</Label>
-              <Select v-model="editingUser.staff_type">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select staff type" />
-                </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="staff">Staff</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-              </SelectContent>
-              </Select>
+              <Label>Roles</Label>
+              <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" :checked="hasManager(editingUser)" @change="(e:any) => setManager(editingUser, e.target.checked)" />
+                  Manager
+                </label>
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" :checked="hasAdmin(editingUser)" @change="(e:any) => setAdmin(editingUser, e.target.checked)" />
+                  Admin
+                </label>
+              </div>
             </div>
 
             <div v-if="updateError" class="text-red-600 text-sm">
@@ -359,7 +374,8 @@ interface User {
   fullname: string
   email: string | null
   contact_number?: string | null
-  staff_type: string
+  is_admin?: boolean
+  is_manager?: boolean
   designation?: string | null
   department?: string | null
   user_id: string
@@ -375,7 +391,8 @@ const editingUser = ref<User>({
   fullname: '',
   email: '',
   contact_number: '',
-  staff_type: 'staff',
+  is_admin: false,
+  is_manager: false,
   designation: '',
   department: '',
   user_id: '',
@@ -389,9 +406,10 @@ const updateSuccess = ref('')
 const isRoleConfirmOpen = ref(false)
 const isSuccessOpen = ref(false)
 const pendingRoleChange = ref('')
-const originalRole = ref('')
+const originalIsAdmin = ref(false)
+const originalIsManager = ref(false)
 const selectKey = ref(0)
-const successUserInfo = ref({ fullname: '', staff_type: '' })
+const successUserInfo = ref({ fullname: '', is_admin: false, is_manager: false })
 
 // Filter, sort, and search variables
 const searchQuery = ref('')
@@ -413,7 +431,13 @@ const filteredAndSortedUsers = computed(() => {
 
   // Filter by role
   if (selectedRole.value !== 'all') {
-    filtered = filtered.filter(user => user.staff_type === selectedRole.value)
+    if (selectedRole.value === 'admin') {
+      filtered = filtered.filter(user => hasAdmin(user))
+    } else if (selectedRole.value === 'manager') {
+      filtered = filtered.filter(user => hasManager(user))
+    } else if (selectedRole.value === 'staff') {
+      filtered = filtered.filter(user => !hasAdmin(user) && !hasManager(user))
+    }
   }
 
   // Sort the filtered results
@@ -427,10 +451,9 @@ const filteredAndSortedUsers = computed(() => {
         bValue = b.fullname.toLowerCase()
         break
       case 'role':
-        // Define role hierarchy for sorting
-        const roleOrder = { admin: 3, manager: 2, staff: 1 }
-        aValue = roleOrder[a.staff_type as keyof typeof roleOrder] || 0
-        bValue = roleOrder[b.staff_type as keyof typeof roleOrder] || 0
+        // Define role hierarchy for sorting (admin > manager > staff)
+        aValue = hasAdmin(a) ? 3 : hasManager(a) ? 2 : 1
+        bValue = hasAdmin(b) ? 3 : hasManager(b) ? 2 : 1
         break
       case 'date':
         aValue = new Date(a.created_at).getTime()
@@ -470,7 +493,8 @@ async function fetchUsers() {
 
 function openEditModal(user: User) {
   editingUser.value = { ...user }
-  originalRole.value = user.staff_type
+  originalIsAdmin.value = !!(user as any).is_admin
+  originalIsManager.value = !!(user as any).is_manager
   selectKey.value = 0
   updateError.value = ''
   updateSuccess.value = ''
@@ -484,7 +508,8 @@ function closeEditModal() {
     fullname: '',
     email: '',
     contact_number: '',
-    staff_type: 'staff',
+    is_admin: false,
+    is_manager: false,
     designation: '',
     department: '',
     user_id: '',
@@ -492,7 +517,8 @@ function closeEditModal() {
   }
   updateError.value = ''
   updateSuccess.value = ''
-  originalRole.value = ''
+  originalIsAdmin.value = false
+  originalIsManager.value = false
 }
 
 // Role change handling functions
@@ -503,7 +529,8 @@ function closeSuccessAndEdit() {
 
 function cancelRoleChange() {
   // Revert the role back to original
-  editingUser.value.staff_type = originalRole.value
+  ;(editingUser.value as any).is_admin = originalIsAdmin.value
+  ;(editingUser.value as any).is_manager = originalIsManager.value
   
   // Close confirmation dialog and reset pending change
   isRoleConfirmOpen.value = false
@@ -517,14 +544,16 @@ async function confirmRoleChange() {
   // Store user info for success popup before update
   successUserInfo.value = {
     fullname: editingUser.value.fullname,
-    staff_type: editingUser.value.staff_type
+    is_admin: !!(editingUser.value as any).is_admin,
+    is_manager: !!(editingUser.value as any).is_manager
   }
   
   // Close confirmation dialog
   isRoleConfirmOpen.value = false
   
-  // Update original role for future comparisons
-  originalRole.value = editingUser.value.staff_type
+  // Update original role flags for future comparisons
+  originalIsAdmin.value = !!(editingUser.value as any).is_admin
+  originalIsManager.value = !!(editingUser.value as any).is_manager
   
   // Perform the actual update
   await performUserUpdate()
@@ -536,21 +565,14 @@ async function confirmRoleChange() {
 }
 
 async function updateUser() {
-  console.log('updateUser called - Current role:', editingUser.value.staff_type, 'Original role:', originalRole.value)
-  
-  // Check if role has changed
-  if (editingUser.value.staff_type !== originalRole.value) {
-    console.log('Role changed! Showing confirmation dialog')
-    // Close the edit modal first
+  const currIsAdmin = !!(editingUser.value as any).is_admin
+  const currIsManager = !!(editingUser.value as any).is_manager
+  const changed = currIsAdmin !== originalIsAdmin.value || currIsManager !== originalIsManager.value
+  if (changed) {
     isEditModalOpen.value = false
-    // Show role change confirmation
-    pendingRoleChange.value = editingUser.value.staff_type
     isRoleConfirmOpen.value = true
     return
   }
-  
-  console.log('No role change, proceeding with normal update')
-  // If no role change, proceed with normal update
   await performUserUpdate()
 }
 
@@ -567,7 +589,8 @@ async function performUserUpdate() {
       contact_number: editingUser.value.contact_number || null,
       designation: editingUser.value.designation || null,
       department: editingUser.value.department || null,
-      staff_type: editingUser.value.staff_type
+      is_admin: !!(editingUser.value as any).is_admin,
+      is_manager: !!(editingUser.value as any).is_manager
     }
 
     const response = await $fetch(`/api/admin/users/${editingUser.value.id}`, {
@@ -584,7 +607,10 @@ async function performUserUpdate() {
       }
       
       // Only auto-close if it's not a role change (role changes show success popup)
-      if (editingUser.value.staff_type === originalRole.value) {
+      if (
+        !!(editingUser.value as any).is_admin === originalIsAdmin.value &&
+        !!(editingUser.value as any).is_manager === originalIsManager.value
+      ) {
         setTimeout(() => {
           closeEditModal()
         }, 1500)
@@ -601,4 +627,47 @@ async function performUserUpdate() {
 onMounted(() => {
   fetchUsers()
 })
+
+// Compute role string from boolean flags (or legacy staff_type)
+function computedRole(u: any): 'admin' | 'manager' | 'staff' {
+  const isAdmin = toBoolean(u?.is_admin ?? u?.isAdmin)
+  const isManager = toBoolean(u?.is_manager ?? u?.isManager)
+  return isAdmin ? 'admin' : isManager ? 'manager' : 'staff'
+}
+
+// Helpers to derive role flags from various possible field names
+function toBoolean(value: any): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y'
+  }
+  return false
+}
+
+function hasAdmin(u: any): boolean {
+  const isAdmin = u?.is_admin ?? u?.isAdmin
+  return toBoolean(isAdmin)
+}
+
+function hasManager(u: any): boolean {
+  const isManager = u?.is_manager ?? u?.isManager
+  return toBoolean(isManager)
+}
+
+function displayRoles(u: any): Array<'admin' | 'manager' | 'staff'> {
+  const roles: Array<'admin' | 'manager'> = []
+  if (hasAdmin(u)) roles.push('admin')
+  if (hasManager(u)) roles.push('manager')
+  return roles.length ? roles : ['staff']
+}
+
+function setAdmin(u: any, value: boolean) {
+  u.is_admin = !!value
+}
+
+function setManager(u: any, value: boolean) {
+  u.is_manager = !!value
+}
 </script>
