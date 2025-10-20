@@ -158,9 +158,9 @@ export default defineEventHandler(async (event) => {
     // Get current task data to compare changes
     const { data: currentTask, error: currentTaskError } = await supabase
       .from('tasks')
-      .select('title, start_date, due_date, status, notes, priority, repeat_interval')
+      .select('title, start_date, due_date, status, notes, priority, repeat_interval, tags')
       .eq('id', taskId)
-      .single() as { data: { title: string, start_date: string | null, due_date: string | null, status: string, notes: string, priority: string | null, repeat_interval: number | null } | null, error: any }
+      .single() as { data: { title: string, start_date: string | null, due_date: string | null, status: string, notes: string, priority: string | null, repeat_interval: number | null, tags: string[] | null } | null, error: any }
 
     if (currentTaskError || !currentTask) {
       throw createError({
@@ -212,6 +212,7 @@ export default defineEventHandler(async (event) => {
         data: error
       })
     }
+    const parentProjectId = task?.project_id ?? (body.project_id ?? null)
 
     // --- NEW: handle subtasks payload (create new or update existing) ---
     if (Array.isArray(body.subtasks)) {
@@ -225,7 +226,9 @@ export default defineEventHandler(async (event) => {
             priority: s.priority !== undefined ? String(s.priority) : null,
             repeat_interval: s.repeat_interval !== undefined ? s.repeat_interval : null,
             notes: s.notes ?? null,
-            tags: s.tags ?? []
+            tags: s.tags ?? [],           
+            project_id: parentProjectId !== undefined ? parentProjectId : null,
+            parent_task_id: Number(taskId)
           }
 
           if (s.id) {
@@ -244,11 +247,12 @@ export default defineEventHandler(async (event) => {
             // ensure parent_task_id is this taskId (or update it)
             await supabase
               .from('tasks')
-              .update({ ...subPayload, parent_task_id: Number(taskId) })
+              .update(subPayload)
               .eq('id', s.id)
+              
           } else {
             // insert new subtask
-            const insertObj = { ...subPayload, parent_task_id: Number(taskId), creator_id: currentStaffId }
+            const insertObj = { ...subPayload, creator_id: currentStaffId }
             const { data: inserted, error: insertErr } = await supabase
               .from('tasks')
               .insert(insertObj)

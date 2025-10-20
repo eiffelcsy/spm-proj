@@ -681,7 +681,7 @@ async function updateTask() {
       project_id: selectedProjectId.value ? Number(selectedProjectId.value) : null,
       assignee_ids: assignedTo.value.map(id => parseInt(id)),
       subtasks: subtasks.value.map(sub => ({
-        id: sub.id ? Number(sub.id) : undefined, // <-- send id for existing subtasks
+        id: sub.id ? Number(sub.id) : undefined, //send id for existing subtasks
         title: sub.title,
         start_date: sub.startDate ? sub.startDate.toString() : null,
         due_date: sub.dueDate ? sub.dueDate.toString() : null,
@@ -690,6 +690,7 @@ async function updateTask() {
         repeat_interval: sub.repeatInterval.toString(),
         notes: sub.notes || null,
         tags: sub.tags || [],
+        project_id: selectedProjectId.value ? Number(selectedProjectId.value) : (props.task?.project?.id ? Number(props.task.project.id) : null),
         assignee_ids: (sub.assignedTo || []).map(id => Number(id))
       }))
     };
