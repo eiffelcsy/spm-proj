@@ -153,7 +153,7 @@ export default defineEventHandler(async (event) => {
     // Fetch activity timeline for this task
     const { data: history, error: timelineError } = await supabase
       .from('activity_timeline')
-      .select('*, staff:user_id (fullname)')
+      .select('*, staff:staff_id (fullname)')
       .eq('task_id', taskId)
       .order('timestamp', { ascending: true })
    

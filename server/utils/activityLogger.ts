@@ -15,7 +15,7 @@
 export interface ActivityLogEntry {
   task_id: number
   action: string
-  user_id: number
+  staff_id: number
   timestamp?: string
 }
 
@@ -26,7 +26,7 @@ export interface ActivityLogEntry {
  * It handles the actual database insertion and error handling.
  * 
  * @param supabase - Supabase service role client
- * @param entry - Activity log entry containing task_id, action, user_id, and optional timestamp
+ * @param entry - Activity log entry containing task_id, action, staff_id, and optional timestamp
  * @returns Promise<boolean> - Success status (true if logged successfully, false otherwise)
  */
 export async function logActivity(
@@ -40,7 +40,7 @@ export async function logActivity(
       .insert([{
         task_id: entry.task_id,
         action: entry.action,
-        user_id: entry.user_id,
+        staff_id: entry.staff_id,
         timestamp: entry.timestamp || new Date().toISOString() // Use current timestamp if not provided
       }])
 
@@ -75,7 +75,7 @@ export async function logTaskCreation(
   return logActivity(supabase, {
     task_id: taskId,
     action: 'Task Created',
-    user_id: userId
+    staff_id: userId
   })
 }
 /**
@@ -108,7 +108,7 @@ export async function logTaskUpdate(
     return logActivity(supabase, {
       task_id: taskId,
       action: 'Updated',
-      user_id: userId
+      staff_id: userId
     })
   }
 
@@ -188,7 +188,7 @@ export async function logTaskUpdate(
     logActivity(supabase, {
       task_id: taskId,
       action: `Updated ${description}`,
-      user_id: userId
+      staff_id: userId
     })
   )
   
@@ -215,7 +215,7 @@ export async function logTaskCompletion(
   return logActivity(supabase, {
     task_id: taskId,
     action: 'Completed',
-    user_id: userId
+    staff_id: userId
   })
 }
 /**
@@ -237,7 +237,7 @@ export async function logTaskDeletion(
   return logActivity(supabase, {
     task_id: taskId,
     action: 'Deleted',
-    user_id: userId
+    staff_id: userId
   })
 }
 /**
@@ -271,6 +271,6 @@ export async function logTaskAssignment(
   return logActivity(supabase, {
     task_id: taskId,
     action: `Assigned to ${assigneeName}`,
-    user_id: userId
+    staff_id: userId
   })
 }
