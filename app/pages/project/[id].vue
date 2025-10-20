@@ -287,6 +287,7 @@ async function fetchProject() {
         id: String(foundProject.id),
         name: foundProject.name || '',
         description: foundProject.description || '',
+        priority: foundProject.priority || 'No Priority',
         status: foundProject.status || 'active',
         createdAt: foundProject.created_at || new Date().toISOString(),
         dueDate: foundProject.due_date || null,
