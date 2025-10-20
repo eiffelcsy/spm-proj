@@ -205,15 +205,31 @@ export function createAssigneesColumn() {
         return h('div', { class: 'text-gray-400 italic text-sm' }, 'Unassigned')
       }
       
-      const assigneeNames = assignees
-        .map((a: any) => a.assigned_to?.fullname || 'Unassigned')
-        .filter((name: string, index: number, self: string[]) => self.indexOf(name) === index) // Remove duplicates
-        .join(', ')
-      
+      const allNamesArray = assignees
+        .map((a: any) => a.assigned_to?.fullname || a.fullname || 'Unassigned')
+        .filter((name: string, index: number, self: string[]) => self.indexOf(name) === index)
+
+      const fullNames = allNamesArray.join(', ')
+      const visible = allNamesArray.slice(0, 3)
+      const remainingCount = allNamesArray.length - visible.length
+
+      if (remainingCount > 0) {
+        return h('div', { 
+          class: 'flex items-center gap-1 max-w-[240px]',
+          title: fullNames // Show full list on hover
+        }, [
+          h('span', { class: 'text-sm truncate' }, visible.join(', ')),
+          h(Badge, { 
+            variant: 'secondary',
+            class: 'text-xs px-1.5 py-0.5 whitespace-nowrap'
+          }, () => `+${remainingCount}`)
+        ])
+      }
+
       return h('div', { 
-        class: 'text-sm max-w-[200px] truncate',
-        title: assigneeNames // Show full names on hover
-      }, assigneeNames)
+        class: 'text-sm max-w-[240px] truncate',
+        title: fullNames
+      }, fullNames)
     },
     filterFn: (row: any, id: string, value: string[]) => {
       const assignees = row.getValue(id) as any[] | undefined
@@ -224,7 +240,7 @@ export function createAssigneesColumn() {
       
       // Check if any of the task's assignees match the filter
       return assignees.some((a: any) => {
-        const assigneeId = a.assigned_to?.id?.toString()
+        const assigneeId = (a.assigned_to?.id ?? a.id)?.toString()
         return assigneeId && value.includes(assigneeId)
       })
     },
@@ -252,8 +268,9 @@ export function createTagsColumn() {
       // Show up to 3 tags, with a "+X more" indicator if there are more
       const visibleTags = tags.slice(0, 3)
       const remainingCount = tags.length - 3
+      const fullTagList = tags.join(', ')
       
-      return h('div', { class: 'flex flex-wrap gap-1 max-w-[200px]' }, [
+      return h('div', { class: 'flex flex-wrap gap-1 max-w-[200px]', title: fullTagList }, [
         ...visibleTags.map((tag: string) => 
           h(Badge, { 
             variant: 'outline',
