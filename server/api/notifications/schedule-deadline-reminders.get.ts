@@ -9,9 +9,13 @@ export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
   
   try {
-    // Calculate tomorrow's date
+    // Calculate tomorrow's date in Singapore timezone (UTC+8)
     const now = new Date()
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    const singaporeOffset = 8 * 60 // Singapore is UTC+8 (8 hours * 60 minutes)
+    const singaporeTime = new Date(now.getTime() + (singaporeOffset * 60 * 1000))
+    
+    // Get tomorrow in Singapore timezone
+    const tomorrow = new Date(singaporeTime.getTime() + 24 * 60 * 60 * 1000)
     
     // Format date for database query (YYYY-MM-DD)
     const tomorrowStr = tomorrow.toISOString().split('T')[0]
@@ -93,6 +97,7 @@ export default defineEventHandler(async (event) => {
       tasksProcessed: tasks.length
     }
   } catch (error: any) {
+    console.error('Cron job failed:', error)
     if (error.statusCode) {
       throw error
     }
