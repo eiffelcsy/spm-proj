@@ -1,4 +1,4 @@
-# GitHub Actions CI/CD Workflows
+# GitHub Actions CI/CD Workflows.
 
 This directory contains GitHub Actions workflows for automated testing, coverage reporting, and continuous integration.
 
