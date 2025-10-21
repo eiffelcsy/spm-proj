@@ -2,8 +2,20 @@ import type { TaskDB } from '~/types'
 import { logTaskCreation } from './activityLogger'
 
 /**
- * Service for handling recurring task replication
+ * Service for handling recurring task replication with sequential catch-up logic
  * This function replicates a task when it's completed and has a repeat_interval > 0
+ * 
+ * Sequential Catch-Up Behavior:
+ * - Creates only ONE next occurrence when a task is completed
+ * - The next occurrence gets the next sequential due date based on the original schedule
+ * - Each occurrence must be completed before the next one is created
+ * - All occurrences maintain the repeat_interval to continue the cycle
+ * 
+ * Example: Task due Oct 14 (1-day interval), completed Oct 21
+ * - Creates 1 task with due date Oct 15 and repeat_interval = 1
+ * - When Oct 15 task is completed, creates Oct 16 task
+ * - When Oct 16 task is completed, creates Oct 17 task
+ * - This continues sequentially until caught up to current date
  * 
  * What gets copied:
  * - Task data (title, notes, dates, priority, repeat_interval, tags, etc.)
@@ -58,7 +70,7 @@ export async function replicateCompletedTask(
 
     const repeatInterval = task.repeat_interval
 
-    // Calculate new dates for the replicated task
+    // Calculate the next occurrence's due date (always just one interval forward)
     const currentDueDate = new Date(task.due_date)
     const newDueDate = new Date(currentDueDate.getTime() + (repeatInterval * 24 * 60 * 60 * 1000))
     
@@ -67,6 +79,8 @@ export async function replicateCompletedTask(
       newStartDate = new Date(newStartDate.getTime() + (repeatInterval * 24 * 60 * 60 * 1000))
     }
 
+    console.log(`Task ${task.id}: Creating next occurrence with due date ${newDueDate.toISOString().split('T')[0]}`)
+
     // Create the new task (copy of the original)
     const newTaskPayload = {
       title: task.title,
@@ -74,11 +88,11 @@ export async function replicateCompletedTask(
       project_id: task.project_id,
       parent_task_id: task.parent_task_id,
       creator_id: task.creator_id,
-      status: 'not-started', // Reset status for new task
+      status: 'not-started',
       start_date: newStartDate ? newStartDate.toISOString().split('T')[0] : null,
       due_date: newDueDate.toISOString().split('T')[0],
       priority: task.priority,
-      repeat_interval: repeatInterval, // New task continues the recurrence
+      repeat_interval: repeatInterval, // Always continues the recurrence
       tags: task.tags || [],
       completed_at: null
     }
@@ -108,7 +122,6 @@ export async function replicateCompletedTask(
     await logTaskCreation(supabase, newTask.id, task.creator_id)
 
     // Copy assignees from original task to new task
-    // NOTE: Comments are intentionally NOT copied - each task instance has its own comment history
     const { data: assignees, error: assigneeError } = await supabase
       .from('task_assignees')
       .select('assigned_to_staff_id, assigned_by_staff_id')
@@ -154,7 +167,7 @@ export async function replicateCompletedTask(
           project_id: subtask.project_id,
           parent_task_id: newTask.id, // Link to the new parent task
           creator_id: subtask.creator_id,
-          status: 'not-started', // Reset status for new subtask
+          status: 'not-started',
           start_date: subtaskNewStartDate ? subtaskNewStartDate.toISOString().split('T')[0] : null,
           due_date: subtaskNewDueDate ? subtaskNewDueDate.toISOString().split('T')[0] : null,
           priority: subtask.priority,

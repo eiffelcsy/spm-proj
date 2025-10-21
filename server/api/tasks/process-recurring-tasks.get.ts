@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
             newId: result.newTask.id,
             title: task.title
           })
-          console.log(`Cron job: Successfully replicated completed task ${task.id} to new task ${result.newTask.id}`)
+          console.log(`Cron job: Successfully replicated completed task ${task.id}: created task ${result.newTask.id}`)
         } else {
           console.error(`Cron job: Failed to replicate task ${task.id}:`, result.error)
         }

@@ -527,7 +527,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if task was just completed and has repeat_interval > 0
-    // If so, replicate the task immediately
+    // If so, replicate the task immediately (creates one next occurrence)
     let replicatedTask: TaskDB | undefined = undefined
     const wasCompleted = currentTask.status !== 'completed' && task.status === 'completed'
     const hasRepeatInterval = task.repeat_interval && task.repeat_interval > 0
@@ -538,7 +538,7 @@ export default defineEventHandler(async (event) => {
       
       if (replicationResult.success && replicationResult.newTask) {
         replicatedTask = replicationResult.newTask
-        console.log(`Successfully replicated task ${taskId} to new task ${replicatedTask.id}`)
+        console.log(`Successfully replicated task ${taskId}: created task ${replicatedTask.id} with due date ${replicatedTask.due_date}`)
       } else {
         console.error(`Failed to replicate task ${taskId}:`, replicationResult.error)
       }
