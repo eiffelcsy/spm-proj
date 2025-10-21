@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, master, develop, refactoring ]
+    branches: [ main, master, develop, refactoring, fix/ci-node-version ]
   pull_request:
-    branches: [ main, master, develop, refactoring ]
+    branches: [ main, master, develop, refactoring, fix/ci-node-version ]
 
 jobs:
   lint:
