@@ -419,6 +419,11 @@ const sortOrder = ref('asc')
 
 // Computed property for filtered and sorted users
 const filteredAndSortedUsers = computed(() => {
+  // Ensure users.value is always an array
+  if (!Array.isArray(users.value)) {
+    return []
+  }
+  
   let filtered = users.value
 
   // Search by name
@@ -440,8 +445,9 @@ const filteredAndSortedUsers = computed(() => {
     }
   }
 
-  // Sort the filtered results
-  return filtered.sort((a, b) => {
+  // Sort the filtered results - create a copy to avoid mutating reactive data
+  const sorted = [...filtered]
+  return sorted.sort((a, b) => {
     let aValue: any
     let bValue: any
 

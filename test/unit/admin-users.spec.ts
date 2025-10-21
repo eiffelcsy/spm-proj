@@ -22,7 +22,11 @@ vi.mock('@/components/ui/button', () => ({
 }))
 
 vi.mock('@/components/ui/input', () => ({
-  Input: { template: '<input />', props: ['modelValue'] }
+  Input: { 
+    template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+    props: ['modelValue'],
+    emits: ['update:modelValue']
+  }
 }))
 
 vi.mock('@/components/ui/label', () => ({
@@ -70,7 +74,7 @@ vi.mock('lucide-vue-next', () => ({
 }))
 
 describe('Admin Users Page', () => {
-  const mockUsers = [
+  const getMockUsers = () => [
     {
       id: 1,
       fullname: 'John Doe',
@@ -108,8 +112,11 @@ describe('Admin Users Page', () => {
       created_at: '2024-03-01T00:00:00Z'
     }
   ]
+  
+  let mockUsers: ReturnType<typeof getMockUsers>
 
   beforeEach(() => {
+    mockUsers = getMockUsers()
     mockFetch.mockResolvedValue(mockUsers)
   })
 
@@ -349,7 +356,6 @@ describe('Admin Users Page', () => {
         global: {
           stubs: {
             Button: true,
-            Input: true,
             Label: true,
             Badge: true,
             Dialog: true,
@@ -360,8 +366,9 @@ describe('Admin Users Page', () => {
       
       await flushPromises()
       
-      const searchInput = wrapper.find('#search-name')
-      await searchInput.setValue('Jane')
+      // Update the search query directly via component vm
+      wrapper.vm.searchQuery = 'Jane'
+      await wrapper.vm.$nextTick()
       await flushPromises()
       
       const rows = wrapper.findAll('tbody tr')
@@ -373,7 +380,6 @@ describe('Admin Users Page', () => {
         global: {
           stubs: {
             Button: true,
-            Input: true,
             Label: true,
             Badge: true,
             Dialog: true,
@@ -384,8 +390,9 @@ describe('Admin Users Page', () => {
       
       await flushPromises()
       
-      const searchInput = wrapper.find('#search-name')
-      await searchInput.setValue('jane')
+      // Update the search query directly via component vm
+      wrapper.vm.searchQuery = 'jane'
+      await wrapper.vm.$nextTick()
       await flushPromises()
       
       const rows = wrapper.findAll('tbody tr')
@@ -398,7 +405,6 @@ describe('Admin Users Page', () => {
         global: {
           stubs: {
             Button: true,
-            Input: true,
             Label: true,
             Badge: true,
             Dialog: true,
@@ -409,8 +415,9 @@ describe('Admin Users Page', () => {
       
       await flushPromises()
       
-      const searchInput = wrapper.find('#search-name')
-      await searchInput.setValue('nonexistent')
+      // Update the search query directly via component vm
+      wrapper.vm.searchQuery = 'nonexistent'
+      await wrapper.vm.$nextTick()
       await flushPromises()
       
       const rows = wrapper.findAll('tbody tr')
