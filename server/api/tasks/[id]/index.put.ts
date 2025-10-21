@@ -6,6 +6,8 @@ import {
   createTaskUpdateNotification,
   getTaskDetails 
 } from '../../../utils/notificationService'
+import { replicateCompletedTask } from '../../../utils/recurringTaskService'
+import type { TaskDB } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -191,6 +193,16 @@ export default defineEventHandler(async (event) => {
     if (body.repeat_interval !== undefined) updateData.repeat_interval = body.repeat_interval
     if (body.tags !== undefined) updateData.tags = body.tags
 
+    // If repeat_interval > 0, calculate due_date from start_date
+    const repeatInterval = body.repeat_interval !== undefined ? Number(body.repeat_interval) : null
+    const startDateToUse = body.start_date || updateData.start_date
+    
+    if (repeatInterval && repeatInterval > 0 && startDateToUse) {
+      const startDate = new Date(startDateToUse)
+      const dueDate = new Date(startDate.getTime() + (repeatInterval * 24 * 60 * 60 * 1000))
+      updateData.due_date = dueDate.toISOString().split('T')[0]
+    }
+
     // Update task in database
     const { data: task, error } = await (supabase as any)
       .from('tasks')
@@ -218,13 +230,23 @@ export default defineEventHandler(async (event) => {
     if (Array.isArray(body.subtasks)) {
       for (const s of body.subtasks) {
         try {
+          // If subtask has repeat_interval, calculate due_date from start_date
+          let subtaskDueDate = s.due_date ?? null
+          const subtaskRepeatInterval = s.repeat_interval !== undefined ? Number(s.repeat_interval) : null
+          
+          if (subtaskRepeatInterval && subtaskRepeatInterval > 0 && s.start_date) {
+            const subtaskStartDate = new Date(s.start_date)
+            const subtaskDueDateCalc = new Date(subtaskStartDate.getTime() + (subtaskRepeatInterval * 24 * 60 * 60 * 1000))
+            subtaskDueDate = subtaskDueDateCalc.toISOString().split('T')[0]
+          }
+
           const subPayload: any = {
             title: s.title,
             start_date: s.start_date ?? null,
-            due_date: s.due_date ?? null,
+            due_date: subtaskDueDate,
             status: s.status,
             priority: s.priority !== undefined ? String(s.priority) : null,
-            repeat_interval: s.repeat_interval !== undefined ? s.repeat_interval : null,
+            repeat_interval: subtaskRepeatInterval,
             notes: s.notes ?? null,
             tags: s.tags ?? [],           
             project_id: parentProjectId !== undefined ? parentProjectId : null,
@@ -504,9 +526,33 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // Check if task was just completed and has repeat_interval > 0
+    // If so, replicate the task immediately
+    let replicatedTask: TaskDB | undefined = undefined
+    const wasCompleted = currentTask.status !== 'completed' && task.status === 'completed'
+    const hasRepeatInterval = task.repeat_interval && task.repeat_interval > 0
+    
+    if (wasCompleted && hasRepeatInterval) {
+      console.log(`Task ${taskId} was completed with repeat_interval ${task.repeat_interval}, triggering replication`)
+      const replicationResult = await replicateCompletedTask(supabase, task as TaskDB)
+      
+      if (replicationResult.success && replicationResult.newTask) {
+        replicatedTask = replicationResult.newTask
+        console.log(`Successfully replicated task ${taskId} to new task ${replicatedTask.id}`)
+      } else {
+        console.error(`Failed to replicate task ${taskId}:`, replicationResult.error)
+      }
+    }
+
     return {
       success: true,
-      task
+      task,
+      replicatedTask: replicatedTask ? {
+        id: replicatedTask.id,
+        title: replicatedTask.title,
+        due_date: replicatedTask.due_date,
+        start_date: replicatedTask.start_date
+      } : undefined
     }
   } catch (error: any) {
     if (error.statusCode) {

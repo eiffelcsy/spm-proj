@@ -20,14 +20,24 @@ export default defineEventHandler(async (event) => {
   if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
   if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
 
+  // If repeat_interval is set, calculate due_date from start_date
+  let calculatedDueDate = body.due_date ?? null
+  const repeatInterval = body.repeat_interval ? Number(body.repeat_interval) : null
+  
+  if (repeatInterval && repeatInterval > 0 && body.start_date) {
+    const startDate = new Date(body.start_date)
+    const dueDate = new Date(startDate.getTime() + (repeatInterval * 24 * 60 * 60 * 1000))
+    calculatedDueDate = dueDate.toISOString().split('T')[0]
+  }
+
   const parentTaskPayload = {
     title: body.title,
     notes: body.notes || 'No notes...',
     start_date: body.start_date ?? null,
-    due_date: body.due_date ?? null,
+    due_date: calculatedDueDate,
     status: body.status ?? null,
     priority: body.priority ?? null,
-    repeat_interval: body.repeat_interval ?? null,
+    repeat_interval: repeatInterval,
     project_id: body.project_id ?? null,
     creator_id: staffRow.id,
     tags: body.tags || [],
@@ -104,19 +114,31 @@ export default defineEventHandler(async (event) => {
 
     const subtasksInput = Array.isArray(body.subtasks) ? body.subtasks : []
     if (subtasksInput.length > 0) {
-      const subtaskRows = subtasksInput.map((s: any) => ({
-        title: s.title,
-        notes: s.notes || 'No notes...',
-        start_date: s.start_date ?? null,
-        due_date: s.due_date ?? null,
-        status: s.status ?? null,
-        priority: body.priority ?? null,
-        repeat_interval: body.repeat_interval ?? null,
-        project_id: s.project_id ?? null,
-        tags: body.tags || [],
-        creator_id: staffRow!.id,
-        parent_task_id: createdTaskId
-      }))
+      const subtaskRows = subtasksInput.map((s: any) => {
+        // If subtask has repeat_interval, calculate due_date from start_date
+        let subtaskDueDate = s.due_date ?? null
+        const subtaskRepeatInterval = s.repeat_interval ? Number(s.repeat_interval) : null
+        
+        if (subtaskRepeatInterval && subtaskRepeatInterval > 0 && s.start_date) {
+          const subtaskStartDate = new Date(s.start_date)
+          const subtaskDueDateCalc = new Date(subtaskStartDate.getTime() + (subtaskRepeatInterval * 24 * 60 * 60 * 1000))
+          subtaskDueDate = subtaskDueDateCalc.toISOString().split('T')[0]
+        }
+
+        return {
+          title: s.title,
+          notes: s.notes || 'No notes...',
+          start_date: s.start_date ?? null,
+          due_date: subtaskDueDate,
+          status: s.status ?? null,
+          priority: body.priority ?? null,
+          repeat_interval: subtaskRepeatInterval,
+          project_id: s.project_id ?? null,
+          tags: body.tags || [],
+          creator_id: staffRow!.id,
+          parent_task_id: createdTaskId
+        }
+      })
 
       const { data: insertedSubtasks, error: subError } = await supabase
         .from('tasks')

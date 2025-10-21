@@ -44,14 +44,17 @@
           </div>
           <!-- Due Date -->
           <div class="flex flex-col gap-1 justify-end">
-            <Label class="mb-1"> Due Date </Label>
-            <Popover>
+            <Label class="mb-1">
+              Due Date
+              <span v-if="repeatInterval > 0" class="text-xs text-muted-foreground ml-1">(Auto-set)</span>
+            </Label>
+            <Popover :disabled="repeatInterval > 0">
               <PopoverTrigger as-child>
                 <Button variant="outline" :class="cn(
                   'w-full justify-start text-left font-normal',
-                  !dueDate && 'text-muted-foreground'
-                )
-                  ">
+                  !dueDate && 'text-muted-foreground',
+                  repeatInterval > 0 && 'opacity-60 cursor-not-allowed'
+                )" :disabled="repeatInterval > 0">
                   <CalendarIcon class="mr-2 h-4 w-4" />
                   {{
                     dueDate
@@ -64,6 +67,9 @@
                 <Calendar v-model:model-value="dueDate as any" initial-focus :min-value="startDate as any" />
               </PopoverContent>
             </Popover>
+            <p v-if="repeatInterval > 0" class="text-xs text-muted-foreground mt-1">
+              Due date is automatically set to {{ repeatInterval }} day(s) from start date
+            </p>
           </div>
 
           <!-- Status -->
@@ -184,13 +190,17 @@
                     </Popover>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <Label class="text-xs mb-1">Due Date</Label>
-                    <Popover>
+                    <Label class="text-xs mb-1">
+                      Due Date
+                      <span v-if="subtask.repeatInterval > 0" class="text-xs text-muted-foreground ml-1">(Auto-set)</span>
+                    </Label>
+                    <Popover :disabled="subtask.repeatInterval > 0">
                       <PopoverTrigger as-child>
                         <Button variant="outline" :class="cn(
                           'h-8 justify-start text-left font-normal text-xs',
                           !subtask.dueDate && 'text-muted-foreground',
-                        )">
+                          subtask.repeatInterval > 0 && 'opacity-60 cursor-not-allowed'
+                        )" :disabled="subtask.repeatInterval > 0">
                           <CalendarIcon class="mr-1 h-3 w-3" />
                           {{ subtask.dueDate ? formatDate(subtask.dueDate as DateValue) : "Select due date" }}
                         </Button>
@@ -199,6 +209,9 @@
                         <Calendar v-model:model-value="subtask.dueDate as any" initial-focus :min-value="subtask.startDate as any" />
                       </PopoverContent>
                     </Popover>
+                    <p v-if="subtask.repeatInterval > 0" class="text-[10px] text-muted-foreground mt-0.5">
+                      Auto-set to {{ subtask.repeatInterval }} day(s) from start
+                    </p>
                   </div>
                 </div>
 
@@ -428,9 +441,26 @@ try {
   projects.value = [];
 }
 
-// Watch for start date changes to ensure due date is not before start date
+// Watch for repeat interval changes to auto-set due date
+watch(repeatInterval, (newInterval) => {
+  if (newInterval > 0 && startDate.value) {
+    // Automatically set due date to start date + repeat interval days
+    const startDateJs = startDate.value.toDate(getLocalTimeZone())
+    const dueDateJs = new Date(startDateJs.getTime() + (newInterval * 24 * 60 * 60 * 1000))
+    const dateString = dueDateJs.toISOString().split('T')[0]
+    dueDate.value = parseDate(dateString)
+  }
+})
+
+// Watch for start date changes to update due date if repeat interval is set
 watch(startDate, (newStartDate) => {
-  if (
+  if (repeatInterval.value > 0 && newStartDate) {
+    // Automatically update due date based on repeat interval
+    const startDateJs = newStartDate.toDate(getLocalTimeZone())
+    const dueDateJs = new Date(startDateJs.getTime() + (repeatInterval.value * 24 * 60 * 60 * 1000))
+    const dateString = dueDateJs.toISOString().split('T')[0]
+    dueDate.value = parseDate(dateString)
+  } else if (
     dueDate.value &&
     newStartDate &&
     dueDate.value.compare(newStartDate as DateValue) < 0
@@ -576,6 +606,27 @@ const addSubtask = () => {
     expanded: true
   })
 }
+
+// Watch for subtask repeat interval changes
+watch(() => subtasks.value.map(s => ({ interval: s.repeatInterval, start: s.startDate })), (newValues, oldValues) => {
+  if (!oldValues) return
+  
+  newValues.forEach((newVal, index) => {
+    const oldVal = oldValues[index]
+    const subtask = subtasks.value[index]
+    
+    if (!subtask) return
+    
+    // If repeat interval changed or start date changed and repeat interval is set
+    if (newVal.interval > 0 && subtask.startDate && 
+        (newVal.interval !== oldVal?.interval || newVal.start !== oldVal?.start)) {
+      const startDateJs = subtask.startDate.toDate(getLocalTimeZone())
+      const dueDateJs = new Date(startDateJs.getTime() + (newVal.interval * 24 * 60 * 60 * 1000))
+      const dateString = dueDateJs.toISOString().split('T')[0]
+      subtask.dueDate = parseDate(dateString)
+    }
+  })
+}, { deep: true })
 
 const removeSubtask = (index: number) => {
   subtasks.value.splice(index, 1)
