@@ -15,7 +15,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Setup Node.js
+      # --- FIXED: Removed the redundant, second setup step ---
+      - name: Setup Node.js v20
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
@@ -23,17 +24,21 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env: # <-- CRITICAL: Added Supabase secrets
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
 
-      - name: Run tests
+      # --- FIXED: Combined 'npm test' and 'npm run test:coverage' into one ---
+      # This now runs tests ONCE and captures the output/exit code
+      - name: Run tests and generate coverage
         id: tests
         run: |
-          npm test 2>&1 | tee test-output.txt
+          npm run test:coverage 2>&1 | tee test-output.txt
           echo "test_exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
         continue-on-error: true
-
-      - name: Generate coverage
-        run: npm run test:coverage
-        continue-on-error: true
+        env: # <-- CRITICAL: Added Supabase secrets
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
 
       - name: Extract test results
         id: test_results
@@ -74,7 +79,7 @@ jobs:
             <summary>View Coverage Report</summary>
             
             Coverage reports are available in the workflow artifacts.
-            Download the \`coverage-report\` artifact to view detailed HTML coverage.
+            Download the \`pr-coverage-report\` artifact to view detailed HTML coverage.
             
             </details>
             `;
@@ -120,4 +125,3 @@ jobs:
         run: |
           echo "::error::Tests failed. Please fix the failing tests."
           exit 1
-
