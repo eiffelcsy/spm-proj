@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       include: ['app/**/*.{js,ts,vue}'],
       exclude: [
         'node_modules/',

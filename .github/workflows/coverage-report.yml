@@ -59,19 +59,26 @@ jobs:
 
       - name: Coverage Check
         run: |
-          # Extract coverage percentage from coverage-summary.json
-          COVERAGE=$(node -e "
-            const fs = require('fs');
-            const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
-            const total = coverage.total;
-            console.log(Math.round((total.lines.pct + total.statements.pct + total.functions.pct + total.branches.pct) / 4));
-          ")
-          
-          echo "Coverage: $COVERAGE%"
-          
-          if [ "$COVERAGE" -lt 80 ]; then
-            echo "::warning::Coverage is below 80% (current: $COVERAGE%)"
+          # Check if coverage summary exists
+          if [ -f "coverage/coverage-summary.json" ]; then
+            # Extract coverage percentage from coverage-summary.json
+            COVERAGE=$(node -e "
+              const fs = require('fs');
+              const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+              const total = coverage.total;
+              console.log(Math.round((total.lines.pct + total.statements.pct + total.functions.pct + total.branches.pct) / 4));
+            ")
+            
+            echo "Coverage: $COVERAGE%"
+            
+            if [ "$COVERAGE" -lt 80 ]; then
+              echo "::warning::Coverage is below 80% (current: $COVERAGE%)"
+            else
+              echo "::notice::Coverage is good: $COVERAGE%"
+            fi
           else
-            echo "::notice::Coverage is good: $COVERAGE%"
+            echo "::warning::Coverage summary file not found. Coverage data may be available in artifacts."
+            echo "Available coverage files:"
+            ls -la coverage/ || echo "No coverage directory found"
           fi
 
