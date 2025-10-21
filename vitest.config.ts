@@ -6,6 +6,26 @@ import path from 'path'
 export default defineConfig({
   plugins: [vue()],
   test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      include: ['app/**/*.{js,ts,vue}'],
+      exclude: [
+        'node_modules/',
+        'test/',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/mockData',
+        '**/dist',
+        'app/assets/**',
+        'app/lib/utils.ts',
+      ],
+      all: true,
+      lines: 80,
+      functions: 80,
+      branches: 80,
+      statements: 80,
+    },
     projects: [
       {
         plugins: [vue()],
