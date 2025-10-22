@@ -1,0 +1,84 @@
+name: Coverage Report
+
+on:
+  push:
+    branches: [ main, master, fix/ci-node-version ]
+  pull_request:
+    branches: [ main, master, fix/ci-node-version ]
+
+jobs:
+  coverage:
+    name: Generate Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for better coverage diff
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Coverage Summary
+        run: |
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat coverage/coverage-summary.txt 2>/dev/null || echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Archive coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            !coverage/**/*.map
+          retention-days: 30
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: spm-proj-coverage
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Coverage Check
+        run: |
+          # Check if coverage summary exists
+          if [ -f "coverage/coverage-summary.json" ]; then
+            # Extract coverage percentage from coverage-summary.json
+            COVERAGE=$(node -e "
+              const fs = require('fs');
+              const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+              const total = coverage.total;
+              console.log(Math.round((total.lines.pct + total.statements.pct + total.functions.pct + total.branches.pct) / 4));
+            ")
+            
+            echo "Coverage: $COVERAGE%"
+            
+            if [ "$COVERAGE" -lt 80 ]; then
+              echo "::warning::Coverage is below 80% (current: $COVERAGE%)"
+            else
+              echo "::notice::Coverage is good: $COVERAGE%"
+            fi
+          else
+            echo "::warning::Coverage summary file not found. Coverage data may be available in artifacts."
+            echo "Available coverage files:"
+            ls -la coverage/ || echo "No coverage directory found"
+          fi
+

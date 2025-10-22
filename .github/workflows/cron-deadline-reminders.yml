@@ -1,0 +1,48 @@
+name: Deadline Reminder Cron Job
+
+on:
+  schedule:
+    # Run daily at 12 AM Singapore time (4 PM UTC previous day)
+    - cron: '0 16 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  deadline-reminders:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Deadline Reminders
+        run: |
+          echo "Triggering deadline reminder cron job..."
+          
+          # Get your Vercel app URL (replace with your actual domain)
+          APP_URL="${{ secrets.VERCEL_APP_URL }}"
+          
+          if [ -z "$APP_URL" ]; then
+            echo "Error: VERCEL_APP_URL secret not set"
+            exit 1
+          fi
+          
+          # Call your deadline reminder endpoint
+          response=$(curl -s -w "\n%{http_code}" "$APP_URL/api/notifications/schedule-deadline-reminders")
+          
+          # Extract response body and status code
+          http_code=$(echo "$response" | tail -n1)
+          response_body=$(echo "$response" | head -n -1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $response_body"
+          
+          # Check if the request was successful
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Deadline reminder cron job completed successfully"
+            echo "$response_body" | jq '.' 2>/dev/null || echo "$response_body"
+          else
+            echo "❌ Deadline reminder cron job failed with status $http_code"
+            echo "$response_body"
+            exit 1
+          fi
+          
+        env:
+          # Add any environment variables your app needs
+          NODE_ENV: production

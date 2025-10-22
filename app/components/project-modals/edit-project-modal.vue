@@ -41,6 +41,36 @@
           ></textarea>
         </div>
 
+        <!-- Priority -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Priority</Label>
+          <Select v-model="projectPriority">
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                  Low
+                </div>
+              </SelectItem>
+              <SelectItem value="medium">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+                  Medium
+                </div>
+              </SelectItem>
+              <SelectItem value="high">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                  High
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <!-- Due Date -->
         <div>
           <Label class="block text-sm font-medium mb-1">Due Date</Label>
@@ -60,6 +90,57 @@
           </Popover>
         </div>
 
+        <!-- Assigned Users -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Assign To</Label>
+          <Select v-model="projectAssignedUsers">
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select users (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem 
+                v-for="staff in availableStaff" 
+                :key="staff.id" 
+                :value="String(staff.id)"
+              >
+                {{ staff.fullname }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <div v-if="projectAssignedUsers.length > 0" class="mt-2 flex flex-wrap gap-2">
+            <Badge 
+              v-for="userId in projectAssignedUsers" 
+              :key="userId"
+              variant="secondary"
+              class="text-xs flex items-center gap-1"
+            >
+              {{ availableStaff.find(s => String(s.id) === userId)?.fullname }}
+              <button 
+                type="button"
+                @click.stop="removeUser(userId)" 
+                class="hover:bg-gray-300 rounded-full p-0.5"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </Badge>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <Label class="block text-sm font-medium mb-1">Tags</Label>
+          <TagsInput v-model="projectTags" class="w-full">
+            <TagsInputItem v-for="tag in projectTags" :key="tag" :value="tag">
+              <TagsInputItemText />
+              <TagsInputItemDelete />
+            </TagsInputItem>
+            <TagsInputInput placeholder="Add tags..." />
+          </TagsInput>
+          <p class="text-xs text-muted-foreground mt-1">Press Enter to add a tag</p>
+        </div>
+
         <!-- Status -->
         <div>
           <Label class="block text-sm font-medium mb-1">Status</Label>
@@ -68,10 +149,16 @@
               <SelectValue placeholder="Select project status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="active">
+              <SelectItem value="todo">
                 <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
-                  Active
+                  <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                  To Do
+                </div>
+              </SelectItem>
+              <SelectItem value="in-progress">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                  In Progress
                 </div>
               </SelectItem>
               <SelectItem value="completed">
@@ -80,10 +167,10 @@
                   Completed
                 </div>
               </SelectItem>
-              <SelectItem value="archived">
+              <SelectItem value="blocked">
                 <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                  Archived
+                  <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                  Blocked
                 </div>
               </SelectItem>
             </SelectContent>
@@ -115,12 +202,17 @@ import { CalendarIcon } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import type { CalendarDate } from '@internationalized/date'
 import { parseDate, getLocalTimeZone } from '@internationalized/date'
+import { TagsInput, TagsInputInput, TagsInputItem, TagsInputItemDelete, TagsInputItemText } from '@/components/ui/tags-input'
+import type { ProjectPriority } from '@/types'
 
 interface Project {
   id: string
   name: string
   description: string
+  priority?: ProjectPriority
   due_date?: string
+  tags?: string[]
+  assigned_user_ids?: number[]
   status: string
   createdAt: string
 }
@@ -138,21 +230,47 @@ const emit = defineEmits<{
 // Form state
 const projectName = ref('')
 const projectDescription = ref('')
+const projectPriority = ref<ProjectPriority>('medium')
 const projectDueDate = ref<any>(null)
-const projectStatus = ref('active')
+const projectTags = ref<string[]>([])
+const projectAssignedUsers = ref<string[]>([])
+const projectStatus = ref('todo')
 const isUpdating = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
+const availableStaff = ref<any[]>([])
+
+// Fetch available staff for assignment
+async function fetchStaff() {
+  try {
+    const staff = await $fetch('/api/staff')
+    availableStaff.value = staff
+  } catch (err) {
+    console.error('Failed to fetch staff:', err)
+    availableStaff.value = []
+  }
+}
+
+// Remove user from assignment
+function removeUser(userId: string) {
+  projectAssignedUsers.value = projectAssignedUsers.value.filter(id => id !== userId)
+}
 
 // Watch for project changes to populate form
 watch(() => props.project, (newProject) => {
   if (newProject) {
     projectName.value = newProject.name
     projectDescription.value = newProject.description || ''
+    projectPriority.value = newProject.priority || 'medium'
+
     // Handle both dueDate (from dashboard) and due_date (from API response)
-    const dueDateValue = newProject.dueDate || newProject.due_date
+    const dueDateValue = newProject.due_date
     projectDueDate.value = dueDateValue ? parseDate(dueDateValue) : null
-    projectStatus.value = newProject.status || 'active'
+
+    projectTags.value = newProject.tags || []
+    projectAssignedUsers.value = newProject.assigned_user_ids?.map(id => String(id)) || []
+    projectStatus.value = newProject.status || 'todo'
+
     // Reset success/error messages when project changes
     successMessage.value = ''
     errorMessage.value = ''
@@ -166,6 +284,7 @@ watch(() => props.isOpen, (isOpen, wasOpen) => {
     successMessage.value = ''
     errorMessage.value = ''
     isUpdating.value = false
+    fetchStaff()
   }
 })
 
@@ -180,7 +299,10 @@ async function updateProject() {
     const projectData = {
       name: projectName.value.trim(),
       description: projectDescription.value.trim() || null,
+      priority: projectPriority.value,
       due_date: projectDueDate.value ? projectDueDate.value.toString() : null,
+      tags: projectTags.value,
+      assigned_user_ids: projectAssignedUsers.value.map(id => parseInt(id)),
       status: projectStatus.value
     }
 
@@ -238,6 +360,10 @@ function formatDate(date: any): string {
   }
   return ''
 }
+
+onMounted(() => {
+  fetchStaff()
+})
 </script>
 
 <style scoped>

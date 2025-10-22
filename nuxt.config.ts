@@ -11,7 +11,11 @@ export default defineNuxtConfig({
     ],
   },
 
-  modules: ['shadcn-nuxt', '@nuxtjs/supabase', '@nuxt/test-utils/module'],
+  modules: [
+    'shadcn-nuxt', 
+    '@nuxtjs/supabase', 
+    '@nuxt/test-utils/module'
+  ],
   shadcn: {
     /**
      * Prefix for all the imported component

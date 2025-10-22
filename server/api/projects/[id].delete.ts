@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import type { ProjectDB, TaskDB } from '~/types'
 
 export default defineEventHandler(async (event) => {
     const supabase = await serverSupabaseServiceRole(event)
@@ -27,57 +28,75 @@ export default defineEventHandler(async (event) => {
 
     const numericProjectId = Number(projectId)
 
-    // Check if project exists and user owns it
+    // Check if project exists and user owns it (only non-deleted projects)
     const { data: existingProject, error: fetchError } = await supabase
         .from('projects')
         .select('*')
         .eq('id', numericProjectId)
         .eq('owner_id', staffRow.id)
         .is('deleted_at', null)
-        .maybeSingle()
+        .maybeSingle() as { data: ProjectDB | null, error: any }
 
     if (fetchError) throw createError({ statusCode: 500, statusMessage: fetchError.message })
     if (!existingProject) {
-        // Let's also check if the project exists at all (without owner check)
+        // Let's also check if the project exists at all (without owner check, including soft-deleted)
         const { data: anyProject, error: anyError } = await supabase
             .from('projects')
-            .select('id, owner_id')
+            .select('id, owner_id, deleted_at')
             .eq('id', numericProjectId)
-            .is('deleted_at', null)
-            .maybeSingle()
+            .maybeSingle() as { data: Pick<ProjectDB, 'id' | 'owner_id' | 'deleted_at'> | null, error: any }
         
         if (anyProject) {
-            throw createError({ statusCode: 403, statusMessage: 'You do not have permission to delete this project' })
+            if (anyProject.deleted_at) {
+                throw createError({ statusCode: 404, statusMessage: 'Project not found' })
+            } else {
+                throw createError({ statusCode: 403, statusMessage: 'You do not have permission to delete this project' })
+            }
         } else {
             throw createError({ statusCode: 404, statusMessage: 'Project not found' })
         }
     }
 
     try {
-        // Soft delete all tasks associated with this project
-        const { error: tasksSoftDeleteError } = await (supabase as any)
+        // First, get all tasks associated with this project (only non-deleted tasks)
+        const { data: projectTasks, error: fetchTasksError } = await supabase
             .from('tasks')
-            .update({ deleted_at: new Date().toISOString() })
+            .select('id')
             .eq('project_id', numericProjectId)
-            .is('deleted_at', null)
+            .is('deleted_at', null) as { data: Pick<TaskDB, 'id'>[] | null, error: any }
 
-        if (tasksSoftDeleteError) {
-            throw createError({ statusCode: 500, statusMessage: 'Failed to soft delete associated tasks' })
+        if (fetchTasksError) {
+            throw createError({ statusCode: 500, statusMessage: 'Failed to fetch associated tasks' })
         }
 
-        // Soft delete the project
-        const { error: projectSoftDeleteError } = await (supabase as any)
+        // Soft delete related tasks first
+        if (projectTasks && projectTasks.length > 0) {
+            const taskIds = projectTasks.map(task => task.id)
+            
+            // Soft delete the tasks by setting deleted_at timestamp
+            const { error: tasksDeleteError } = await (supabase as any)
+                .from('tasks')
+                .update({ deleted_at: new Date().toISOString() })
+                .in('id', taskIds)
+
+            if (tasksDeleteError) {
+                throw createError({ statusCode: 500, statusMessage: 'Failed to soft delete associated tasks' })
+            }
+        }
+
+        // Soft delete the project by setting deleted_at timestamp
+        const { error: projectDeleteError } = await (supabase as any)
             .from('projects')
             .update({ deleted_at: new Date().toISOString() })
             .eq('id', numericProjectId)
 
-        if (projectSoftDeleteError) {
+        if (projectDeleteError) {
             throw createError({ statusCode: 500, statusMessage: 'Failed to soft delete project' })
         }
 
         return { 
             success: true, 
-            message: 'Project and all associated tasks have been successfully deleted.' 
+            message: 'Project and all associated tasks have been successfully soft deleted.' 
         }
 
     } catch (error: any) {

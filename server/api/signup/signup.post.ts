@@ -1,11 +1,12 @@
 // file: server/api/login/signup.post.ts
 
 import { defineEventHandler, readBody } from 'h3';
-import { serverSupabaseClient } from '#supabase/server';
+import { serverSupabaseServiceRole } from '#supabase/server';
 
 export default defineEventHandler(async (event) => {
-  const { email, password } = await readBody(event);
-  const supabase = await serverSupabaseClient(event);
+  // 1. Capture fullname along with email and password
+  const { email, password, fullname } = await readBody(event);
+  const supabase = await serverSupabaseServiceRole(event);
 
   if (!supabase) {
     throw createError({
@@ -14,25 +15,46 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  try {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
+  // --- Step 1: Sign up the new user in the 'auth.users' table ---
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (authError) {
+    throw createError({
+      statusCode: authError.status || 400,
+      statusMessage: authError.message,
     });
-
-    if (error) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: error.message,
-      });
-    }
-
-    return { 
-      success: true, 
-      message: 'Please check your email to confirm your account!' 
-    };
-
-  } catch (err) {
-    throw err;
   }
+  
+  // Ensure the user object was returned
+  if (!authData.user) {
+      throw createError({
+          statusCode: 500,
+          statusMessage: 'User could not be created.',
+      });
+  }
+
+  const newUser = authData.user;
+
+  // --- Step 2: Insert a new row into the public 'staff' table ---
+  // Using service role to bypass RLS since user is not authenticated during signup
+  const { error: staffInsertError } = await (supabase as any)
+    .from('staff')
+    .insert([{
+      user_id: newUser.id, // Link to the auth.users table
+      fullname: fullname,
+      is_manager: false,
+      is_admin: false,
+    }]);
+
+  if (staffInsertError) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: staffInsertError.message,
+    });
+  }
+
+  return { success: true, message: 'Please check your email to confirm your account!' };
 });

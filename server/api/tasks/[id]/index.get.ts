@@ -1,7 +1,7 @@
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
-  const supabase = await serverSupabaseClient(event)
+  const supabase = await serverSupabaseServiceRole(event)
   const user = await serverSupabaseUser(event)
   const taskId = Number(getRouterParam(event, 'id'))
 
@@ -12,10 +12,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get current user's staff ID
+  // Get current user's staff ID and department
   const { data: staffIdData, error: staffIdError } = await supabase
     .from('staff')
-    .select('id')
+    .select('id, department')
     .eq('user_id', user.id)
     .single()
 
@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
       data: staffIdError
     })
   }
-  const currentStaffId = (staffIdData as { id: number }).id
+  const currentStaffId = (staffIdData as { id: number; department: string | null }).id
+  const currentDepartment = (staffIdData as { id: number; department: string | null }).department
 
   if (!taskId) {
     throw createError({
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Main task (fetch without join first)
+    // Main task (fetch without join first, excluding soft-deleted tasks)
     const { data: task, error } = await supabase
       .from('tasks')
       .select('*')
@@ -70,6 +71,18 @@ export default defineEventHandler(async (event) => {
       creator = creatorData
     }
     
+    // Fetch project information (excluding soft-deleted projects)
+    let project = null
+    if (task && task.project_id) {
+      const { data: projectData } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('id', task.project_id)
+        .is('deleted_at', null)
+        .single()
+      project = projectData
+    }
+    
     // Fetch all active assignees for main task
     let assignees: any[] = []
     const { data: assigneeRows } = await supabase
@@ -100,10 +113,47 @@ export default defineEventHandler(async (event) => {
       assignees = [{ assigned_to: { id: null, fullname: 'Unassigned' }, assigned_by: null }]
     }
 
+    // Check visibility: user can only see task if someone from their department is assigned
+    if (currentDepartment) {
+      // Get all staff IDs in the same department
+      const { data: departmentStaff, error: deptError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('department', currentDepartment)
+      
+      if (deptError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch department staff',
+          data: deptError
+        })
+      }
+      
+      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
+      
+      // Check if any assignee is from the user's department
+      const hasAssigneeFromDepartment = assignees.some((assignee: any) => 
+        assignee.assigned_to.id && departmentStaffIds.includes(assignee.assigned_to.id)
+      )
+      
+      if (!hasAssigneeFromDepartment) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to view this task'
+        })
+      }
+    } else {
+      // If user has no department, they can't see any tasks
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to view this task'
+      })
+    }
+
     // Fetch activity timeline for this task
     const { data: history, error: timelineError } = await supabase
       .from('activity_timeline')
-      .select('*, staff:user_id (fullname)')
+      .select('*, staff:staff_id (fullname)')
       .eq('task_id', taskId)
       .order('timestamp', { ascending: true })
    
@@ -188,7 +238,7 @@ export default defineEventHandler(async (event) => {
     
     if (isTaskAssigned) {
       // If task is assigned, only assigned person can edit/delete
-      canEdit = isAssigned
+      canEdit = Boolean(isAssigned || isCreator)
       canDelete = isAssigned
     } else {
       // If task is unassigned, only task creator can edit/delete
@@ -196,12 +246,13 @@ export default defineEventHandler(async (event) => {
       canDelete = Boolean(isCreator)
     }
     
-    // Attach history, subtasks, assignees, creator, and permissions to the task object
+    // Attach history, subtasks, assignees, creator, project, and permissions to the task object
     if (task) {
       parentTask.history = history || [];
       parentTask.subtasks = subtasks;
       parentTask.assignees = assignees;
       parentTask.creator = creator;
+      parentTask.project = project;
       parentTask.permissions = {
         canEdit,
         canDelete

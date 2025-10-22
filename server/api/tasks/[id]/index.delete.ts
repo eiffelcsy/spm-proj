@@ -1,4 +1,7 @@
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import type { TaskDB } from '~/types'
+import { logTaskDeletion } from '../../../utils/activityLogger'
+import { createTaskDeletionNotification, getTaskDetails } from '../../../utils/notificationService'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -30,10 +33,10 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Get current user's staff ID
+    // Get current user's staff ID and department
     const { data: staffIdData, error: staffIdError } = await supabase
       .from('staff')
-      .select('id')
+      .select('id, department')
       .eq('user_id', user.id)
       .single()
 
@@ -44,22 +47,38 @@ export default defineEventHandler(async (event) => {
         data: staffIdError
       })
     }
-    const currentStaffId = (staffIdData as { id: number }).id
+    const currentStaffId = (staffIdData as { id: number; department: string | null }).id
+    const currentDepartment = (staffIdData as { id: number; department: string | null }).department
 
-    // First, check if the task exists
+    // First, check if the task exists (only non-deleted tasks)
     const { data: existingTask, error: fetchError } = await supabase
       .from('tasks')
-      .select('id')
+      .select('id, deleted_at')
       .eq('id', numericTaskId)
       .is('deleted_at', null)
-      .single()
+      .single() as { data: Pick<TaskDB, 'id' | 'deleted_at'> | null, error: any }
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        throw createError({
-          statusCode: 404,
-          statusMessage: 'Task not found'
-        })
+        // Check if task exists but is soft-deleted
+        const { data: deletedTask } = await supabase
+          .from('tasks')
+          .select('id, deleted_at')
+          .eq('id', numericTaskId)
+          .not('deleted_at', 'is', null)
+          .maybeSingle() as { data: Pick<TaskDB, 'id' | 'deleted_at'> | null, error: any }
+        
+        if (deletedTask) {
+          throw createError({
+            statusCode: 404,
+            statusMessage: 'Task not found'
+          })
+        } else {
+          throw createError({
+            statusCode: 404,
+            statusMessage: 'Task not found'
+          })
+        }
       }
       throw createError({
         statusCode: 500,
@@ -74,6 +93,43 @@ export default defineEventHandler(async (event) => {
       .select('assigned_to_staff_id')
       .eq('task_id', numericTaskId)
       .eq('is_active', true)
+
+    // Check visibility: user can only delete task if someone from their department is assigned
+    if (currentDepartment) {
+      // Get all staff IDs in the same department
+      const { data: departmentStaff, error: deptError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('department', currentDepartment)
+      
+      if (deptError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch department staff',
+          data: deptError
+        })
+      }
+      
+      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
+      
+      // Check if any assignee is from the user's department
+      const hasAssigneeFromDepartment = assigneeRows?.some((row: any) => 
+        departmentStaffIds.includes(row.assigned_to_staff_id)
+      )
+      
+      if (!hasAssigneeFromDepartment) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to view or delete this task'
+        })
+      }
+    } else {
+      // If user has no department, they can't delete any tasks
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to view or delete this task'
+      })
+    }
 
     // Check if task is assigned to anyone
     const isTaskAssigned = assigneeRows && assigneeRows.length > 0
@@ -111,48 +167,86 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Soft delete all subtasks first
-    const { error: subtasksSoftDeleteError } = await (supabase as any)
+    // Check if this task has subtasks (only non-deleted subtasks)
+    const { data: subtasks, error: subtaskError } = await supabase
       .from('tasks')
-      .update({ deleted_at: new Date().toISOString() })
+      .select('id')
       .eq('parent_task_id', numericTaskId)
-      .is('deleted_at', null)
+      .is('deleted_at', null) as { data: Pick<TaskDB, 'id'>[] | null, error: any }
 
-    if (subtasksSoftDeleteError) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to soft delete subtasks',
-        data: subtasksSoftDeleteError
-      })
+    if (subtaskError) {
+      // Could not check for subtasks, but continue with deletion
+    } else if (subtasks && subtasks.length > 0) {
+      // Task has active subtasks - soft delete them first
+      const subtaskIds = subtasks.map(subtask => subtask.id)
+      const { error: subtasksDeleteError } = await (supabase as any)
+        .from('tasks')
+        .update({ deleted_at: new Date().toISOString() })
+        .in('id', subtaskIds)
+
+      if (subtasksDeleteError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to soft delete subtasks',
+          data: subtasksDeleteError
+        })
+      }
     }
 
-    // Soft delete the main task
-    const { data: softDeletedData, error: softDeleteError } = await (supabase as any)
+    // Soft delete the task by setting deleted_at timestamp
+    const { data: deletedData, error: deleteError } = await (supabase as any)
       .from('tasks')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', numericTaskId)
-      .is('deleted_at', null)
-      .select()
+      .select() as { data: TaskDB[] | null, error: any }
 
-    if (softDeleteError) {
+    if (deleteError) {
       throw createError({
         statusCode: 500,
         statusMessage: 'Failed to soft delete task',
-        data: softDeleteError
+        data: deleteError
       })
     }
 
-    if (!softDeletedData || softDeletedData.length === 0) {
+    if (!deletedData || deletedData.length === 0) {
       throw createError({
         statusCode: 404,
         statusMessage: 'Task not found or already deleted'
       })
     }
 
+    // Log task deletion activity
+    await logTaskDeletion(supabase, numericTaskId, currentStaffId)
+
+    // Create notifications for task deletion
+    const taskDetails = await getTaskDetails(supabase, numericTaskId)
+    if (taskDetails) {
+        // Get all assignees for this task
+        const { data: assignees } = await supabase
+          .from('task_assignees')
+          .select('assigned_to_staff_id')
+          .eq('task_id', numericTaskId)
+          .eq('is_active', true) as { data: Array<{ assigned_to_staff_id: number }> | null }
+
+      if (assignees && assignees.length > 0) {
+        // Notify all assignees
+        for (const assignee of assignees) {
+          await createTaskDeletionNotification(
+            supabase,
+            numericTaskId,
+            assignee.assigned_to_staff_id,
+            currentStaffId,
+            taskDetails.title,
+            taskDetails.projectName
+          )
+        }
+      }
+    }
+
     return {
       success: true,
-      message: 'Task deleted successfully',
-      deletedTask: softDeletedData?.[0] || null
+      message: 'Task soft deleted successfully',
+      deletedTask: deletedData?.[0] || null
     }
   } catch (error: any) {
     if (error.statusCode) {

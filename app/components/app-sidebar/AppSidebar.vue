@@ -1,144 +1,254 @@
+<script setup lang="ts">
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarRail,
+  SidebarSeparator,
+} from "@/components/ui/sidebar"
+import {
+  CollapsibleTrigger,
+  CollapsibleContent,
+  Collapsible,
+} from "@/components/ui/collapsible"
+
+import {
+    CheckSquare,
+    PlusSquare,
+    Folder,
+    FolderOpen,
+    FolderPlus,
+    LayoutDashboard,
+    ChevronRight,
+    User,
+    LogOut,
+    UserCog,
+    FileChartColumn,
+} from "lucide-vue-next"
+
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
+
+const currentUser = ref<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean } | null>(null)
+const router = useRouter()
+const route = useRoute()
+const supabase = useSupabaseClient()
+const isManager = computed(() => !!currentUser.value?.isManager)
+const isAdmin = computed(() => !!currentUser.value?.isAdmin)
+
+// ============================================================================
+// ROUTE DETECTION & HIGHLIGHTING
+// ============================================================================
+
+/**
+ * Determine if the current route matches the dashboard or task details from personal
+ */
+const isDashboardActive = computed(() => {
+  if (route.path === '/personal/dashboard') return true
+  if (route.path.startsWith('/task') && route.query.from === 'personal') return true
+  return false
+})
+
+/**
+ * Determine if the current route is within the projects section
+ */
+const isProjectsActive = computed(() => {
+  if (route.path.startsWith('/project')) return true
+  if (route.path.startsWith('/task') && route.query.from === 'project') return true
+  return false
+})
+
+/**
+ * Determine if the current route is the projects dashboard or a specific project page
+ */
+const isProjectsDashboardActive = computed(() => {
+  if (route.path === '/project/dashboard') return true
+  if (route.path.match(/^\/project\/\d+$/)) return true
+  if (route.path.startsWith('/task') && route.query.from === 'project') return true
+  return false
+})
+
+/**
+ * Determine if the current route is within the admin section
+ */
+const isAdminPanelActive = computed(() => route.path.startsWith('/admin')) // <-- 3. ADDED ACTIVE CHECK FOR ADMIN
+
+/**
+ * Determine if the current route is within the manager section
+ */
+const isManagerPanelActive = computed(() => route.path.startsWith('/manager'))
+
+/**
+ * Get highlighting classes for sidebar menu buttons
+ */
+const getActiveClasses = (isActive: boolean) => {
+  return isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
+}
+
+// ============================================================================
+// DATA FETCHING
+// ============================================================================
+
+async function fetchCurrentUser() {
+  try {
+    const user = await $fetch<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean }>('/api/user/me')
+    currentUser.value = user
+  } catch (err) {
+    console.error('Failed to fetch current user:', err)
+    currentUser.value = null
+  }
+}
+
+// ============================================================================
+// USER ACTIONS
+// ============================================================================
+
+async function handleLogout() {
+  try {
+    await $fetch('/api/logout/logout', {
+      method: 'POST',
+    })
+    await supabase.auth.signOut()
+    router.push('/')
+  } catch (error) {
+    console.error('Error logging out:', error)
+    alert('Logout failed. Please try again.')
+  }
+}
+
+// Fetch user data on component mount
+onMounted(() => {
+  fetchCurrentUser()
+})
+
+</script>
+
 <template>
-  <Sidebar collapsible="icon" :class="cn('border-r', props.class)">
+  <Sidebar>
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" as-child>
-            <div class="flex items-center gap-2">
-              <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <LayoutDashboard class="size-4" />
+            <NuxtLink to="/personal/dashboard">
+              <div class="flex aspect-square size-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <CheckSquare class="size-6" />
               </div>
-              <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">G9 Scrummies Dashboard</span>
-                <span class="truncate text-xs">Project Management</span>
+              <div class="flex flex-col gap-0.5 leading-none">
+                <span class="font-semibold text-xl">TaskAIO</span>
+                <span class="text-xs text-sidebar-muted-foreground">Task Management System</span>
               </div>
-            </div>
+            </NuxtLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
-
     <SidebarContent>
-      <!-- Navigation Section -->
       <SidebarGroup>
-        <SidebarGroupLabel>Navigation</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton as-child :is-active="isPersonalActive" class="no-hover">
+            <SidebarMenuItem key="Dashboard">
+              <SidebarMenuButton as-child :class="getActiveClasses(isDashboardActive)">
                 <NuxtLink to="/personal/dashboard">
-                  <User class="size-4" />
+                  <LayoutDashboard class="size-4" />
                   <span>Personal Dashboard</span>
                 </NuxtLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton as-child :is-active="isProjectActive" class="no-hover">
-                <NuxtLink to="/project/dashboard">
-                  <FolderKanban class="size-4" />
-                  <span>Project Dashboard</span>
+            <SidebarMenuItem key="CreateTask">
+              <SidebarMenuButton @click="$emit('create-task')">
+                <PlusSquare class="size-4" />
+                <span>Create New Task</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <Collapsible key="Projects" title="Projects" default-open class="group/collapsible">
+              <SidebarMenuItem>
+                <CollapsibleTrigger as-child>
+                  <SidebarMenuButton :class="getActiveClasses(isProjectsActive)">
+                    <Folder class="size-4" />
+                    <span>Projects</span>
+                    <ChevronRight
+                      class="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild :class="getActiveClasses(isProjectsDashboardActive)">
+                        <NuxtLink to="/project/dashboard">
+                          <FolderOpen class="size-4" />
+                          <span>Project Dashboard</span>
+                        </NuxtLink>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem :title="!isManager ? 'Only managers can create projects' : ''">
+                      <SidebarMenuSubButton @click="isManager ? $emit('create-project') : null"
+                      :class="!isManager ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'">
+                          <FolderPlus class="size-4" />
+                          <span>Create Project</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+
+            <SidebarMenuItem v-if="isManager" key="ManagerPanel">
+              <SidebarMenuButton as-child :class="getActiveClasses(isManagerPanelActive)">
+                <NuxtLink to="/manager/reports">
+                  <FileChartColumn class="size-4" />
+                  <span>Manage Reports</span>
+                </NuxtLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem> 
+
+            <SidebarMenuItem v-if="isAdmin" key="AdminPanel">
+              <SidebarMenuButton as-child :class="getActiveClasses(isAdminPanelActive)">
+                <NuxtLink to="/admin/users">
+                  <UserCog class="size-4" />
+                  <span>User Management</span>
                 </NuxtLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
 
-      <!-- Quick Actions Section -->
-      <SidebarGroup>
-        <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton @click="$emit('create-task')" class="no-hover">
-                <PlusCircle class="size-4" />
-                <span>New Task</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton @click="$emit('create-project')" class="no-hover">
-                <FolderPlus class="size-4" />
-                <span>New Project</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
-
+    <SidebarSeparator />
     <SidebarFooter>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton @click="handleLogout" class="no-hover">
-            <User class="size-4" />
-            <span>User</span>
-            <LogOut class="ml-auto size-4" />
-          </SidebarMenuButton>
+          <div class="flex items-center gap-2 px-2 py-2">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <User class="size-4" />
+              </div>
+              <div class="flex flex-col gap-0.5 leading-none min-w-0">
+                <span class="font-semibold text-sm">{{ currentUser?.fullname || 'Loading...' }}</span>
+                <span class="text-xs text-sidebar-muted-foreground truncate">{{ currentUser?.email || 'Loading...' }}</span>
+              </div>
+            </div>
+            <button 
+              @click="handleLogout" 
+              class="flex items-center justify-center p-2.5 rounded-md hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer"
+              title="Logout"
+            >
+              <LogOut class="size-4" />
+            </button>
+          </div>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarFooter>
-
     <SidebarRail />
   </Sidebar>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { cn } from '@/lib/utils'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-} from '@/components/ui/sidebar'
-import {
-  LayoutDashboard,
-  User,
-  FolderKanban,
-  PlusCircle,
-  FolderPlus,
-  LogOut,
-} from 'lucide-vue-next'
-
-interface Props {
-  class?: string
-}
-
-const props = defineProps<Props>()
-const route = useRoute()
-const router = useRouter()
-
-defineEmits(['create-task', 'create-project'])
-
-const isPersonalActive = computed(() => route.path.startsWith('/personal'))
-const isProjectActive = computed(() => route.path.startsWith('/project'))
-
-async function handleLogout() {
-  try {
-    await $fetch('/api/logout', { method: 'POST' })
-    router.push('/login')
-  } catch (error) {
-    console.error('Logout failed:', error)
-  }
-}
-</script>
-
-<style scoped>
-.no-hover:hover {
-  background-color: transparent !important;
-  color: inherit !important;
-}
-
-.no-hover:hover * {
-  color: inherit !important;
-}
-</style>
-
