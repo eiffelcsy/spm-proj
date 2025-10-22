@@ -43,7 +43,7 @@
         <!-- Start Date & Due Date -->
         <div class="grid grid-cols-3 gap-4">
           <!-- Start Date -->
-          <div class="flex flex-col gap-1 justify-end">
+          <div class="flex flex-col gap-1">
             <Label class="mb-1">
               Start Date
             </Label>
@@ -64,7 +64,7 @@
           </div>
           
           <!-- Due Date -->
-          <div class="flex flex-col gap-1 justify-end">
+          <div class="flex flex-col gap-1">
             <Label class="mb-1">
               Due Date
               <span v-if="repeatInterval > 0" class="text-xs text-muted-foreground ml-1">(Auto-set)</span>
