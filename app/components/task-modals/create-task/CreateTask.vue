@@ -304,13 +304,12 @@
 
                 <!-- Assignee -->
                 <div class="flex flex-col gap-1 text-xs">
-                  <!-- limit subtask assignee options to the parent task assignees -->
+                  <!-- Allow subtask to select from all staff members -->
                   <AssignCombobox
                     v-model="subtask.assignedTo"
                     label="Assign To"
-                    placeholder="Select assignee"
-                    :staff-members="staffMembers.filter(s => assignedTo.includes(String(s.id)))"
-                    compact
+                    placeholder="Select assignees"
+                    :staff-members="staffMembers"
                   />
                 </div>
 
@@ -754,12 +753,12 @@ async function createTask() {
         return
       }
 
-      // ensure subtask assignees are subset of parent assignees
-      const invalid = validSubAssignees.find(id => !assignedTo.value.includes(String(id)))
-      if (invalid) {
-        errorMessage.value = `Subtask ${n}: assignees must be chosen from the parent task assignees.`
-        return
-      }
+      // // ensure subtask assignees are subset of parent assignees
+      // const invalid = validSubAssignees.find(id => !assignedTo.value.includes(String(id)))
+      // if (invalid) {
+      //   errorMessage.value = `Subtask ${n}: assignees must be chosen from the parent task assignees.`
+      //   return
+      // }
     }
 
     errorMessage.value = ''
@@ -784,8 +783,8 @@ async function createTask() {
       assignee_ids: assigneeIds,
       subtasks: subtasks.value.map(subtask => ({
         title: subtask.title,
-        start_date: startDate.value ? startDate.value.toString() : null,
-        due_date: dueDate.value ? dueDate.value.toString() : null,
+        start_date: subtask.startDate ? subtask.startDate.toString() : null,
+        due_date: subtask.dueDate ? subtask.dueDate.toString() : null,
         status: subtask.status,
         priority: subtask.priority.toString(),
         notes: subtask.notes.trim(),

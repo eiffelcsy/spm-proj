@@ -114,6 +114,25 @@ export default defineEventHandler(async (event) => {
 
     const subtasksInput = Array.isArray(body.subtasks) ? body.subtasks : []
     if (subtasksInput.length > 0) {
+      // Validate subtask assignees before inserting
+      for (let i = 0; i < subtasksInput.length; i++) {
+        const s = subtasksInput[i]
+        const assigneeIdsForSub = Array.isArray(s.assignee_ids) 
+          ? s.assignee_ids.map((v: any) => Number(v)) 
+          : []
+        
+        // Enforce same assignee requirements as parent task
+        if (assigneeIdsForSub.length === 0) {
+          await rollbackParent()
+          throw createError({ statusCode: 400, statusMessage: `Subtask ${i + 1}: At least one assignee is required` })
+        }
+        
+        if (assigneeIdsForSub.length > 5) {
+          await rollbackParent()
+          throw createError({ statusCode: 400, statusMessage: `Subtask ${i + 1}: Maximum 5 assignees allowed` })
+        }
+      }
+      
       const subtaskRows = subtasksInput.map((s: any) => {
         // If subtask has repeat_interval, calculate due_date from start_date
         let subtaskDueDate = s.due_date ?? null
@@ -131,10 +150,10 @@ export default defineEventHandler(async (event) => {
           start_date: s.start_date ?? null,
           due_date: subtaskDueDate,
           status: s.status ?? null,
-          priority: body.priority ?? null,
+          priority: s.priority ?? body.priority ?? null,
           repeat_interval: subtaskRepeatInterval,
-          project_id: s.project_id ?? null,
-          tags: body.tags || [],
+          project_id: body.project_id ?? null,
+          tags: s.tags || body.tags || [],
           creator_id: staffRow!.id,
           parent_task_id: createdTaskId
         }
