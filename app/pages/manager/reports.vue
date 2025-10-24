@@ -25,6 +25,13 @@
           <Clock class="mr-2 h-4 w-4" />
           Logged Time
         </Button>
+        <Button 
+          :variant="reportType === 'team-summary' ? 'default' : 'outline'"
+          @click="reportType = 'team-summary'; clearFilters()"
+        >
+          <Users class="mr-2 h-4 w-4" />
+          Team Summary
+        </Button>
       </div>
     </div>
 
@@ -164,6 +171,62 @@
         <!-- End Date -->
         <div class="space-y-2">
           <Label for="end-date">End Date</Label>
+          <Input 
+            v-model="endDate" 
+            type="date" 
+            :min="startDate || undefined"
+          />
+        </div>
+      </div>
+
+      <!-- Team Summary Filters -->
+      <div v-if="reportType === 'team-summary'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Project Filter (Required) -->
+        <div class="space-y-2">
+          <Label for="project-filter">Project (Required)</Label>
+          <Select v-model="selectedProjectId">
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select a project" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem 
+                v-for="project in projects" 
+                :key="project.id" 
+                :value="String(project.id)"
+              >
+                {{ project.name }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <!-- Period Type -->
+        <div class="space-y-2">
+          <Label for="period-type">Report Period</Label>
+          <Select v-model="periodType">
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="weekly">Weekly (Last 7 days)</SelectItem>
+              <SelectItem value="monthly">Monthly (Last 30 days)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <!-- Start Date -->
+        <div class="space-y-2">
+          <Label for="start-date">Start Date (Optional)</Label>
+          <Input 
+            v-model="startDate" 
+            type="date" 
+            :max="endDate || undefined"
+          />
+        </div>
+
+        <!-- End Date -->
+        <div class="space-y-2">
+          <Label for="end-date">End Date (Optional)</Label>
           <Input 
             v-model="endDate" 
             type="date" 
@@ -557,12 +620,249 @@
       </div>
     </div>
 
+    <!-- Team Summary Report Results -->
+    <div v-if="teamSummaryData && !isGenerating && reportType === 'team-summary'" class="space-y-6">
+      <!-- Report Header -->
+      <div class="bg-white rounded-lg border p-6">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h2 class="text-xl font-semibold">Team Summary Report</h2>
+            <p class="text-sm text-muted-foreground mt-1">
+              Generated on {{ formatDateTime(teamSummaryData.generatedAt) }}
+            </p>
+            <div class="mt-2 space-y-1 text-sm">
+              <p>
+                <span class="font-medium">Project:</span> {{ teamSummaryData.project.name }}
+              </p>
+              <p v-if="teamSummaryData.project.description">
+                <span class="font-medium">Description:</span> {{ teamSummaryData.project.description }}
+              </p>
+              <p>
+                <span class="font-medium">Period:</span> {{ teamSummaryData.filters.period === 'weekly' ? 'Weekly (Last 7 days)' : 'Monthly (Last 30 days)' }}
+              </p>
+              <p v-if="teamSummaryData.filters.start_date || teamSummaryData.filters.end_date">
+                <span class="font-medium">Date Range:</span> 
+                {{ teamSummaryData.filters.start_date ? formatDate(teamSummaryData.filters.start_date) : 'Beginning' }} 
+                - 
+                {{ teamSummaryData.filters.end_date ? formatDate(teamSummaryData.filters.end_date) : 'Present' }}
+              </p>
+            </div>
+          </div>
+          
+          <!-- Export Buttons -->
+          <div class="flex items-center gap-2">
+            <Button variant="outline" size="sm" @click="exportTeamSummaryReport('csv')" :disabled="isExporting">
+              <Download class="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button variant="outline" size="sm" @click="exportTeamSummaryReport('excel')" :disabled="isExporting">
+              <Download class="mr-2 h-4 w-4" />
+              Export Excel
+            </Button>
+            <Button variant="outline" size="sm" @click="exportTeamSummaryReport('pdf')" :disabled="isExporting">
+              <Download class="mr-2 h-4 w-4" />
+              Export PDF
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overall Metrics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Overall Completion Rate -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm font-medium text-muted-foreground">Completion Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-3xl font-bold">{{ teamSummaryData.metrics.overallCompletionRate }}%</div>
+            <Progress :model-value="teamSummaryData.metrics.overallCompletionRate" class="mt-2" />
+          </CardContent>
+        </Card>
+
+        <!-- Team Members -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm font-medium text-muted-foreground">Team Members</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-3xl font-bold">{{ teamSummaryData.metrics.totalTeamMembers }}</div>
+            <p class="text-xs text-muted-foreground mt-1">
+              {{ teamSummaryData.metrics.avgTasksPerMember.toFixed(1) }} avg tasks per member
+            </p>
+          </CardContent>
+        </Card>
+
+        <!-- Overdue Tasks -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm font-medium text-muted-foreground">Overdue Tasks</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="flex items-baseline gap-2">
+              <div class="text-3xl font-bold">{{ teamSummaryData.metrics.overdueTaskCount }}</div>
+              <Badge :variant="teamSummaryData.metrics.overdueTaskCount > 0 ? 'destructive' : 'secondary'" class="text-xs">
+                {{ teamSummaryData.metrics.overdueTaskCount > 0 ? 'Action Needed' : 'On Track' }}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Total Hours Logged -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm font-medium text-muted-foreground">Total Hours Logged</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-3xl font-bold">{{ formatHours(teamSummaryData.metrics.totalHoursLogged) }}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- Task Status Breakdown -->
+      <div class="bg-white rounded-lg border p-6">
+        <h3 class="text-lg font-semibold mb-4">Task Status Breakdown</h3>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div class="text-center">
+            <div class="text-2xl font-bold">{{ teamSummaryData.metrics.statusBreakdown.total }}</div>
+            <p class="text-sm text-muted-foreground">Total Tasks</p>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-green-600">{{ teamSummaryData.metrics.statusBreakdown.completed }}</div>
+            <p class="text-sm text-muted-foreground">Completed</p>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-blue-600">{{ teamSummaryData.metrics.statusBreakdown.in_progress }}</div>
+            <p class="text-sm text-muted-foreground">In Progress</p>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-gray-600">{{ teamSummaryData.metrics.statusBreakdown.not_started }}</div>
+            <p class="text-sm text-muted-foreground">Not Started</p>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-red-600">{{ teamSummaryData.metrics.statusBreakdown.blocked }}</div>
+            <p class="text-sm text-muted-foreground">Blocked</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Performers -->
+      <div class="bg-white rounded-lg border p-6">
+        <h3 class="text-lg font-semibold mb-4">Top Performers</h3>
+        <div class="space-y-3">
+          <div 
+            v-for="(performer, index) in teamSummaryData.topPerformers" 
+            :key="performer.staff_id"
+            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+          >
+            <div class="flex items-center gap-3">
+              <div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold">
+                {{ index + 1 }}
+              </div>
+              <div>
+                <p class="font-medium">{{ performer.fullname }}</p>
+                <p class="text-sm text-muted-foreground">
+                  {{ performer.tasks_completed }} completed / {{ performer.total_tasks }} total
+                </p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-lg font-bold text-green-600">{{ performer.completion_rate }}%</p>
+              <p class="text-xs text-muted-foreground">{{ formatHours(performer.total_hours_logged) }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-if="teamSummaryData.topPerformers.length === 0" class="text-center py-8 text-gray-500">
+          No performance data available.
+        </div>
+      </div>
+
+      <!-- Team Workload Distribution -->
+      <div class="bg-white rounded-lg border p-6">
+        <h3 class="text-lg font-semibold mb-4">Team Workload Distribution</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b">
+                <th class="text-left p-3 font-medium">Team Member</th>
+                <th class="text-right p-3 font-medium">Task Count</th>
+                <th class="text-right p-3 font-medium">% of Total</th>
+                <th class="text-right p-3 font-medium">Variance from Avg</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                v-for="member in teamSummaryData.workloadDistribution" 
+                :key="member.staff_id"
+                class="border-b hover:bg-gray-50"
+              >
+                <td class="p-3 font-medium">{{ member.fullname }}</td>
+                <td class="p-3 text-right">{{ member.task_count }}</td>
+                <td class="p-3 text-right">
+                  <Badge variant="outline">{{ member.percentage.toFixed(1) }}%</Badge>
+                </td>
+                <td class="p-3 text-right">
+                  <span :class="member.variance_from_avg > 0 ? 'text-orange-600' : member.variance_from_avg < 0 ? 'text-blue-600' : 'text-gray-600'">
+                    {{ member.variance_from_avg > 0 ? '+' : '' }}{{ member.variance_from_avg.toFixed(1) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Team Performance Details -->
+      <div class="bg-white rounded-lg border p-6">
+        <h3 class="text-lg font-semibold mb-4">Team Performance Details</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b">
+                <th class="text-left p-3 font-medium">Team Member</th>
+                <th class="text-right p-3 font-medium">Completed</th>
+                <th class="text-right p-3 font-medium">In Progress</th>
+                <th class="text-right p-3 font-medium">Not Started</th>
+                <th class="text-right p-3 font-medium">Blocked</th>
+                <th class="text-right p-3 font-medium">Total</th>
+                <th class="text-right p-3 font-medium">Completion Rate</th>
+                <th class="text-right p-3 font-medium">Hours Logged</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                v-for="member in teamSummaryData.teamPerformance" 
+                :key="member.staff_id"
+                class="border-b hover:bg-gray-50"
+              >
+                <td class="p-3 font-medium">{{ member.fullname }}</td>
+                <td class="p-3 text-right text-green-600">{{ member.tasks_completed }}</td>
+                <td class="p-3 text-right text-blue-600">{{ member.tasks_in_progress }}</td>
+                <td class="p-3 text-right text-gray-600">{{ member.tasks_not_started }}</td>
+                <td class="p-3 text-right text-red-600">{{ member.tasks_blocked }}</td>
+                <td class="p-3 text-right font-semibold">{{ member.total_tasks }}</td>
+                <td class="p-3 text-right">
+                  <Badge :variant="member.completion_rate >= 75 ? 'secondary' : member.completion_rate >= 50 ? 'default' : 'outline'">
+                    {{ member.completion_rate }}%
+                  </Badge>
+                </td>
+                <td class="p-3 text-right">{{ formatHours(member.total_hours_logged) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Empty State -->
     <div v-else-if="!isGenerating" class="bg-white rounded-lg border p-12 text-center">
       <FileText class="mx-auto h-12 w-12 text-gray-400 mb-4" />
       <h3 class="text-lg font-semibold mb-2">No Report Generated</h3>
       <p class="text-muted-foreground mb-4">
-        Select your filters and click "Generate Report" to view {{ reportType === 'task-completion' ? 'task completion statistics' : 'logged time data' }}.
+        Select your filters and click "Generate Report" to view 
+        {{ reportType === 'task-completion' ? 'task completion statistics' : 
+           reportType === 'logged-time' ? 'logged time data' : 
+           'team summary and performance metrics' }}.
       </p>
     </div>
   </div>
@@ -583,10 +883,11 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select'
-import { FileText, Download, X, Clock } from 'lucide-vue-next'
+import { FileText, Download, X, Clock, Users } from 'lucide-vue-next'
 import type { 
   TaskCompletionReportData, 
-  LoggedTimeReportData 
+  LoggedTimeReportData,
+  TeamSummaryReportData 
 } from '@/types'
 
 definePageMeta({
@@ -629,7 +930,7 @@ interface ReportData {
   generatedAt: string
 }
 
-const reportType = ref<'task-completion' | 'logged-time'>('task-completion')
+const reportType = ref<'task-completion' | 'logged-time' | 'team-summary'>('task-completion')
 const users = ref<User[]>([])
 const projects = ref<Project[]>([])
 const departments = ref<string[]>([])
@@ -637,6 +938,7 @@ const selectedUserId = ref('all')
 const selectedProjectId = ref('all')
 const selectedDepartment = ref('all')
 const groupingType = ref<'project' | 'department'>('project')
+const periodType = ref<'weekly' | 'monthly'>('weekly')
 const startDate = ref('')
 const endDate = ref('')
 const isGenerating = ref(false)
@@ -644,6 +946,7 @@ const isExporting = ref(false)
 const error = ref('')
 const reportData = ref<ReportData | null>(null)
 const loggedTimeData = ref<LoggedTimeReportData | null>(null)
+const teamSummaryData = ref<TeamSummaryReportData | null>(null)
 
 async function fetchUsers() {
   try {
@@ -707,6 +1010,7 @@ async function generateReport() {
       if (response.success) {
         reportData.value = response.data
         loggedTimeData.value = null
+        teamSummaryData.value = null
       }
     } else if (reportType.value === 'logged-time') {
       const params: any = {
@@ -733,6 +1037,36 @@ async function generateReport() {
       if (response.success) {
         loggedTimeData.value = response.data
         reportData.value = null
+        teamSummaryData.value = null
+      }
+    } else if (reportType.value === 'team-summary') {
+      // Validate project selection
+      if (!selectedProjectId.value || selectedProjectId.value === 'all') {
+        error.value = 'Please select a project for team summary report'
+        isGenerating.value = false
+        return
+      }
+
+      const params: any = {
+        project_id: selectedProjectId.value,
+        period: periodType.value
+      }
+      
+      if (startDate.value) {
+        params.start_date = startDate.value
+      }
+      if (endDate.value) {
+        params.end_date = endDate.value
+      }
+      
+      const response = await $fetch<{ success: boolean; data: TeamSummaryReportData }>('/api/reports/team-summary', {
+        params
+      })
+      
+      if (response.success) {
+        teamSummaryData.value = response.data
+        reportData.value = null
+        loggedTimeData.value = null
       }
     }
   } catch (err: any) {
@@ -748,10 +1082,12 @@ function clearFilters() {
   selectedProjectId.value = 'all'
   selectedDepartment.value = 'all'
   groupingType.value = 'project'
+  periodType.value = 'weekly'
   startDate.value = ''
   endDate.value = ''
   reportData.value = null
   loggedTimeData.value = null
+  teamSummaryData.value = null
   error.value = ''
 }
 
@@ -1528,6 +1864,363 @@ function getStatusVariant(status: string) {
     default:
       return 'outline'
   }
+}
+
+async function exportTeamSummaryReport(format: 'csv' | 'excel' | 'pdf') {
+  if (!teamSummaryData.value) return
+  
+  try {
+    isExporting.value = true
+    
+    if (format === 'csv') {
+      exportTeamSummaryToCSV(teamSummaryData.value)
+    } else if (format === 'excel') {
+      exportTeamSummaryToExcel(teamSummaryData.value)
+    } else if (format === 'pdf') {
+      exportTeamSummaryToPDF(teamSummaryData.value)
+    }
+  } catch (err: any) {
+    console.error('Error exporting team summary report:', err)
+    error.value = `Failed to export report as ${format.toUpperCase()}`
+  } finally {
+    isExporting.value = false
+  }
+}
+
+function exportTeamSummaryToCSV(data: any) {
+  // Create summary section
+  const summary = [
+    ['Team Summary Report'],
+    ['Generated At:', new Date(data.generatedAt).toLocaleString()],
+    ['Project:', data.project.name],
+    ['Period:', data.filters.period === 'weekly' ? 'Weekly (Last 7 days)' : 'Monthly (Last 30 days)'],
+    [''],
+    ['Overall Metrics'],
+    ['Completion Rate:', `${data.metrics.overallCompletionRate}%`],
+    ['Team Members:', data.metrics.totalTeamMembers],
+    ['Overdue Tasks:', data.metrics.overdueTaskCount],
+    ['Total Hours Logged:', data.metrics.totalHoursLogged.toFixed(2)],
+    ['Avg Tasks per Member:', data.metrics.avgTasksPerMember.toFixed(1)],
+    [''],
+    ['Task Status Breakdown'],
+    ['Total Tasks:', data.metrics.statusBreakdown.total],
+    ['Completed:', data.metrics.statusBreakdown.completed],
+    ['In Progress:', data.metrics.statusBreakdown.in_progress],
+    ['Not Started:', data.metrics.statusBreakdown.not_started],
+    ['Blocked:', data.metrics.statusBreakdown.blocked],
+    [''],
+    ['Team Performance'],
+    ['Name', 'Completed', 'In Progress', 'Not Started', 'Blocked', 'Total', 'Completion Rate', 'Hours Logged']
+  ]
+
+  // Add team performance data
+  data.teamPerformance.forEach((member: any) => {
+    summary.push([
+      `"${member.fullname}"`,
+      member.tasks_completed,
+      member.tasks_in_progress,
+      member.tasks_not_started,
+      member.tasks_blocked,
+      member.total_tasks,
+      `${member.completion_rate}%`,
+      member.total_hours_logged.toFixed(2)
+    ])
+  })
+
+  summary.push([''], ['Workload Distribution'], ['Name', 'Task Count', '% of Total', 'Variance from Avg'])
+  
+  data.workloadDistribution.forEach((member: any) => {
+    summary.push([
+      `"${member.fullname}"`,
+      member.task_count,
+      `${member.percentage.toFixed(1)}%`,
+      member.variance_from_avg.toFixed(1)
+    ])
+  })
+
+  const csvContent = summary.map((row: any[]) => row.join(',')).join('\n')
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `team-summary-report-${data.project.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+function exportTeamSummaryToExcel(data: any) {
+  let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <style>
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .metric-label { font-weight: bold; }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 30px; }
+      </style>
+    </head>
+    <body>
+      <h1>Team Summary Report</h1>
+      <p><strong>Project:</strong> ${data.project.name}</p>
+      <p><strong>Generated At:</strong> ${new Date(data.generatedAt).toLocaleString()}</p>
+      <p><strong>Period:</strong> ${data.filters.period === 'weekly' ? 'Weekly (Last 7 days)' : 'Monthly (Last 30 days)'}</p>
+      
+      <h2>Overall Metrics</h2>
+      <table style="width: 50%;">
+        <tr><td class="metric-label">Completion Rate</td><td>${data.metrics.overallCompletionRate}%</td></tr>
+        <tr><td class="metric-label">Team Members</td><td>${data.metrics.totalTeamMembers}</td></tr>
+        <tr><td class="metric-label">Overdue Tasks</td><td>${data.metrics.overdueTaskCount}</td></tr>
+        <tr><td class="metric-label">Total Hours Logged</td><td>${data.metrics.totalHoursLogged.toFixed(2)}</td></tr>
+        <tr><td class="metric-label">Avg Tasks per Member</td><td>${data.metrics.avgTasksPerMember.toFixed(1)}</td></tr>
+      </table>
+      
+      <h2>Task Status Breakdown</h2>
+      <table style="width: 50%;">
+        <tr><td class="metric-label">Total Tasks</td><td>${data.metrics.statusBreakdown.total}</td></tr>
+        <tr><td class="metric-label">Completed</td><td>${data.metrics.statusBreakdown.completed}</td></tr>
+        <tr><td class="metric-label">In Progress</td><td>${data.metrics.statusBreakdown.in_progress}</td></tr>
+        <tr><td class="metric-label">Not Started</td><td>${data.metrics.statusBreakdown.not_started}</td></tr>
+        <tr><td class="metric-label">Blocked</td><td>${data.metrics.statusBreakdown.blocked}</td></tr>
+      </table>
+      
+      <h2>Team Performance</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Completed</th>
+            <th>In Progress</th>
+            <th>Not Started</th>
+            <th>Blocked</th>
+            <th>Total</th>
+            <th>Completion Rate</th>
+            <th>Hours Logged</th>
+          </tr>
+        </thead>
+        <tbody>
+  `
+  
+  data.teamPerformance.forEach((member: any) => {
+    html += `
+      <tr>
+        <td>${member.fullname}</td>
+        <td>${member.tasks_completed}</td>
+        <td>${member.tasks_in_progress}</td>
+        <td>${member.tasks_not_started}</td>
+        <td>${member.tasks_blocked}</td>
+        <td>${member.total_tasks}</td>
+        <td>${member.completion_rate}%</td>
+        <td>${member.total_hours_logged.toFixed(2)}</td>
+      </tr>
+    `
+  })
+  
+  html += `
+        </tbody>
+      </table>
+      
+      <h2>Workload Distribution</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Task Count</th>
+            <th>% of Total</th>
+            <th>Variance from Avg</th>
+          </tr>
+        </thead>
+        <tbody>
+  `
+  
+  data.workloadDistribution.forEach((member: any) => {
+    html += `
+      <tr>
+        <td>${member.fullname}</td>
+        <td>${member.task_count}</td>
+        <td>${member.percentage.toFixed(1)}%</td>
+        <td>${member.variance_from_avg.toFixed(1)}</td>
+      </tr>
+    `
+  })
+  
+  html += `
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `
+  
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `team-summary-report-${data.project.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.xls`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+function exportTeamSummaryToPDF(data: any) {
+  const printWindow = window.open('', '', 'width=800,height=600')
+  if (!printWindow) {
+    error.value = 'Please allow popups to export PDF'
+    return
+  }
+  
+  let html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Team Summary Report</title>
+      <style>
+        body { 
+          font-family: Arial, sans-serif; 
+          padding: 40px;
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+        h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 30px; }
+        table { 
+          border-collapse: collapse; 
+          width: 100%; 
+          margin: 20px 0;
+        }
+        th, td { 
+          border: 1px solid #ddd; 
+          padding: 12px; 
+          text-align: left; 
+        }
+        th { 
+          background-color: #f2f2f2; 
+          font-weight: bold; 
+        }
+        .summary-table { width: 60%; }
+        .metric-label { font-weight: bold; width: 200px; }
+        .info { 
+          background-color: #f9f9f9; 
+          padding: 15px; 
+          border-radius: 5px;
+          margin: 20px 0;
+        }
+        @media print {
+          body { padding: 20px; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Team Summary Report</h1>
+      
+      <div class="info">
+        <p><strong>Project:</strong> ${data.project.name}</p>
+        ${data.project.description ? `<p><strong>Description:</strong> ${data.project.description}</p>` : ''}
+        <p><strong>Generated At:</strong> ${new Date(data.generatedAt).toLocaleString()}</p>
+        <p><strong>Period:</strong> ${data.filters.period === 'weekly' ? 'Weekly (Last 7 days)' : 'Monthly (Last 30 days)'}</p>
+      </div>
+      
+      <h2>Overall Metrics</h2>
+      <table class="summary-table">
+        <tr><td class="metric-label">Completion Rate</td><td>${data.metrics.overallCompletionRate}%</td></tr>
+        <tr><td class="metric-label">Team Members</td><td>${data.metrics.totalTeamMembers}</td></tr>
+        <tr><td class="metric-label">Overdue Tasks</td><td>${data.metrics.overdueTaskCount}</td></tr>
+        <tr><td class="metric-label">Total Hours Logged</td><td>${data.metrics.totalHoursLogged.toFixed(2)} hours</td></tr>
+        <tr><td class="metric-label">Avg Tasks per Member</td><td>${data.metrics.avgTasksPerMember.toFixed(1)}</td></tr>
+      </table>
+      
+      <h2>Task Status Breakdown</h2>
+      <table class="summary-table">
+        <tr><td class="metric-label">Total Tasks</td><td>${data.metrics.statusBreakdown.total}</td></tr>
+        <tr><td class="metric-label">Completed</td><td>${data.metrics.statusBreakdown.completed}</td></tr>
+        <tr><td class="metric-label">In Progress</td><td>${data.metrics.statusBreakdown.in_progress}</td></tr>
+        <tr><td class="metric-label">Not Started</td><td>${data.metrics.statusBreakdown.not_started}</td></tr>
+        <tr><td class="metric-label">Blocked</td><td>${data.metrics.statusBreakdown.blocked}</td></tr>
+      </table>
+      
+      <h2>Top Performers</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Name</th>
+            <th>Completion Rate</th>
+            <th>Tasks Completed</th>
+            <th>Total Tasks</th>
+          </tr>
+        </thead>
+        <tbody>
+  `
+  
+  data.topPerformers.forEach((performer: any, index: number) => {
+    html += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${performer.fullname}</td>
+        <td><strong>${performer.completion_rate}%</strong></td>
+        <td>${performer.tasks_completed}</td>
+        <td>${performer.total_tasks}</td>
+      </tr>
+    `
+  })
+  
+  html += `
+        </tbody>
+      </table>
+      
+      <h2>Team Performance Details</h2>
+      <table style="font-size: 12px;">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Completed</th>
+            <th>In Progress</th>
+            <th>Not Started</th>
+            <th>Blocked</th>
+            <th>Total</th>
+            <th>Rate</th>
+            <th>Hours</th>
+          </tr>
+        </thead>
+        <tbody>
+  `
+  
+  data.teamPerformance.forEach((member: any) => {
+    html += `
+      <tr>
+        <td>${member.fullname}</td>
+        <td>${member.tasks_completed}</td>
+        <td>${member.tasks_in_progress}</td>
+        <td>${member.tasks_not_started}</td>
+        <td>${member.tasks_blocked}</td>
+        <td><strong>${member.total_tasks}</strong></td>
+        <td>${member.completion_rate}%</td>
+        <td>${member.total_hours_logged.toFixed(1)}</td>
+      </tr>
+    `
+  })
+  
+  html += `
+        </tbody>
+      </table>
+      
+      <script>
+        window.onload = function() {
+          window.print();
+        }
+      <\/script>
+    </body>
+    </html>
+  `
+  
+  printWindow.document.write(html)
+  printWindow.document.close()
 }
 
 onMounted(async () => {

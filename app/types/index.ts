@@ -582,6 +582,100 @@ export interface LoggedTimeReportData {
   generatedAt: string
 }
 
+/**
+ * Team member performance data
+ * Used in team summary reports
+ */
+export interface TeamMemberPerformance {
+  staff_id: number
+  fullname: string
+  tasks_completed: number
+  tasks_in_progress: number
+  tasks_not_started: number
+  tasks_blocked: number
+  total_tasks: number
+  completion_rate: number
+  total_hours_logged: number
+}
+
+/**
+ * Task status breakdown
+ * Used in team summary reports
+ */
+export interface TaskStatusBreakdown {
+  not_started: number
+  in_progress: number
+  completed: number
+  blocked: number
+  total: number
+}
+
+/**
+ * Completion trend data point
+ * Used in team summary reports
+ */
+export interface CompletionTrend {
+  date: string
+  completed_count: number
+  total_count: number
+}
+
+/**
+ * Workload distribution for team members
+ * Used in team summary reports
+ */
+export interface WorkloadDistribution {
+  staff_id: number
+  fullname: string
+  task_count: number
+  percentage: number
+  variance_from_avg: number
+}
+
+/**
+ * Team summary report metrics
+ * Used in manager reports page
+ */
+export interface TeamSummaryMetrics {
+  statusBreakdown: TaskStatusBreakdown
+  overallCompletionRate: number
+  overdueTaskCount: number
+  totalTeamMembers: number
+  avgTasksPerMember: number
+  totalHoursLogged: number
+}
+
+/**
+ * Team summary report filters
+ * Used in manager reports page
+ */
+export interface TeamSummaryFilters {
+  project_id?: number
+  start_date?: string
+  end_date?: string
+  period?: 'weekly' | 'monthly'
+  projectName?: string | null
+}
+
+/**
+ * Team summary report data
+ * Used in manager reports page
+ */
+export interface TeamSummaryReportData {
+  project: {
+    id: number
+    name: string
+    description: string | null
+  }
+  metrics: TeamSummaryMetrics
+  completionTrends: CompletionTrend[]
+  topPerformers: TeamMemberPerformance[]
+  teamPerformance: TeamMemberPerformance[]
+  workloadDistribution: WorkloadDistribution[]
+  filters: TeamSummaryFilters
+  generatedAt: string
+}
+
 // ============================================================================
 // FORM STATE TYPES (UI Components)
 // ============================================================================
