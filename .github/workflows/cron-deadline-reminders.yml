@@ -11,11 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Debug Secret
+        run: |
+          echo "🔍 Debugging VERCEL_APP_URL secret..."
+          echo "Secret exists: ${{ secrets.VERCEL_APP_URL != '' }}"
+          if [ -z "${{ secrets.VERCEL_APP_URL }}" ]; then
+            echo "❌ Secret is empty or not set"
+            echo "Available secrets:"
+            env | grep -i secret || echo "No secret environment variables found"
+          else
+            echo "✅ Secret is set correctly"
+            echo "Full URL: ${{ secrets.VERCEL_APP_URL }}"
+          fi
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+      
       - name: Trigger Deadline Reminders
         run: |
           echo "Triggering deadline reminder cron job..."
           
-          # Hardcoded Vercel app URL
+          # Hardcoded Vercel app URL (simpler approach)
           APP_URL="https://spm-proj.vercel.app"
           
           echo "Calling API endpoint: $APP_URL/api/notifications/schedule-deadline-reminders"
