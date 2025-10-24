@@ -309,14 +309,22 @@
             <div class="space-y-2">
               <Label>Roles</Label>
               <div class="flex items-center gap-4">
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="checkbox" :checked="hasManager(editingUser)" @change="(e:any) => setManager(editingUser, e.target.checked)" />
+                <label class="flex items-center gap-2 text-sm" :class="isEditingSelf ? 'opacity-50 cursor-not-allowed' : ''">
+                  <input type="checkbox" :checked="hasManager(editingUser)" @change="(e:any) => setManager(editingUser, e.target.checked)" :disabled="isEditingSelf" />
                   Manager
                 </label>
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="checkbox" :checked="hasAdmin(editingUser)" @change="(e:any) => setAdmin(editingUser, e.target.checked)" />
+                <label class="flex items-center gap-2 text-sm" :class="isEditingSelf ? 'opacity-50 cursor-not-allowed' : ''">
+                  <input type="checkbox" :checked="hasAdmin(editingUser)" @change="(e:any) => setAdmin(editingUser, e.target.checked)" :disabled="isEditingSelf" />
                   Admin
                 </label>
+              </div>
+              <div v-if="isEditingSelf" class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg mt-2">
+                <div class="flex items-start gap-2">
+                  <Shield class="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <p class="text-sm text-yellow-800">
+                    You cannot change your own roles to prevent accidental self-lockout. Ask another admin to modify your permissions if needed.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -402,6 +410,9 @@ const isUpdating = ref(false)
 const updateError = ref('')
 const updateSuccess = ref('')
 
+// Current user information
+const currentUser = ref<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean } | null>(null)
+
 // Role change confirmation variables
 const isRoleConfirmOpen = ref(false)
 const isSuccessOpen = ref(false)
@@ -416,6 +427,11 @@ const searchQuery = ref('')
 const selectedRole = ref('all')
 const sortBy = ref('name')
 const sortOrder = ref('asc')
+
+// Computed property to check if editing self
+const isEditingSelf = computed(() => {
+  return currentUser.value && editingUser.value && currentUser.value.id === editingUser.value.id
+})
 
 // Computed property for filtered and sorted users
 const filteredAndSortedUsers = computed(() => {
@@ -494,6 +510,16 @@ async function fetchUsers() {
     error.value = err?.data?.statusMessage || err?.message || 'Failed to load users'
   } finally {
     isLoading.value = false
+  }
+}
+
+async function fetchCurrentUser() {
+  try {
+    const user = await $fetch<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean }>('/api/user/me')
+    currentUser.value = user
+  } catch (err) {
+    console.error('Failed to fetch current user:', err)
+    currentUser.value = null
   }
 }
 
@@ -632,6 +658,7 @@ async function performUserUpdate() {
 
 onMounted(() => {
   fetchUsers()
+  fetchCurrentUser()
 })
 
 // Compute role string from boolean flags (or legacy staff_type)
