@@ -138,7 +138,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
         it('should return 401 if user is not authenticated', async () => {
             mockSupabaseUser.mockResolvedValueOnce(null)
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -152,7 +152,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
         it('should return 400 if task ID is missing', async () => {
             mockGetRouterParam.mockReturnValueOnce(null)
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -166,7 +166,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
         it('should return 400 if request body is missing', async () => {
             mockReadBody.mockResolvedValueOnce(null)
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -183,7 +183,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -214,7 +214,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -232,7 +232,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                     error: { code: 'PGRST116' }
                 })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -261,7 +261,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -303,7 +303,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -326,7 +326,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockUpdate).toHaveBeenCalled()
@@ -342,7 +342,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
 
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -352,7 +352,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
             mockReadBody.mockResolvedValueOnce({ status: 'completed' })
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockLogTaskCompletion).toHaveBeenCalled()
@@ -363,7 +363,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
             mockReadBody.mockResolvedValueOnce({ priority: '8' })
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -373,7 +373,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
             mockReadBody.mockResolvedValueOnce({ notes: 'Updated notes' })
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -383,7 +383,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
             mockReadBody.mockResolvedValueOnce({ tags: ['#new', '#tags'] })
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -397,7 +397,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
 
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             // Verify due_date was calculated (7 days after start_date)
@@ -416,7 +416,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
 
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             expect(mockLogTaskUpdate).toHaveBeenCalledWith(
@@ -449,7 +449,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockUpdate).toHaveBeenCalled() // Deactivate old
@@ -466,7 +466,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -484,7 +484,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
             mockReadBody.mockResolvedValueOnce({ assignee_ids: [] })
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -501,7 +501,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
             })
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -522,7 +522,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             // Should log for assignees 2 and 3 (new)
@@ -549,7 +549,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 .mockResolvedValueOnce({ data: { fullname: 'User 2' }, error: null })
                 .mockResolvedValueOnce({ data: { fullname: 'User 3' }, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             expect(mockLogActivity).toHaveBeenCalledTimes(2) // For 2 removed
@@ -584,7 +584,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalled()
@@ -610,7 +610,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                     error: null
                 })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockUpdate).toHaveBeenCalled()
@@ -627,7 +627,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
 
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -648,7 +648,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
 
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -674,7 +674,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -701,7 +701,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -733,7 +733,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             expect(mockCreateTaskUpdateNotification).toHaveBeenCalledTimes(2)
@@ -748,7 +748,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             expect(mockCreateTaskAssignmentNotification).toHaveBeenCalledTimes(2)
@@ -771,7 +771,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             await handler.default(mockEvent)
 
             expect(mockCreateTaskUnassignmentNotification).toHaveBeenCalledTimes(1)
@@ -812,7 +812,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 newTask
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockReplicateCompletedTask).toHaveBeenCalledWith(
@@ -830,7 +830,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockReplicateCompletedTask).not.toHaveBeenCalled()
@@ -844,7 +844,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
             const result = await handler.default(mockEvent)
 
             expect(mockReplicateCompletedTask).not.toHaveBeenCalled()
@@ -866,7 +866,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: { message: 'Database error' }
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -892,7 +892,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                     error: { message: 'Not found' }
                 })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
@@ -916,7 +916,7 @@ describe('Update Task API - PUT /api/tasks/[id]', () => {
                 error: { message: 'Upsert failed' }
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.put')
+            const handler = await import('../../../server/api/tasks/[id]/index.put.ts')
 
             try {
                 await handler.default(mockEvent)
