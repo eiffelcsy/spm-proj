@@ -11,6 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Debug Secret
+        run: |
+          echo "🔍 Debugging VERCEL_APP_URL secret..."
+          echo "Secret exists: ${{ secrets.VERCEL_APP_URL != '' }}"
+          echo "Secret length: ${#{{ secrets.VERCEL_APP_URL }}}"
+          echo "Secret value (first 20 chars): ${VERCEL_APP_URL:0:20}..."
+          if [ -z "${{ secrets.VERCEL_APP_URL }}" ]; then
+            echo "❌ Secret is empty or not set"
+            echo "Available secrets:"
+            env | grep -i secret || echo "No secret environment variables found"
+          else
+            echo "✅ Secret is set correctly"
+            echo "Full URL: ${{ secrets.VERCEL_APP_URL }}"
+          fi
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+      
       - name: Trigger Deadline Reminders
         run: |
           echo "Triggering deadline reminder cron job..."
