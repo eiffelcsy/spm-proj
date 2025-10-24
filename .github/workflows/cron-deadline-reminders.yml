@@ -15,8 +15,6 @@ jobs:
         run: |
           echo "🔍 Debugging VERCEL_APP_URL secret..."
           echo "Secret exists: ${{ secrets.VERCEL_APP_URL != '' }}"
-          echo "Secret length: ${#{{ secrets.VERCEL_APP_URL }}}"
-          echo "Secret value (first 20 chars): ${VERCEL_APP_URL:0:20}..."
           if [ -z "${{ secrets.VERCEL_APP_URL }}" ]; then
             echo "❌ Secret is empty or not set"
             echo "Available secrets:"
@@ -32,13 +30,15 @@ jobs:
         run: |
           echo "Triggering deadline reminder cron job..."
           
-          # Get your Vercel app URL (replace with your actual domain)
+          # Get your Vercel app URL
           APP_URL="${{ secrets.VERCEL_APP_URL }}"
           
           if [ -z "$APP_URL" ]; then
             echo "Error: VERCEL_APP_URL secret not set"
             exit 1
           fi
+          
+          echo "Calling API endpoint: $APP_URL/api/notifications/schedule-deadline-reminders"
           
           # Call your deadline reminder endpoint
           response=$(curl -s -w "\n%{http_code}" "$APP_URL/api/notifications/schedule-deadline-reminders")
@@ -59,7 +59,5 @@ jobs:
             echo "$response_body"
             exit 1
           fi
-          
         env:
-          # Add any environment variables your app needs
           NODE_ENV: production
