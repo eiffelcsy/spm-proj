@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Mark notification as read
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('notifications')
       .update({ is_read: true })
       .eq('id', notificationId)

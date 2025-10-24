@@ -73,8 +73,8 @@ export const useNotifications = () => {
    */
   const markAsRead = async (notificationId: number) => {
     try {
-      await $fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'POST'
+      await $fetch(`/api/notifications/${notificationId}`, {
+        method: 'GET'
       })
       
       // Update local state
@@ -111,7 +111,7 @@ export const useNotifications = () => {
   const deleteNotification = async (notificationId: number) => {
     try {
       await $fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE' as any
+        method: 'DELETE'
       })
       
       // Update local state
