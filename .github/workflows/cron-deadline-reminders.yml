@@ -30,12 +30,12 @@ jobs:
         run: |
           echo "Triggering deadline reminder cron job..."
           
-          # Get your Vercel app URL
+          # Get your Vercel app URL (use secret if available, otherwise hardcode for testing)
           APP_URL="${{ secrets.VERCEL_APP_URL }}"
           
           if [ -z "$APP_URL" ]; then
-            echo "Error: VERCEL_APP_URL secret not set"
-            exit 1
+            echo "⚠️ VERCEL_APP_URL secret not set, using hardcoded URL for testing"
+            APP_URL="https://spm-proj.vercel.app"
           fi
           
           echo "Calling API endpoint: $APP_URL/api/notifications/schedule-deadline-reminders"
