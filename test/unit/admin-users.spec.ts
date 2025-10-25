@@ -258,6 +258,9 @@ describe('Admin Users Page', () => {
       
       await flushPromises()
       
+      // Clear the mock call count to track only the retry
+      const initialCallCount = mockFetch.mock.calls.length
+      
       // Reset mock to succeed
       mockFetch.mockResolvedValueOnce(mockUsers)
       
@@ -266,7 +269,8 @@ describe('Admin Users Page', () => {
       await tryAgainButton.trigger('click')
       await flushPromises()
       
-      expect(mockFetch).toHaveBeenCalledTimes(2)
+      // Should have one additional call from the retry
+      expect(mockFetch).toHaveBeenCalledTimes(initialCallCount + 1)
     })
   })
 
@@ -1110,12 +1114,14 @@ describe('Admin Users Page', () => {
       
       await flushPromises()
       
-      expect(mockFetch).toHaveBeenCalledTimes(1)
+      // Expect 2 calls: one for fetchUsers() and one for fetchCurrentUser()
+      expect(mockFetch).toHaveBeenCalledTimes(2)
       
       await wrapper.vm.fetchUsers()
       await flushPromises()
       
-      expect(mockFetch).toHaveBeenCalledTimes(2)
+      // After manual refresh, should be 3 calls total
+      expect(mockFetch).toHaveBeenCalledTimes(3)
     })
   })
 

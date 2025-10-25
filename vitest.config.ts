@@ -41,6 +41,7 @@ export default defineConfig({
           name: 'unit',
           include: ['test/{e2e,unit}/*.{test,spec}.ts'],
           environment: 'happy-dom',
+          setupFiles: ['./test/setup.ts'],
         },
       },
       await defineVitestProject({
