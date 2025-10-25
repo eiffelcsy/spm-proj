@@ -92,6 +92,25 @@ export default defineEventHandler(async (event) => {
       // Create notification for each assignee
       for (const assignee of assignees as any[]) {
         try {
+          console.log(`=== DEBUGGING STAFF ${assignee.assigned_to_staff_id} ===`)
+          
+          // Check if staff has email
+          const { data: staffData, error: staffError } = await supabase
+            .from('staff')
+            .select('user_id, fullname')
+            .eq('id', assignee.assigned_to_staff_id)
+            .single()
+          
+          console.log('Staff data:', staffData)
+          console.log('Staff error:', staffError)
+          
+          if (staffData?.user_id) {
+            // Check auth user
+            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(staffData.user_id)
+            console.log('User data:', userData?.user?.email)
+            console.log('User error:', userError)
+          }
+          
           const notification = await createDeadlineReminderNotification(
             supabase,
             task.id,
@@ -103,12 +122,21 @@ export default defineEventHandler(async (event) => {
 
           if (notification) {
             notificationsCreated++
-            console.log(`Created notification for staff ${assignee.assigned_to_staff_id} for task ${task.id}`)
+            console.log(`✅ Created notification for staff ${assignee.assigned_to_staff_id} for task ${task.id}`)
+            
+            // Check if email was sent
+            const { data: updatedNotification } = await supabase
+              .from('notifications')
+              .select('is_email_sent')
+              .eq('id', notification.id)
+              .single()
+            
+            console.log(`📧 Email sent status: ${updatedNotification?.is_email_sent}`)
           } else {
-            console.error(`Failed to create notification for staff ${assignee.assigned_to_staff_id} for task ${task.id}`)
+            console.error(`❌ Failed to create notification for staff ${assignee.assigned_to_staff_id} for task ${task.id}`)
           }
         } catch (notificationError) {
-          console.error(`Error creating notification for staff ${assignee.assigned_to_staff_id} for task ${task.id}:`, notificationError)
+          console.error(`❌ Error creating notification for staff ${assignee.assigned_to_staff_id} for task ${task.id}:`, notificationError)
         }
       }
     }

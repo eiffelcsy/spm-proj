@@ -253,11 +253,11 @@
             <!-- Legend -->
             <div class="mt-6 flex flex-wrap gap-4 text-sm">
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: #6B7280"></div>
+                    <div class="w-4 h-4 rounded" style="background-color: #EF4444"></div>
                     <span>Not Started</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: #3B82F6"></div>
+                    <div class="w-4 h-4 rounded" style="background-color: #F59E0B"></div>
                     <span>In Progress</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -265,7 +265,7 @@
                     <span>Completed</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: #EF4444"></div>
+                    <div class="w-4 h-4 rounded" style="background-color: #6B7280"></div>
                     <span>Blocked</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -290,7 +290,7 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -430,11 +430,21 @@ async function fetchProject() {
 // FullCalendar options
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, interactionPlugin],
-  initialView: 'dayGridMonth',
+  initialView: 'dayGridWeek',
   headerToolbar: {
-    left: 'prev,next today',
+    left: 'prev,next',
     center: 'title',
-    right: 'dayGridMonth,dayGridWeek,dayGridDay'
+    right: 'goToToday'
+  },
+  customButtons: {
+    goToToday: {
+      text: isCurrentWeek.value ? 'Current Week' : 'Go to Current Week',
+      click: function() {
+        if (!isCurrentWeek.value) {
+          calendarRef.value.getApi().today()
+        }
+      }
+    }
   },
   editable: false,
   selectable: false,
@@ -452,6 +462,38 @@ const calendarOptions = computed(() => ({
     // Make cursor pointer
     info.el.style.cursor = 'pointer'
   },
+  viewDidMount: () => {
+    // Update button state when view changes
+    nextTick(() => {
+      checkCurrentWeek()
+      updateButtonState()
+    })
+    
+    // Add click listeners to navigation buttons to reset their state
+    const prevButton = document.querySelector('.fc-prev-button')
+    const nextButton = document.querySelector('.fc-next-button')
+    
+    if (prevButton) {
+      prevButton.addEventListener('click', () => {
+        setTimeout(() => resetButtonStates(), 100)
+      })
+    }
+    
+    if (nextButton) {
+      nextButton.addEventListener('click', () => {
+        setTimeout(() => resetButtonStates(), 100)
+      })
+    }
+  },
+  datesSet: () => {
+    // This fires when dates change (including navigation)
+    nextTick(() => {
+      checkCurrentWeek()
+      updateButtonState()
+      // Reset button states after navigation
+      resetButtonStates()
+    })
+  },
   eventDisplay: 'block',
   displayEventTime: false,
   eventOverlap: true,
@@ -459,6 +501,24 @@ const calendarOptions = computed(() => ({
   fixedWeekCount: false,
   showNonCurrentDates: true
 }))
+
+// Reactive state for current week status
+const isCurrentWeek = ref(false)
+
+// Function to check if we're in current week
+function checkCurrentWeek() {
+  if (!calendarRef.value) {
+    isCurrentWeek.value = false
+    return
+  }
+  
+  const calendar = calendarRef.value.getApi()
+  const currentDate = new Date()
+  const viewStart = calendar.view.activeStart
+  const viewEnd = calendar.view.activeEnd
+  
+  isCurrentWeek.value = currentDate >= viewStart && currentDate <= viewEnd
+}
 
 // Transform tasks to FullCalendar events
 const calendarEvents = computed(() => {
@@ -496,10 +556,10 @@ const calendarEvents = computed(() => {
 
 function getStatusColor(status: TaskStatus): string {
   const colors = {
-    'not-started': '#6B7280',
-    'in-progress': '#3B82F6',
+    'not-started': '#EF4444',
+    'in-progress': '#F59E0B',
     'completed': '#10B981',
-    'blocked': '#EF4444'
+    'blocked': '#6B7280'
   }
   return colors[status] || colors['not-started']
 }
@@ -677,6 +737,64 @@ onMounted(async () => {
     // Listen for task updates
     window.addEventListener('task-updated', fetchData)
     window.addEventListener('task-deleted', fetchData)
+    
+    // Update button state after calendar is rendered
+    nextTick(() => {
+      updateButtonState()
+    })
+})
+
+// Function to update button state
+function updateButtonState() {
+  if (calendarRef.value) {
+    const button = document.querySelector('.fc-goToToday-button')
+    if (button) {
+      // Remove any existing disabled class first
+      button.classList.remove('current-week-disabled')
+      
+      // Add disabled class if we're in current week
+      if (isCurrentWeek.value) {
+        button.classList.add('current-week-disabled')
+      }
+      
+      // Force a re-render to clear any hover states
+      button.style.pointerEvents = 'auto'
+      if (isCurrentWeek.value) {
+        button.style.pointerEvents = 'none'
+      }
+    }
+  }
+}
+
+// Function to reset all button states
+function resetButtonStates() {
+  if (calendarRef.value) {
+    // Reset all navigation buttons
+    const prevButton = document.querySelector('.fc-prev-button')
+    const nextButton = document.querySelector('.fc-next-button')
+    const todayButton = document.querySelector('.fc-goToToday-button')
+    
+    [prevButton, nextButton, todayButton].forEach(button => {
+      if (button) {
+        // Remove any active/hover states
+        button.classList.remove('fc-button-active', 'fc-button-hover')
+        button.blur() // Remove focus state
+        
+        // Force a style reset
+        button.style.transform = 'none'
+        button.style.boxShadow = ''
+        button.style.backgroundColor = ''
+        
+        // Trigger a reflow to ensure styles are applied
+        button.offsetHeight
+      }
+    })
+  }
+}
+
+// Watch for changes in current week status
+watch(isCurrentWeek, () => {
+  updateButtonState()
 })
 
 onUnmounted(() => {
@@ -735,5 +853,56 @@ onUnmounted(() => {
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   max-width: 100% !important;
+}
+
+/* Disabled button styling */
+:deep(.fc-button:disabled),
+:deep(.fc-button.current-week-disabled) {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: #6b7280 !important;
+  color: #9ca3af !important;
+}
+
+/* Fix button state persistence issues */
+:deep(.fc-button) {
+  transition: all 0.2s ease !important;
+}
+
+:deep(.fc-button:not(:disabled):not(.current-week-disabled)) {
+  background-color: #374151 !important;
+  border-color: #374151 !important;
+  color: white !important;
+}
+
+:deep(.fc-button:not(:disabled):not(.current-week-disabled):hover) {
+  background-color: #4b5563 !important;
+  border-color: #4b5563 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.fc-button:not(:disabled):not(.current-week-disabled):active) {
+  background-color: #1f2937 !important;
+  border-color: #1f2937 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure buttons reset properly after click */
+:deep(.fc-button:focus) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any persistent hover effects */
+:deep(.fc-button.fc-button-hover) {
+  background-color: #4b5563 !important;
+  border-color: #4b5563 !important;
+}
+
+:deep(.fc-button.fc-button-active) {
+  background-color: #1f2937 !important;
+  border-color: #1f2937 !important;
 }
 </style>

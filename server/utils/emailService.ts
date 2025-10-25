@@ -1,33 +1,26 @@
 /**
- * Email service for sending notifications via Gmail SMTP
+ * Email service for sending notifications via Resend API
  * 
  * This service handles sending email notifications for various events
- * in the task management system using Gmail's SMTP service.
+ * in the task management system using Resend's email API.
  */
 
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import type { NotificationDB } from '~/types'
 
-// Gmail SMTP configuration
-const GMAIL_CONFIG = {
-  user: process.env.GMAIL_USER,
-  appPassword: process.env.GMAIL_APP_PASSWORD,
-  service: 'gmail'
+// Resend configuration
+const RESEND_CONFIG = {
+  apiKey: process.env.RESEND_API_KEY,
+  fromEmail: process.env.RESEND_FROM_EMAIL || 'taskaio@eiffelchongsy.xyz'
 }
 
 // Validate required environment variables
-if (!GMAIL_CONFIG.user || !GMAIL_CONFIG.appPassword) {
-  throw new Error('GMAIL_USER and GMAIL_APP_PASSWORD environment variables are required')
+if (!RESEND_CONFIG.apiKey) {
+  throw new Error('RESEND_API_KEY environment variable is required')
 }
 
-// Create reusable transporter
-const transporter = nodemailer.createTransport({
-  service: GMAIL_CONFIG.service,
-  auth: {
-    user: GMAIL_CONFIG.user,
-    pass: GMAIL_CONFIG.appPassword
-  }
-})
+// Create Resend instance
+const resend = new Resend(RESEND_CONFIG.apiKey)
 
 export interface EmailTemplate {
   subject: string
@@ -493,23 +486,27 @@ ${COMMON_TEXT_FOOTER}
 }
 
 /**
- * Core email sending function (SMTP engine)
+ * Core email sending function (Resend API)
  */
 export async function sendEmail(
   recipient: EmailRecipient,
   template: EmailTemplate
 ): Promise<boolean> {
   try {
-    const mailOptions = {
-      from: `"Task Management System" <${GMAIL_CONFIG.user}>`,
-      to: recipient.email,
+    const { data, error } = await resend.emails.send({
+      from: `"Task Management System" <${RESEND_CONFIG.fromEmail}>`,
+      to: [recipient.email],
       subject: template.subject,
       text: template.text,
       html: template.html
+    })
+
+    if (error) {
+      console.error('Failed to send email:', error)
+      return false
     }
 
-    const result = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully:', result.messageId)
+    console.log('Email sent successfully:', data?.id)
     return true
   } catch (error) {
     console.error('Failed to send email:', error)
@@ -633,6 +630,10 @@ export async function sendNotificationEmail(
     // Generate appropriate email template based on notification type
     let template: EmailTemplate
 
+    console.log('🔍 DEBUG: sendNotificationEmail - notification.type:', notification.type)
+    console.log('🔍 DEBUG: sendNotificationEmail - notification.id:', notification.id)
+    console.log('🔍 DEBUG: sendNotificationEmail - recipientEmail:', recipientEmail)
+
     switch (notification.type) {
       case 'task_assigned':
         const assignerName = notification.triggered_by_staff_id 
@@ -653,16 +654,30 @@ export async function sendNotificationEmail(
         break
 
       case 'deadline_reminder':
+        console.log('🔍 DEBUG: Processing deadline_reminder email')
+        console.log('🔍 DEBUG: notification.related_task_id:', notification.related_task_id)
+        console.log('🔍 DEBUG: taskTitle:', taskTitle)
+        console.log('🔍 DEBUG: projectName:', projectName)
+        console.log('🔍 DEBUG: taskUrl:', taskUrl)
+        
         // Get task details for deadline reminder
-        const { data: deadlineTaskData } = await supabase
+        const { data: deadlineTaskData, error: deadlineError } = await supabase
           .from('tasks')
           .select('due_date, priority')
           .eq('id', notification.related_task_id)
           .single()
         
+        console.log('🔍 DEBUG: deadlineTaskData:', deadlineTaskData)
+        console.log('🔍 DEBUG: deadlineError:', deadlineError)
+        
         const dueDate = deadlineTaskData?.due_date || ''
         const priority = deadlineTaskData?.priority || 'medium'
+        
+        console.log('🔍 DEBUG: dueDate:', dueDate)
+        console.log('🔍 DEBUG: priority:', priority)
+        
         template = generateDeadlineReminderEmail(taskTitle, projectName, dueDate, priority, taskUrl)
+        console.log('🔍 DEBUG: Generated template subject:', template.subject)
         break
 
       case 'task_deleted':
