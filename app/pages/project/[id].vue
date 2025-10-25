@@ -260,21 +260,19 @@ async function fetchData() {
   }
 }
 
-const currentUserStaffType = ref<'manager' | 'staff' | null>(null)
+const isManager = ref<boolean>(false)
 
 async function fetchCurrentUser() {
   try {
     const user = await $fetch('/api/user/me')
     currentUserStaffId.value = user.id
-    currentUserStaffType.value = user.isManager ? 'manager' : 'staff'
+    isManager.value = !!user.isManager
   } catch (err) {
     console.error('Failed to fetch current user:', err)
     currentUserStaffId.value = null
-    currentUserStaffType.value = null
+    isManager.value = false
   }
 }
-
-const isManager = computed(() => currentUserStaffType.value === 'manager')
 async function fetchProject() {
   try {
     error.value = null

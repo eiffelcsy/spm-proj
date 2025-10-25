@@ -253,15 +253,15 @@
             <!-- Legend -->
             <div class="mt-6 flex flex-wrap gap-4 text-sm">
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: #EF4444"></div>
+                    <div class="w-4 h-4 rounded" style="background-color: #FECACA"></div>
                     <span>Not Started</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: #F59E0B"></div>
+                    <div class="w-4 h-4 rounded" style="background-color: #FEF3C7"></div>
                     <span>In Progress</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: #10B981"></div>
+                    <div class="w-4 h-4 rounded" style="background-color: #D1FAE5"></div>
                     <span>Completed</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -540,7 +540,7 @@ const calendarEvents = computed(() => {
       allDay: true,
       backgroundColor: getStatusColor(task.status), // Keep original status color
       borderColor: isOverdue ? '#DC2626' : getStatusColor(task.status), // Red border for overdue
-      textColor: '#FFFFFF', // White text for all tasks
+      textColor: '#000000', // Black text for all tasks
       classNames: isOverdue ? ['overdue-task'] : [],
       extendedProps: {
         status: task.status,
@@ -556,10 +556,10 @@ const calendarEvents = computed(() => {
 
 function getStatusColor(status: TaskStatus): string {
   const colors = {
-    'not-started': '#EF4444',
-    'in-progress': '#F59E0B',
-    'completed': '#10B981',
-    'blocked': '#6B7280'
+    'not-started': '#FECACA', // bg-red-200
+    'in-progress': '#FEF3C7', // bg-yellow-100
+    'completed': '#D1FAE5', // bg-green-100
+    'blocked': '#6B7280' // Grey
   }
   return colors[status] || colors['not-started']
 }
@@ -840,7 +840,7 @@ onUnmounted(() => {
 
 /* Add left padding to all calendar events */
 :deep(.fc-event) {
-  margin-left: 8px !important;
+  margin-left: 0 !important;
   padding-left: 4px !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;

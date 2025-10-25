@@ -2,7 +2,7 @@ import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import DataTableColumnHeader from '../data-table-column-header.vue'
 import type { Task } from '../data/schema'
-import DropdownAction from '@/components/tasks-table/data-table-dropdown.vue'
+import DropdownAction from '~/components/tasks-table/columns/data-table-dropdown.vue'
 import { 
   createTitleColumn, 
   createStartDateColumn, 
