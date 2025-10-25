@@ -128,7 +128,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should update task priority successfully', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '8' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -141,7 +141,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept priority as string', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '10' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -154,7 +154,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept priority as number', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: 5 })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -167,7 +167,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should update only priority without affecting other fields', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '9' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       const updateCall = mockUpdate.mock.calls[0][0]
@@ -178,7 +178,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     })
 
     it('should return success true when priority is updated', async () => {
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -191,7 +191,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.task.priority).toBe('8')
@@ -206,7 +206,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept priority value 1', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '1' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -215,7 +215,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept priority value 10', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '10' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -224,7 +224,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept priority value 5', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '5' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -236,7 +236,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         setupSuccessfulAuth()
         mockReadBody.mockResolvedValueOnce({ priority: String(priority) })
 
-        const handler = await import('../../../server/api/tasks/[id]/index.put')
+        const handler = await import('~/server/api/tasks/[id]/index.put')
         const result = await handler.default(mockEvent)
 
         expect(result.success).toBe(true)
@@ -246,7 +246,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept priority value 0', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '0' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -255,7 +255,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept negative priority values', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '-1' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -264,7 +264,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should accept priority values greater than 10', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '100' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -273,7 +273,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle null priority value', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: null })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -282,7 +282,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle undefined priority by not updating it', async () => {
       mockReadBody.mockResolvedValueOnce({ status: 'completed' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       const updateCall = mockUpdate.mock.calls[0][0]
@@ -292,7 +292,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle empty string priority', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -301,7 +301,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle non-numeric priority strings', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: 'high' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -316,7 +316,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should log priority change when priority is updated', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '8' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockLogTaskUpdate).toHaveBeenCalledWith(
@@ -336,7 +336,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should not log when priority is unchanged', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '5' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockLogTaskUpdate).not.toHaveBeenCalled()
@@ -351,7 +351,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
 
       mockReadBody.mockResolvedValueOnce({ priority: '5' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockLogTaskUpdate).toHaveBeenCalled()
@@ -360,7 +360,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should log priority change from numeric value to null', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: null })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockLogTaskUpdate).toHaveBeenCalledWith(
@@ -385,7 +385,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockCreateTaskUpdateNotification).toHaveBeenCalledWith(
@@ -411,7 +411,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         status: 'completed'
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -428,7 +428,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         task_name: 'Updated Task Name'
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -445,7 +445,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         notes: 'Updated notes'
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -463,7 +463,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         end_date: '2024-02-10'
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -482,7 +482,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         task_name: 'Updated Task'
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockLogTaskUpdate).toHaveBeenCalledWith(
@@ -502,7 +502,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should require authentication to update priority', async () => {
       mockSupabaseUser.mockResolvedValueOnce(null)
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       
       try {
         await handler.default(mockEvent)
@@ -529,7 +529,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       
       try {
         await handler.default(mockEvent)
@@ -554,7 +554,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -568,7 +568,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
           error: { code: 'PGRST116' }
         })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       
       try {
         await handler.default(mockEvent)
@@ -587,7 +587,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle very large priority numbers', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '999999' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -596,7 +596,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle priority with decimal values', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '5.5' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -605,7 +605,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle priority with leading zeros', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '007' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -614,7 +614,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle priority with whitespace', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '  5  ' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -633,7 +633,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -642,7 +642,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should handle concurrent priority updates', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '9' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -661,7 +661,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: { message: 'Database error' }
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       
       try {
         await handler.default(mockEvent)
@@ -678,7 +678,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: { message: 'Update failed' }
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       
       try {
         await handler.default(mockEvent)
@@ -706,7 +706,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockCreateTaskUpdateNotification).toHaveBeenCalledTimes(3)
@@ -715,7 +715,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
     it('should not notify if priority is unchanged', async () => {
       mockReadBody.mockResolvedValueOnce({ priority: '5' })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       expect(mockCreateTaskUpdateNotification).not.toHaveBeenCalled()
@@ -729,7 +729,7 @@ describe('Update Task Priority - PUT /api/tasks/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/tasks/[id]/index.put')
+      const handler = await import('~/server/api/tasks/[id]/index.put')
       await handler.default(mockEvent)
 
       const notificationCall = mockCreateTaskUpdateNotification.mock.calls[0]

@@ -126,7 +126,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
         it('should return 401 if user is not authenticated', async () => {
             mockSupabaseUser.mockResolvedValueOnce(null)
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -140,7 +140,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
         it('should return 400 if task ID is missing', async () => {
             mockGetRouterParam.mockReturnValueOnce(null)
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -157,7 +157,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
             // Mock staff data
             mockSingle.mockResolvedValueOnce({ data: mockStaffData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -184,7 +184,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -211,7 +211,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -228,7 +228,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: { message: 'Database error' }
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -257,7 +257,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
             })
             mockSingle.mockResolvedValueOnce({ data: mockTaskData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -281,7 +281,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -305,7 +305,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: { message: 'Database error' }
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -329,7 +329,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -359,7 +359,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -374,7 +374,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
             // Setup successful deletion
             setupSuccessfulDeletion()
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -423,7 +423,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -436,7 +436,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
         })
 
         it('should soft delete task by setting deleted_at timestamp', async () => {
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             await handler.default(mockEvent)
 
             expect(mockUpdate).toHaveBeenCalledWith(
@@ -459,7 +459,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.deletedTask).toEqual(deletedTask)
@@ -473,7 +473,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -492,7 +492,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: { message: 'Delete failed' }
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -546,7 +546,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(mockIn).toHaveBeenCalledWith('id', [101, 102, 103])
@@ -582,7 +582,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: { message: 'Subtask delete failed' }
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -629,7 +629,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(mockIn).not.toHaveBeenCalled()
@@ -672,7 +672,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -685,7 +685,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
         })
 
         it('should log task deletion activity', async () => {
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             await handler.default(mockEvent)
 
             expect(mockLogTaskDeletion).toHaveBeenCalledWith(
@@ -706,7 +706,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             await handler.default(mockEvent)
 
             expect(mockCreateTaskDeletionNotification).toHaveBeenCalledTimes(3)
@@ -727,7 +727,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             await handler.default(mockEvent)
 
             expect(mockCreateTaskDeletionNotification).not.toHaveBeenCalled()
@@ -736,7 +736,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
         it('should handle notification creation gracefully if task details unavailable', async () => {
             mockGetTaskDetails.mockResolvedValueOnce(null)
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -750,7 +750,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
 
             setupSuccessfulDeletion()
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -761,7 +761,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
 
             setupSuccessfulDeletion()
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -772,7 +772,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
 
             setupSuccessfulDeletion()
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -783,7 +783,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
 
             mockSingle.mockResolvedValueOnce({ data: mockStaffData, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -836,7 +836,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -849,7 +849,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
                 throw new Error('Unexpected error')
             })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)
@@ -868,7 +868,7 @@ describe('Delete Task API - DELETE /api/tasks/[id]', () => {
             })
             mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null })
 
-            const handler = await import('../../../server/api/tasks/[id]/index.delete')
+            const handler = await import('~/server/api/tasks/[id]/index.delete')
 
             try {
                 await handler.default(mockEvent)

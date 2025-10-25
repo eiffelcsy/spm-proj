@@ -110,7 +110,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should return 401 if user is not authenticated', async () => {
             mockSupabaseUser.mockResolvedValueOnce(null)
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -124,7 +124,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should return 401 if user id is missing', async () => {
             mockSupabaseUser.mockResolvedValueOnce({ id: null })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -141,7 +141,7 @@ describe('Create Project API - POST /api/projects', () => {
                 error: { message: 'Database error' }
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -158,7 +158,7 @@ describe('Create Project API - POST /api/projects', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -175,7 +175,7 @@ describe('Create Project API - POST /api/projects', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -189,7 +189,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should allow managers to create projects', async () => {
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -209,7 +209,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should return 400 if project name is missing', async () => {
             mockReadBody.mockResolvedValueOnce({ name: '' })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -223,7 +223,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should return 400 if project name is only whitespace', async () => {
             mockReadBody.mockResolvedValueOnce({ name: '   ' })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -240,7 +240,7 @@ describe('Create Project API - POST /api/projects', () => {
                 priority: 'invalid-priority'
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -262,7 +262,7 @@ describe('Create Project API - POST /api/projects', () => {
                     priority
                 })
 
-                const handler = await import('../../../server/api/projects/index.post')
+                const handler = await import('~/server/api/projects/index.post')
                 const result = await handler.default(mockEvent)
 
                 expect(result.success).toBe(true)
@@ -275,7 +275,7 @@ describe('Create Project API - POST /api/projects', () => {
                 status: 'invalid-status'
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -297,7 +297,7 @@ describe('Create Project API - POST /api/projects', () => {
                     status
                 })
 
-                const handler = await import('../../../server/api/projects/index.post')
+                const handler = await import('~/server/api/projects/index.post')
                 const result = await handler.default(mockEvent)
 
                 expect(result.success).toBe(true)
@@ -311,7 +311,7 @@ describe('Create Project API - POST /api/projects', () => {
 
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -329,7 +329,7 @@ describe('Create Project API - POST /api/projects', () => {
 
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -346,7 +346,7 @@ describe('Create Project API - POST /api/projects', () => {
 
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -363,7 +363,7 @@ describe('Create Project API - POST /api/projects', () => {
 
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -380,7 +380,7 @@ describe('Create Project API - POST /api/projects', () => {
 
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -397,7 +397,7 @@ describe('Create Project API - POST /api/projects', () => {
 
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -414,7 +414,7 @@ describe('Create Project API - POST /api/projects', () => {
 
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -441,7 +441,7 @@ describe('Create Project API - POST /api/projects', () => {
                 error: null
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -459,7 +459,7 @@ describe('Create Project API - POST /api/projects', () => {
                 error: { message: 'Database error' }
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -473,7 +473,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should allow project creation if name does not exist', async () => {
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -483,7 +483,7 @@ describe('Create Project API - POST /api/projects', () => {
             // This is implicit in the API - it checks by owner_id
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(mockEq).toHaveBeenCalledWith('owner_id', mockManagerStaff.id)
@@ -493,7 +493,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should only check non-deleted projects for duplicates', async () => {
             setupSuccessfulCreation()
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockIs).toHaveBeenCalledWith('deleted_at', null)
@@ -508,7 +508,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should create project with all provided fields', async () => {
             mockReadBody.mockResolvedValueOnce(mockProjectPayload)
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -525,7 +525,7 @@ describe('Create Project API - POST /api/projects', () => {
         })
 
         it('should set owner_id to current staff id', async () => {
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             expect(mockInsert).toHaveBeenCalledWith(
@@ -536,7 +536,7 @@ describe('Create Project API - POST /api/projects', () => {
         })
 
         it('should return created project data', async () => {
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.project).toEqual(mockCreatedProject)
@@ -549,7 +549,7 @@ describe('Create Project API - POST /api/projects', () => {
                 error: { message: 'Insert failed' }
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -567,7 +567,7 @@ describe('Create Project API - POST /api/projects', () => {
         })
 
         it('should add creator as project member with manager role', async () => {
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             // Check that insert was called for project_members
@@ -598,7 +598,7 @@ describe('Create Project API - POST /api/projects', () => {
                 error: { message: 'Member insert failed' }
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -615,7 +615,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: [2, 3, 4]
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             // Verify assigned users were added
@@ -646,7 +646,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: [1, 2, 3] // 1 is the creator
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             // Verify only users 2 and 3 were added (not 1)
@@ -667,7 +667,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: []
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -679,7 +679,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: 'not-an-array'
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -690,7 +690,7 @@ describe('Create Project API - POST /api/projects', () => {
                 name: 'Project'
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -707,7 +707,7 @@ describe('Create Project API - POST /api/projects', () => {
                 .mockResolvedValueOnce({ error: null }) // Creator insert succeeds
                 .mockResolvedValueOnce({ error: { message: 'Assigned users failed' } }) // Assigned users fails
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             // Should still return success
@@ -721,7 +721,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: [2]
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             const assignedUsersCall = mockInsert.mock.calls.find((call: any[]) =>
@@ -742,7 +742,7 @@ describe('Create Project API - POST /api/projects', () => {
                 name: 'Minimal Project'
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -762,7 +762,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: [2, 3, 4, 5]
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -776,7 +776,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: [2, 3]
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             await handler.default(mockEvent)
 
             // Verify insert was called 3 times: project, creator member, assigned members
@@ -792,7 +792,7 @@ describe('Create Project API - POST /api/projects', () => {
                 name: longName
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -804,7 +804,7 @@ describe('Create Project API - POST /api/projects', () => {
                 name: 'Project @#$%^&*()_+-=[]{}|;:",.<>?/'
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -816,7 +816,7 @@ describe('Create Project API - POST /api/projects', () => {
                 name: 'プロジェクト 项目 🚀'
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -830,7 +830,7 @@ describe('Create Project API - POST /api/projects', () => {
                 assigned_user_ids: largeArray
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -843,7 +843,7 @@ describe('Create Project API - POST /api/projects', () => {
                 tags: ['#valid', null, '#another']
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
             const result = await handler.default(mockEvent)
 
             expect(result.success).toBe(true)
@@ -856,7 +856,7 @@ describe('Create Project API - POST /api/projects', () => {
                 throw new Error('Unexpected error')
             })
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
@@ -869,7 +869,7 @@ describe('Create Project API - POST /api/projects', () => {
         it('should preserve error statusCode if already set', async () => {
             mockSupabaseUser.mockResolvedValueOnce(null)
 
-            const handler = await import('../../../server/api/projects/index.post')
+            const handler = await import('~/server/api/projects/index.post')
 
             try {
                 await handler.default(mockEvent)
