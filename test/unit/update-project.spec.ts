@@ -125,7 +125,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should return 401 if user is not authenticated', async () => {
       mockSupabaseUser.mockResolvedValueOnce(null)
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -139,7 +139,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should return 401 if user id is missing', async () => {
       mockSupabaseUser.mockResolvedValueOnce({ id: null })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -156,7 +156,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: { message: 'Database error' }
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -173,7 +173,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -190,7 +190,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -204,7 +204,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should allow managers to update projects', async () => {
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -223,7 +223,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should return 400 if project ID is missing', async () => {
       mockGetRouterParam.mockReturnValueOnce(null)
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -237,7 +237,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should return 400 if project ID is not a number', async () => {
       mockGetRouterParam.mockReturnValueOnce('invalid-id')
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -252,7 +252,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
       mockGetRouterParam.mockReturnValueOnce('100')
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -262,7 +262,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
       mockGetRouterParam.mockReturnValueOnce(100)
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -280,7 +280,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should return 400 if project name is missing', async () => {
       mockReadBody.mockResolvedValueOnce({ name: '' })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -294,7 +294,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should return 400 if project name is only whitespace', async () => {
       mockReadBody.mockResolvedValueOnce({ name: '   ' })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -311,7 +311,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         priority: 'invalid-priority'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -333,7 +333,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
           priority
         })
 
-        const handler = await import('../../../server/api/projects/[id].put.ts')
+        const handler = await import('../../../server/api/projects/[id].put')
         const result = await handler.default(mockEvent)
 
         expect(result.success).toBe(true)
@@ -346,7 +346,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         status: 'invalid-status'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -368,7 +368,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
           status
         })
 
-        const handler = await import('../../../server/api/projects/[id].put.ts')
+        const handler = await import('../../../server/api/projects/[id].put')
         const result = await handler.default(mockEvent)
 
         expect(result.success).toBe(true)
@@ -381,7 +381,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: '  Trimmed Project  '
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -398,7 +398,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         description: '  Description with spaces  '
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -414,7 +414,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -430,7 +430,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -446,7 +446,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -462,7 +462,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -478,7 +478,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -491,7 +491,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should set updated_at timestamp', async () => {
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -516,7 +516,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -538,7 +538,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -555,7 +555,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: { message: 'Database error' }
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -569,7 +569,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should exclude soft-deleted projects', async () => {
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockIs).toHaveBeenCalledWith('deleted_at', null)
@@ -578,7 +578,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should verify owner_id matches current user', async () => {
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockEq).toHaveBeenCalledWith('owner_id', mockManagerStaff.id)
@@ -598,7 +598,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -615,7 +615,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: { message: 'Database error' }
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -637,7 +637,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -646,7 +646,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should exclude current project from duplicate check', async () => {
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockNeq).toHaveBeenCalledWith('id', '100')
@@ -655,7 +655,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should check duplicates only for same owner', async () => {
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockEq).toHaveBeenCalledWith('owner_id', mockManagerStaff.id)
@@ -664,7 +664,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should exclude soft-deleted projects from duplicate check', async () => {
       setupSuccessfulUpdate()
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       const isDuplicateCheckCall = mockIs.mock.calls.some(
@@ -682,7 +682,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should update project with all provided fields', async () => {
       mockReadBody.mockResolvedValueOnce(mockUpdatePayload)
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -698,14 +698,14 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     })
 
     it('should update project by correct project ID', async () => {
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockEq).toHaveBeenCalledWith('id', '100')
     })
 
     it('should return updated project data', async () => {
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.project).toEqual(mockExistingProject)
@@ -718,7 +718,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: { message: 'Update failed' }
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -730,7 +730,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     })
 
     it('should return success true on successful update', async () => {
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -753,7 +753,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockInsert).toHaveBeenCalledWith(
@@ -776,7 +776,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       const insertCall = mockInsert.mock.calls[0]
@@ -795,7 +795,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockInsert).not.toHaveBeenCalled()
@@ -812,7 +812,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockInsert).toHaveBeenCalledWith(
@@ -833,7 +833,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockInsert).toHaveBeenCalledWith(
@@ -852,7 +852,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         assigned_user_ids: []
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -864,7 +864,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         assigned_user_ids: 'not-an-array'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -875,7 +875,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -892,7 +892,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockInsert).toHaveBeenCalledWith(
@@ -912,7 +912,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Minimal Update'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -936,7 +936,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -955,7 +955,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       await handler.default(mockEvent)
 
       expect(mockUpdate).toHaveBeenCalled()
@@ -971,7 +971,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: longName
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -983,7 +983,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project @#$%^&*()_+-=[]{}|;:",.<>?/'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -995,7 +995,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         name: 'Project Unicode Text'
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -1014,7 +1014,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         error: null
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -1024,7 +1024,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
       setupSuccessfulUpdate()
       mockGetRouterParam.mockReturnValueOnce('0100')
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -1037,7 +1037,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         tags: ['#valid', null, '#another']
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       const result = await handler.default(mockEvent)
 
       expect(result.success).toBe(true)
@@ -1050,7 +1050,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
         throw new Error('Unexpected error')
       })
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)
@@ -1063,7 +1063,7 @@ describe('Update Project API - PUT /api/projects/[id]', () => {
     it('should preserve error statusCode if already set', async () => {
       mockSupabaseUser.mockResolvedValueOnce(null)
 
-      const handler = await import('../../../server/api/projects/[id].put.ts')
+      const handler = await import('../../../server/api/projects/[id].put')
       
       try {
         await handler.default(mockEvent)

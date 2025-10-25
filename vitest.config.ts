@@ -29,9 +29,12 @@ export default defineConfig({
     projects: [
       {
         plugins: [vue()],
+        root: path.resolve(__dirname),
         resolve: {
           alias: {
             '@': path.resolve(__dirname, './app'),
+            '~': path.resolve(__dirname, '.'),
+            '#supabase/server': path.resolve(__dirname, './node_modules/@nuxtjs/supabase/dist/runtime/server/services'),
           },
         },
         test: {
