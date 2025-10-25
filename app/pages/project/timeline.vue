@@ -133,7 +133,7 @@
                                         <div>
                                             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Status</p>
                                             <div class="flex items-center gap-2">
-                                                <Badge :style="{ backgroundColor: getStatusColor(taskDetailsDialogTask.status), color: 'white' }" class="text-sm px-3 py-1">
+                                                <Badge :style="{ backgroundColor: getStatusColor(taskDetailsDialogTask.status), color: 'black' }" class="text-sm px-3 py-1">
                                                     {{ capitalizeStatus(taskDetailsDialogTask.status) }}
                                                 </Badge>
                                             </div>
@@ -216,7 +216,7 @@
                         </div>
                         
                         <div class="flex items-center gap-3">
-                            <Badge :style="{ backgroundColor: getStatusColor(hoverTooltip.task?.status), color: 'white' }" class="text-xs px-2 py-1">
+                            <Badge :style="{ backgroundColor: getStatusColor(hoverTooltip.task?.status), color: 'black' }" class="text-xs px-2 py-1">
                                 {{ capitalizeStatus(hoverTooltip.task?.status) }}
                             </Badge>
                             <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded">
