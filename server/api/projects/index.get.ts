@@ -1,3 +1,4 @@
+import { defineEventHandler } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { ProjectDB } from '~/types'
 

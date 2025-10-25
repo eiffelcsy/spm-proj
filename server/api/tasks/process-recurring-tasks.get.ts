@@ -1,3 +1,4 @@
+import { defineEventHandler } from 'h3'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import type { TaskDB } from '~/types'
 import { replicateCompletedTask } from '../../utils/recurringTaskService'

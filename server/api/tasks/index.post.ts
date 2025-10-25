@@ -1,3 +1,4 @@
+import { defineEventHandler, readBody } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { TaskDB } from '~/types'
 import { logTaskCreation } from '../../utils/activityLogger'

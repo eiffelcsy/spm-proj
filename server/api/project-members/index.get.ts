@@ -1,3 +1,4 @@
+import { defineEventHandler, getQuery } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 
 interface StaffRow {
