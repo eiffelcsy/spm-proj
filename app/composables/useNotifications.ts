@@ -259,7 +259,6 @@ export const useNotifications = () => {
           filter: `staff_id=eq.${currentStaffId}`
         },
         async (payload) => {
-          console.log('New notification received:', payload.new)
           
           // Fetch the full notification with relations
           const { data: newNotification, error } = await supabase
@@ -312,7 +311,6 @@ export const useNotifications = () => {
           filter: `staff_id=eq.${currentStaffId}`
         },
         (payload) => {
-          console.log('Notification updated:', payload.new)
           
           // Update the notification in the list
           const index = state.notifications.findIndex(n => n.id === payload.new.id)
@@ -347,7 +345,6 @@ export const useNotifications = () => {
           filter: `staff_id=eq.${currentStaffId}`
         },
         (payload) => {
-          console.log('Notification deleted:', payload.old)
           
           // Remove from notifications list
           const notification = state.notifications.find(n => n.id === payload.old.id)
@@ -360,7 +357,6 @@ export const useNotifications = () => {
         }
       )
       .subscribe((status) => {
-        console.log('Notification subscription status:', status)
       })
 
     // Store the channel globally for cleanup
@@ -388,6 +384,10 @@ export const useNotifications = () => {
         return 'UserPlus'
       case 'task_updated':
         return 'Edit'
+      case 'task_unassigned':
+        return 'UserMinus'
+      case 'task_deleted':
+        return 'Trash2'
       case 'comment_added':
         return 'MessageSquare'
       case 'deadline_reminder':
@@ -410,6 +410,10 @@ export const useNotifications = () => {
         return 'text-blue-600'
       case 'task_updated':
         return 'text-yellow-600'
+      case 'task_unassigned':
+        return 'text-gray-600'
+      case 'task_deleted':
+        return 'text-red-600'
       case 'comment_added':
         return 'text-green-600'
       case 'deadline_reminder':
@@ -432,6 +436,10 @@ export const useNotifications = () => {
         return 'bg-blue-100 dark:bg-blue-900'
       case 'task_updated':
         return 'bg-yellow-100 dark:bg-yellow-900'
+      case 'task_unassigned':
+        return 'bg-gray-100 dark:bg-gray-700'
+      case 'task_deleted':
+        return 'bg-red-100 dark:bg-red-900'
       case 'comment_added':
         return 'bg-green-100 dark:bg-green-900'
       case 'deadline_reminder':

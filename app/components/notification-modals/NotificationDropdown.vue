@@ -169,6 +169,7 @@ import {
   Check, 
   Trash2, 
   UserPlus, 
+  UserMinus,
   Edit, 
   MessageSquare, 
   Clock, 
@@ -199,11 +200,13 @@ const router = useRouter()
 
 const iconMap = {
   UserPlus,
+  UserMinus,
   Edit,
   MessageSquare,
   Clock,
   Hash,
-  Bell
+  Bell,
+  Trash2
 }
 
 

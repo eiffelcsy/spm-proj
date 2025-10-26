@@ -12,15 +12,20 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 401, statusMessage: 'Not authenticated' })
     }
 
-    // Get staff record
+    // Get staff record with manager status
     const { data: staffRow, error: staffError } = await supabase
         .from('staff')
-        .select('id')
+        .select('id, is_manager')
         .eq('user_id', user.id)
-        .maybeSingle() as { data: { id: number } | null, error: any }
+        .maybeSingle() as { data: { id: number, is_manager: boolean } | null, error: any }
 
     if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
+
+    // Check if user is a manager
+    if (!staffRow.is_manager) {
+        throw createError({ statusCode: 403, statusMessage: 'Only managers can delete projects' })
+    }
 
     // Validate project ID
     if (!projectId || isNaN(Number(projectId))) {

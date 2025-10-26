@@ -274,3 +274,38 @@ export async function logTaskAssignment(
     staff_id: userId
   })
 }
+
+/**
+ * Logs task unassignment activity
+ * 
+ * Called when a user is unassigned from a task. This function fetches the
+ * unassigned user's name from the staff table to create a more readable log entry.
+ * 
+ * @param supabase - Supabase service role client
+ * @param taskId - ID of the task
+ * @param userId - ID of the user who unassigned the task
+ * @param unassignedUserId - ID of the user who was unassigned from the task
+ * @returns Promise<boolean> - Success status
+ */
+export async function logTaskUnassignment(
+  supabase: any,
+  taskId: number,
+  userId: number,
+  unassignedUserId: number
+): Promise<boolean> {
+  // Fetch unassigned user's name from staff table for better readability
+  const { data: unassignedUserData } = await supabase
+    .from('staff')
+    .select('fullname')
+    .eq('id', unassignedUserId)
+    .single() as { data: { fullname: string } | null }
+
+  // Use full name if available, otherwise fall back to user ID
+  const unassignedUserName = unassignedUserData?.fullname || `user ${unassignedUserId}`
+  
+  return logActivity(supabase, {
+    task_id: taskId,
+    action: `Unassigned ${unassignedUserName}`,
+    staff_id: userId
+  })
+}

@@ -1,6 +1,6 @@
 import { defineEventHandler, readBody, getRouterParam } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
-import { logTaskUpdate, logTaskAssignment, logTaskCompletion } from '../../../utils/activityLogger'
+import { logTaskUpdate, logTaskAssignment, logTaskCompletion, logTaskUnassignment } from '../../../utils/activityLogger'
 import { 
   createTaskAssignmentNotification, 
   createTaskUnassignmentNotification,
@@ -503,20 +503,7 @@ export default defineEventHandler(async (event) => {
 
         // Log removed assignees and create notifications
         for (const assigneeId of removedAssignees) {
-          // Get assignee name for better logging
-          const { data: assigneeData } = await supabase
-            .from('staff')
-            .select('fullname')
-            .eq('id', assigneeId)
-            .single() as { data: { fullname: string } | null }
-
-          const assigneeName = assigneeData?.fullname || `user ${assigneeId}`
-          
-          await logActivity(supabase, {
-            task_id: Number(taskId),
-            action: `Unassigned ${assigneeName}`,
-            user_id: currentStaffId
-          })
+          await logTaskUnassignment(supabase, Number(taskId), currentStaffId, assigneeId)
 
           // Create notification for unassignment
           if (taskDetails) {

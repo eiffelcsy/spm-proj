@@ -107,7 +107,7 @@ export async function createTaskUnassignmentNotification(
 
   return createNotification(supabase, {
     staffId: unassignedStaffId,
-    type: 'task_updated',
+    type: 'task_unassigned',
     title,
     message,
     relatedTaskId: taskId,

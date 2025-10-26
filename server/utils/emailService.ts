@@ -384,7 +384,7 @@ export function generateCommentEmail(
             ${commentMessage}
           </div>
           
-          <p>A new comment has been added to this task. Check it out!</p>
+          <p>Review the comment and reply directly from the task details page.</p>
           
           <a href="${taskUrl}" class="cta-button" style="color: white !important;">View Task & Comment</a>
           
@@ -413,6 +413,72 @@ A new comment has been added to this task. Check it out!
 View Task: ${taskUrl}
 
 If you have any questions about this comment, please contact the commenter or your project manager.
+${COMMON_TEXT_FOOTER}
+  `
+  
+  return { subject, html, text }
+}
+
+/**
+ * Generate email template for task unassignment notification
+ */
+export function generateTaskUnassignmentEmail(
+  taskTitle: string,
+  projectName: string | null,
+  unassignerName: string,
+  taskUrl: string
+): EmailTemplate {
+  const subject = `Task Unassigned: ${taskTitle}`
+  const projectText = projectName ? ` in Project: ${projectName}` : ''
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Task Unassigned</title>
+      <style>
+        ${COMMON_STYLES}
+        .header { background: #6b7280; }
+        .task-title { color: #4b5563; }
+        .unassignment-info { background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>👤 Task Unassigned</h1>
+        </div>
+        <div class="content">
+          <div class="task-title">${taskTitle}</div>
+          ${projectName ? `<div class="project-info">📁 Project: ${projectName}</div>` : ''}
+          
+          <p>Hello!</p>
+          <p>You have been unassigned from a task by <strong>${unassignerName}</strong>.</p>
+          
+          <div class="unassignment-info">
+            <strong>Task:</strong> ${taskTitle}${projectText}
+          </div>
+          
+          <p>You are no longer responsible for this task. If you have any questions about this unassignment, please contact your project manager.</p>
+        </div>
+        ${COMMON_FOOTER}
+      </div>
+    </body>
+    </html>
+  `
+  
+  const text = `
+Task Unassigned: ${taskTitle}
+
+Hello!
+
+You have been unassigned from a task by ${unassignerName}.
+
+Task: ${taskTitle}${projectText}
+
+You are no longer responsible for this task. If you have any questions about this unassignment, please contact your project manager.
 ${COMMON_TEXT_FOOTER}
   `
   
@@ -630,9 +696,6 @@ export async function sendNotificationEmail(
     // Generate appropriate email template based on notification type
     let template: EmailTemplate
 
-    console.log('🔍 DEBUG: sendNotificationEmail - notification.type:', notification.type)
-    console.log('🔍 DEBUG: sendNotificationEmail - notification.id:', notification.id)
-    console.log('🔍 DEBUG: sendNotificationEmail - recipientEmail:', recipientEmail)
 
     switch (notification.type) {
       case 'task_assigned':
@@ -654,11 +717,6 @@ export async function sendNotificationEmail(
         break
 
       case 'deadline_reminder':
-        console.log('🔍 DEBUG: Processing deadline_reminder email')
-        console.log('🔍 DEBUG: notification.related_task_id:', notification.related_task_id)
-        console.log('🔍 DEBUG: taskTitle:', taskTitle)
-        console.log('🔍 DEBUG: projectName:', projectName)
-        console.log('🔍 DEBUG: taskUrl:', taskUrl)
         
         // Get task details for deadline reminder
         const { data: deadlineTaskData, error: deadlineError } = await supabase
@@ -667,17 +725,12 @@ export async function sendNotificationEmail(
           .eq('id', notification.related_task_id)
           .single()
         
-        console.log('🔍 DEBUG: deadlineTaskData:', deadlineTaskData)
-        console.log('🔍 DEBUG: deadlineError:', deadlineError)
         
         const dueDate = deadlineTaskData?.due_date || ''
         const priority = deadlineTaskData?.priority || 'medium'
         
-        console.log('🔍 DEBUG: dueDate:', dueDate)
-        console.log('🔍 DEBUG: priority:', priority)
         
         template = generateDeadlineReminderEmail(taskTitle, projectName, dueDate, priority, taskUrl)
-        console.log('🔍 DEBUG: Generated template subject:', template.subject)
         break
 
       case 'task_deleted':
@@ -685,6 +738,13 @@ export async function sendNotificationEmail(
           ? await getStaffFullName(supabase, notification.triggered_by_staff_id) || 'Unknown'
           : 'System'
         template = generateTaskDeletionEmail(taskTitle, projectName, deleterName, taskUrl)
+        break
+
+      case 'task_unassigned':
+        const unassignerName = notification.triggered_by_staff_id 
+          ? await getStaffFullName(supabase, notification.triggered_by_staff_id) || 'Unknown'
+          : 'System'
+        template = generateTaskUnassignmentEmail(taskTitle, projectName, unassignerName, taskUrl)
         break
 
       case 'comment_added':

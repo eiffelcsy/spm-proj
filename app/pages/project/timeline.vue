@@ -438,7 +438,7 @@ const calendarOptions = computed(() => ({
   },
   customButtons: {
     goToToday: {
-      text: isCurrentWeek.value ? 'Current Week' : 'Go to Current Week',
+      text:  'Go to Current Week',
       click: function() {
         if (!isCurrentWeek.value) {
           calendarRef.value.getApi().today()
@@ -696,8 +696,10 @@ function formatDate(date: any): string {
 
 function capitalizeStatus(status: string): string {
     if (status === 'in-progress') return 'In Progress'
-    if (status === 'todo') return 'To Do'
     if (status === 'blocked') return 'Blocked'
+    if (status === 'completed') return 'Completed'
+    if (status === 'not-started') return 'Not Started'
+
     return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
@@ -904,5 +906,10 @@ onUnmounted(() => {
 :deep(.fc-button.fc-button-active) {
   background-color: #1f2937 !important;
   border-color: #1f2937 !important;
+}
+
+/* Override any existing today styles */
+:deep(.fc-daygrid-day.fc-day-today) {
+  background-color: rgba(191, 219, 254, 0.35) !important; /* lighter than current but darker than original */
 }
 </style>

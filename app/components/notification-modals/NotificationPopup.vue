@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { X, UserPlus, Edit, MessageSquare, Clock, Hash, Bell } from 'lucide-vue-next'
+import { X, UserPlus, UserMinus, Edit, MessageSquare, Clock, Hash, Bell, Trash2 } from 'lucide-vue-next'
 import type { NotificationWithRelations } from '~/types'
 
 interface Props {
@@ -85,11 +85,13 @@ const { formatNotificationTime, getNotificationIcon, getNotificationColor, getIc
 
 const iconMap = {
   UserPlus,
+  UserMinus,
   Edit,
   MessageSquare,
   Clock,
   Hash,
-  Bell
+  Bell,
+  Trash2
 }
 
 // ============================================================================
