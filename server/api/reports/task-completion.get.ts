@@ -1,5 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
 interface ReportFilters {
   user_id?: number
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
   // Get current user's staff record to verify they're a manager/admin via booleans
   const { data: staffData, error: staffError } = await supabase
     .from('staff')
-    .select('id, is_manager, is_admin')
+    .select('id, is_manager, is_admin, department')
     .eq('user_id', user.id)
     .single()
 
@@ -41,6 +42,11 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Access denied - Only managers and admins can generate reports'
     })
   }
+
+  const currentDepartment = (staffData as { id: number; is_manager: boolean; is_admin: boolean; department: string | null }).department
+
+  // Get staff IDs from departments visible to current user based on hierarchy
+  const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
 
   // Parse query parameters
   const query = getQuery(event)
@@ -96,8 +102,44 @@ export default defineEventHandler(async (event) => {
 
     let filteredTasks = tasks || []
 
-    // Apply user filter if specified
+    // Filter tasks based on department hierarchy visibility
+    if (visibleStaffIds.length > 0) {
+      // Get task IDs where visible staff are assignees
+      const { data: visibleAssignedTasks, error: visibleAssigneeError } = await supabase
+        .from('task_assignees')
+        .select('task_id')
+        .in('assigned_to_staff_id', visibleStaffIds)
+        .eq('is_active', true)
+
+      if (visibleAssigneeError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch visible assigned tasks',
+          data: visibleAssigneeError
+        })
+      }
+
+      const visibleTaskIds = visibleAssignedTasks?.map(t => t.task_id) || []
+      
+      // Filter tasks to only those assigned to visible staff
+      filteredTasks = filteredTasks.filter(task => 
+        visibleTaskIds.includes(task.id)
+      )
+    } else {
+      // No visible staff, return empty
+      filteredTasks = []
+    }
+
+    // Apply additional user filter if specified
     if (filters.user_id) {
+      // Verify the specified user is in visible staff
+      if (!visibleStaffIds.includes(filters.user_id)) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'Access denied - Cannot view reports for this user'
+        })
+      }
+
       // Get task IDs where the user is an assignee
       const { data: assignedTasks, error: assigneeError } = await supabase
         .from('task_assignees')

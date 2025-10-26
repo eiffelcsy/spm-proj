@@ -66,16 +66,38 @@ import { useBreadcrumbs } from '@/composables/useBreadcrumbs'
 import { Bell } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 
 // Use the breadcrumbs composable
 const { breadcrumbs } = useBreadcrumbs()
 
 function openCreateTaskModal() {
-  window.dispatchEvent(new CustomEvent('open-create-task-modal'))
+  // Check if we're on a dashboard page
+  const isDashboardPage = route.path === '/personal/dashboard' || 
+                          route.path === '/project/dashboard' || 
+                          route.path.match(/^\/project\/\d+$/)
+  
+  if (isDashboardPage) {
+    // If already on a dashboard, just open the modal
+    window.dispatchEvent(new CustomEvent('open-create-task-modal'))
+  } else {
+    // If not on a dashboard, redirect to personal dashboard with a query parameter
+    router.push('/personal/dashboard?openCreateTask=true')
+  }
 }
 
 function openCreateProjectModal() {
-  window.dispatchEvent(new CustomEvent('open-create-project-modal'))
+  // Check if we're on a project dashboard page
+  const isProjectDashboardPage = route.path === '/project/dashboard' || 
+                                  route.path.match(/^\/project\/\d+$/)
+  
+  if (isProjectDashboardPage) {
+    // If already on a project dashboard, just open the modal
+    window.dispatchEvent(new CustomEvent('open-create-project-modal'))
+  } else {
+    // If not on a project dashboard, redirect to project dashboard with a query parameter
+    router.push('/project/dashboard?openCreateProject=true')
+  }
 }
 
 function goToNotifications() {

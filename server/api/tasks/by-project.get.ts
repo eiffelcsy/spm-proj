@@ -1,5 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -64,31 +65,15 @@ export default defineEventHandler(async (event) => {
   }
 
   // Note: We no longer check if user is a project member
-  // Instead, we check if they can see any tasks based on department visibility
-  // This allows users to view projects where their department colleagues are assigned tasks
+  // Instead, we check if they can see any tasks based on department visibility hierarchy
+  // This allows users to view tasks assigned to staff in their department and sub-departments
 
   try {
-    // Get staff IDs in the same department as current user
-    let departmentStaffIds: number[] = []
-    if (currentDepartment) {
-      const { data: departmentStaff, error: deptError } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('department', currentDepartment)
-      
-      if (deptError) {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Failed to fetch department staff',
-          data: deptError
-        })
-      }
-      
-      departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
-    }
+    // Get staff IDs from departments visible to current user based on hierarchy
+    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
 
-    // If user has no department or department has no members, they can't see any tasks
-    if (departmentStaffIds.length === 0) {
+    // If user has no department or can't see any staff, they can't see any tasks
+    if (visibleStaffIds.length === 0) {
       return {
         tasks: [],
         count: 0
@@ -125,7 +110,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Filter tasks: only include tasks where someone from the user's department is assigned
+    // Filter tasks: only include tasks where someone from visible departments is assigned
     const taskIds = tasks.map((t: any) => t.id)
     const { data: taskAssignees, error: assigneeError } = await supabase
       .from('task_assignees')
@@ -141,11 +126,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Build a set of task IDs that have at least one assignee from the user's department
+    // Build a set of task IDs that have at least one assignee from visible departments
     const visibleTaskIds = new Set<number>()
     if (taskAssignees) {
       for (const assignee of taskAssignees) {
-        if (departmentStaffIds.includes(assignee.assigned_to_staff_id)) {
+        if (visibleStaffIds.includes(assignee.assigned_to_staff_id)) {
           visibleTaskIds.add(assignee.task_id)
         }
       }

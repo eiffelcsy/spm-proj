@@ -39,7 +39,7 @@ import {
 // STATE MANAGEMENT
 // ============================================================================
 
-const currentUser = ref<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean } | null>(null)
+const currentUser = ref<{ id: number; fullname: string; email: string | null; isManager: boolean; isAdmin: boolean; department?: string | null } | null>(null)
 const router = useRouter()
 const route = useRoute()
 const supabase = useSupabaseClient()
@@ -236,6 +236,7 @@ onMounted(() => {
               <div class="flex flex-col gap-0.5 leading-none min-w-0">
                 <span class="font-semibold text-sm">{{ currentUser?.fullname || 'Loading...' }}</span>
                 <span class="text-xs text-sidebar-muted-foreground truncate">{{ currentUser?.email || 'Loading...' }}</span>
+                <span v-if="currentUser?.department" class="text-xs text-sidebar-muted-foreground truncate">{{ currentUser.department }}</span>
               </div>
             </div>
             <button 

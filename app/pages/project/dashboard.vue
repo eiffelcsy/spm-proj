@@ -211,7 +211,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { CreateTaskModal } from '@/components/task-modals/create-task'
 import { CreateProjectModal } from '@/components/project-modals/create-project'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -238,6 +238,7 @@ definePageMeta({
 // ============================================================================
 
 const router = useRouter()
+const route = useRoute()
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -549,6 +550,13 @@ onMounted(async () => {
     await fetchTasksForProjects()
   } finally {
     isLoading.value = false
+  }
+  
+  // Check if we were redirected here to open the create project modal
+  if (route.query.openCreateProject === 'true') {
+    isCreateProjectModalOpen.value = true
+    // Clean up the query parameter
+    router.replace({ query: { ...route.query, openCreateProject: undefined } })
   }
   
   // Listen for task quick actions

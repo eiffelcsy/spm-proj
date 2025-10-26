@@ -1,5 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds, getVisibleDepartments } from '../../utils/departmentHierarchy'
 
 interface ReportFilters {
   grouping?: 'project' | 'department'
@@ -44,7 +45,7 @@ export default defineEventHandler(async (event) => {
   // Get current user's staff record to verify they're a manager/admin via booleans
   const { data: staffData, error: staffError } = await supabase
     .from('staff')
-    .select('id, is_manager, is_admin')
+    .select('id, is_manager, is_admin, department')
     .eq('user_id', user.id)
     .single()
 
@@ -63,6 +64,12 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Access denied - Only managers and admins can generate reports'
     })
   }
+
+  const currentDepartment = (staffData as { id: number; is_manager: boolean; is_admin: boolean; department: string | null }).department
+
+  // Get staff IDs and departments visible to current user based on hierarchy
+  const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
+  const visibleDepartments = getVisibleDepartments(currentDepartment)
 
   // Parse query parameters
   const query = getQuery(event)
@@ -181,8 +188,21 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Apply department filter if specified
+    // Filter tasks to only those from visible departments
+    tasksWithTime = tasksWithTime.filter(task => {
+      if (!task.department) return false
+      return visibleDepartments.includes(task.department)
+    })
+
+    // Apply additional department filter if specified
     if (filters.department) {
+      // Verify the specified department is visible
+      if (!visibleDepartments.includes(filters.department)) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'Access denied - Cannot view reports for this department'
+        })
+      }
       tasksWithTime = tasksWithTime.filter(task => task.department === filters.department)
     }
 

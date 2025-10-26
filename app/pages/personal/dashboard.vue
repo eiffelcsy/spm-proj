@@ -67,7 +67,7 @@ import type { Task } from "@/components/tasks-table/data/schema";
 import DataTable from "@/components/tasks-table/data-table.vue";
 import { CreateTaskModal } from "@/components/task-modals/create-task/";
 import { CreateProjectModal } from "@/components/project-modals/create-project";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { TriangleAlert } from "lucide-vue-next";
 
 definePageMeta({
@@ -75,6 +75,7 @@ definePageMeta({
 });
 
 const router = useRouter();
+const route = useRoute();
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -205,6 +206,14 @@ function goToTask(task: Task) {
  */
 onMounted(() => {
   fetchCurrentUser();
+  
+  // Check if we were redirected here to open the create task modal
+  if (route.query.openCreateTask === 'true') {
+    isModalOpen.value = true;
+    // Clean up the query parameter
+    router.replace({ query: { ...route.query, openCreateTask: undefined } });
+  }
+  
   window.addEventListener("task-updated", handleTaskChange);
   window.addEventListener("task-deleted", handleTaskChange);
   window.addEventListener("open-create-task-modal", () => {

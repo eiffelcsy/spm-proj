@@ -1,5 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
 interface StaffRow {
   id: number
@@ -18,15 +19,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Not authenticated' })
   }
 
-  // Get current user's staff ID
+  // Get current user's staff ID and department
   const { data: staffRow, error: staffError } = await supabase
     .from('staff')
-    .select('id')
+    .select('id, department')
     .eq('user_id', user.id)
-    .maybeSingle() as { data: { id: number } | null, error: any }
+    .maybeSingle() as { data: { id: number; department: string | null } | null, error: any }
 
   if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
   if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
+
+  const currentDepartment = staffRow.department
+
+  // Get staff IDs from departments visible to current user based on hierarchy
+  const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
 
   // If no project_id is provided, return empty array (no assignees available)
   if (!projectId) {
@@ -50,10 +56,16 @@ export default defineEventHandler(async (event) => {
     return []
   }
 
-  // Get staff IDs from project members
-  const staffIds = projectMembers.map((pm: any) => pm.staff_id)
+  // Get staff IDs from project members and filter by visible staff
+  const allStaffIds = projectMembers.map((pm: any) => pm.staff_id)
+  const staffIds = allStaffIds.filter((id: number) => visibleStaffIds.includes(id))
 
-  // Fetch staff details for these members
+  // If no visible staff in this project, return empty
+  if (staffIds.length === 0) {
+    return []
+  }
+
+  // Fetch staff details for visible members only
   const { data: staffData, error: staffDataError } = await supabase
     .from('staff')
     .select('id, fullname, user_id')

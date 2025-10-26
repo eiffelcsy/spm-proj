@@ -1,5 +1,6 @@
 import { defineEventHandler } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -12,10 +13,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get current user's staff ID
+  // Get current user's staff ID and department
   const { data: staffIdData, error: staffIdError } = await supabase
     .from('staff')
-    .select('id')
+    .select('id, department')
     .eq('user_id', user.id)
     .single()
 
@@ -26,14 +27,26 @@ export default defineEventHandler(async (event) => {
       data: staffIdError
     })
   }
-  const currentStaffId = (staffIdData as { id: number }).id
+  const currentStaffId = (staffIdData as { id: number; department: string | null }).id
+  const currentDepartment = (staffIdData as { id: number; department: string | null }).department
   
   try {
-    // Get task IDs where current user is an assignee (personal dashboard shows only tasks assigned to user)
+    // Get staff IDs from departments visible to current user based on hierarchy
+    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
+
+    // If user has no department or can't see any staff, they can't see any tasks
+    if (visibleStaffIds.length === 0) {
+      return {
+        tasks: [],
+        count: 0
+      }
+    }
+
+    // Get task IDs where visible staff are assignees
     const { data: assignedTaskIds, error: assigneeError } = await supabase
       .from('task_assignees')
       .select('task_id')
-      .eq('assigned_to_staff_id', currentStaffId)
+      .in('assigned_to_staff_id', visibleStaffIds)
       .eq('is_active', true)
 
     if (assigneeError && assigneeError.code !== 'PGRST116') {
@@ -46,14 +59,14 @@ export default defineEventHandler(async (event) => {
 
     const assignedTaskIdList = assignedTaskIds?.map((row: any) => row.task_id) || []
 
-    // Fetch only tasks where current user is an assignee (excluding soft-deleted tasks)
+    // Fetch tasks assigned to visible staff (excluding soft-deleted tasks)
     let query = supabase
       .from('tasks')
       .select('*')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
-    // Only show tasks where user is assigned
+    // Only show tasks where visible staff are assigned
     if (assignedTaskIdList.length > 0) {
       query = query.in('id', assignedTaskIdList)
     } else {

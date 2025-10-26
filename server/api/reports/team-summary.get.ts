@@ -1,5 +1,6 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
 interface ReportFilters {
   project_id?: number
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
   // Get current user's staff record to verify they're a manager/admin
   const { data: staffData, error: staffError } = await supabase
     .from('staff')
-    .select('id, is_manager, is_admin')
+    .select('id, is_manager, is_admin, department')
     .eq('user_id', user.id)
     .single()
 
@@ -67,6 +68,11 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Access denied - Only managers and admins can generate reports'
     })
   }
+
+  const currentDepartment = (staffData as { id: number; is_manager: boolean; is_admin: boolean; department: string | null }).department
+
+  // Get staff IDs from departments visible to current user based on hierarchy
+  const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
 
   // Parse query parameters
   const query = getQuery(event)
@@ -184,7 +190,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Get all team members (project members)
+    // Get all team members (project members) filtered by visible departments
     const { data: projectMembers, error: membersError } = await supabase
       .from('project_members')
       .select('staff_id')
@@ -199,9 +205,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const staffIds = projectMembers.map(pm => pm.staff_id)
+    // Filter project members to only include visible staff based on department hierarchy
+    const projectStaffIds = projectMembers.map(pm => pm.staff_id)
+    const staffIds = projectStaffIds.filter(id => visibleStaffIds.includes(id))
 
-    // Fetch staff details
+    // Fetch staff details only for visible staff
     const { data: staffList, error: staffError2 } = await supabase
       .from('staff')
       .select('id, fullname')
