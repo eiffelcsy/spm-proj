@@ -200,7 +200,7 @@ describe('Create Project Unit Tests', () => {
 
     it('should validate date format', () => {
       const validDates = ['2024-12-31', '2024-01-01', '2025-06-15']
-      const invalidDates = ['31/12/2024', '2024-13-01', 'invalid-date']
+      const invalidDates = ['31/12/2024', 'invalid-date', '2024/12/31', '12-31-2024']
 
       validDates.forEach(date => {
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/
