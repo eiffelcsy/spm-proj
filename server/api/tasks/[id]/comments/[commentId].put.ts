@@ -1,5 +1,6 @@
 import { defineEventHandler, readBody, getRouterParam } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds } from '../../../../utils/departmentHierarchy'
 import type { TaskCommentWithStaff } from '~/types'
 
 // Define interfaces for Supabase responses
@@ -97,33 +98,23 @@ export default defineEventHandler(async (event) => {
       .eq('task_id', taskId)
       .eq('is_active', true)
 
-    // Check visibility: user can only edit comments if someone from their department is assigned
-    if (currentDepartment) {
-      const { data: departmentStaff, error: deptError } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('department', currentDepartment)
-      
-      if (deptError) {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Failed to fetch department staff',
-          data: deptError
-        })
-      }
-      
-      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
-      const hasAssigneeFromDepartment = assigneeRows?.some((row: any) => 
-        departmentStaffIds.includes(row.assigned_to_staff_id)
-      )
-      
-      if (!hasAssigneeFromDepartment) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: 'You do not have permission to edit comments on this task'
-        })
-      }
-    } else {
+    // Check visibility: user can only edit comments if someone from visible departments is assigned
+    // Get staff IDs from departments visible to current user based on hierarchy
+    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
+    
+    if (visibleStaffIds.length === 0) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to edit comments on this task'
+      })
+    }
+    
+    // Check if any assignee is from visible departments
+    const hasVisibleAssignee = assigneeRows?.some((row: any) => 
+      visibleStaffIds.includes(row.assigned_to_staff_id)
+    )
+    
+    if (!hasVisibleAssignee) {
       throw createError({
         statusCode: 403,
         statusMessage: 'You do not have permission to edit comments on this task'

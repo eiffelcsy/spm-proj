@@ -34,10 +34,10 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Get current user's staff ID and department
+    // Get current user's staff ID, department, and role
     const { data: staffIdData, error: staffIdError } = await supabase
       .from('staff')
-      .select('id, department')
+      .select('id, department, is_manager, is_admin')
       .eq('user_id', user.id)
       .single()
 
@@ -48,8 +48,10 @@ export default defineEventHandler(async (event) => {
         data: staffIdError
       })
     }
-    const currentStaffId = (staffIdData as { id: number; department: string | null }).id
-    const currentDepartment = (staffIdData as { id: number; department: string | null }).department
+    const currentStaffId = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).id
+    const currentDepartment = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).department
+    const isManager = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).is_manager
+    const isAdmin = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).is_admin
 
     // First, check if the task exists (only non-deleted tasks)
     const { data: existingTask, error: fetchError } = await supabase
@@ -132,39 +134,43 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Check if task is assigned to anyone
-    const isTaskAssigned = assigneeRows && assigneeRows.length > 0
-    
-    if (isTaskAssigned) {
-      // If task is assigned, only the assigned person can delete
-      const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
+    // Managers and admins can delete any task they can view (department visibility already checked above)
+    // For non-managers/admins, check assignment permissions
+    if (!isManager && !isAdmin) {
+      // Check if task is assigned to anyone
+      const isTaskAssigned = assigneeRows && assigneeRows.length > 0
       
-      if (!isCurrentUserAssigned) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: 'You do not have permission to delete this task. Only assigned staff can delete assigned tasks.'
-        })
-      }
-    } else {
-      // If task is unassigned, only the task creator can delete
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select('creator_id')
-        .eq('id', numericTaskId)
-        .single() as { data: { creator_id: number } | null, error: any }
+      if (isTaskAssigned) {
+        // If task is assigned, only the assigned person can delete
+        const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
+        
+        if (!isCurrentUserAssigned) {
+          throw createError({
+            statusCode: 403,
+            statusMessage: 'You do not have permission to delete this task. Only assigned staff, managers, or admins can delete assigned tasks.'
+          })
+        }
+      } else {
+        // If task is unassigned, only the task creator can delete (unless manager/admin)
+        const { data: taskData, error: taskError } = await supabase
+          .from('tasks')
+          .select('creator_id')
+          .eq('id', numericTaskId)
+          .single() as { data: { creator_id: number } | null, error: any }
 
-      if (taskError || !taskData) {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Failed to fetch task creator information'
-        })
-      }
+        if (taskError || !taskData) {
+          throw createError({
+            statusCode: 500,
+            statusMessage: 'Failed to fetch task creator information'
+          })
+        }
 
-      if (taskData.creator_id !== currentStaffId) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: 'You do not have permission to delete this task. Only the task creator can delete unassigned tasks.'
-        })
+        if (taskData.creator_id !== currentStaffId) {
+          throw createError({
+            statusCode: 403,
+            statusMessage: 'You do not have permission to delete this task. Only the task creator, managers, or admins can delete unassigned tasks.'
+          })
+        }
       }
     }
 

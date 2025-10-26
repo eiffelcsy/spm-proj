@@ -1,5 +1,6 @@
 import { defineEventHandler, getRouterParam } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
+import { getVisibleStaffIds } from '../../../utils/departmentHierarchy'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -13,10 +14,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get current user's staff ID and department
+  // Get current user's staff ID, department, and role
   const { data: staffIdData, error: staffIdError } = await supabase
     .from('staff')
-    .select('id, department')
+    .select('id, department, is_manager, is_admin')
     .eq('user_id', user.id)
     .single()
 
@@ -27,8 +28,10 @@ export default defineEventHandler(async (event) => {
       data: staffIdError
     })
   }
-  const currentStaffId = (staffIdData as { id: number; department: string | null }).id
-  const currentDepartment = (staffIdData as { id: number; department: string | null }).department
+  const currentStaffId = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).id
+  const currentDepartment = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).department
+  const isManager = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).is_manager
+  const isAdmin = (staffIdData as { id: number; department: string | null; is_manager: boolean; is_admin: boolean }).is_admin
 
   if (!taskId) {
     throw createError({
@@ -114,37 +117,23 @@ export default defineEventHandler(async (event) => {
       assignees = [{ assigned_to: { id: null, fullname: 'Unassigned' }, assigned_by: null }]
     }
 
-    // Check visibility: user can only see task if someone from their department is assigned
-    if (currentDepartment) {
-      // Get all staff IDs in the same department
-      const { data: departmentStaff, error: deptError } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('department', currentDepartment)
-      
-      if (deptError) {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Failed to fetch department staff',
-          data: deptError
-        })
-      }
-      
-      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
-      
-      // Check if any assignee is from the user's department
-      const hasAssigneeFromDepartment = assignees.some((assignee: any) => 
-        assignee.assigned_to.id && departmentStaffIds.includes(assignee.assigned_to.id)
-      )
-      
-      if (!hasAssigneeFromDepartment) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: 'You do not have permission to view this task'
-        })
-      }
-    } else {
-      // If user has no department, they can't see any tasks
+    // Check visibility: user can only see task if someone from visible departments is assigned
+    // Get staff IDs from departments visible to current user based on hierarchy
+    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
+    
+    if (visibleStaffIds.length === 0) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to view this task'
+      })
+    }
+    
+    // Check if any assignee is from visible departments
+    const hasVisibleAssignee = assignees.some((assignee: any) => 
+      assignee.assigned_to.id && visibleStaffIds.includes(assignee.assigned_to.id)
+    )
+    
+    if (!hasVisibleAssignee) {
       throw createError({
         statusCode: 403,
         statusMessage: 'You do not have permission to view this task'
@@ -229,7 +218,8 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if current user can edit/delete this task
-    // New logic: assigned users OR task creator (if unassigned)
+    // Managers and admins can edit/delete any task they can view (based on department hierarchy)
+    // Regular staff: assigned users OR task creator (if unassigned)
     const isAssigned = assignees.some((assignee: any) => assignee.assigned_to.id === currentStaffId)
     const isTaskAssigned = assignees.some((assignee: any) => assignee.assigned_to.id !== null)
     const isCreator = creator && (creator as any).id === currentStaffId
@@ -237,7 +227,11 @@ export default defineEventHandler(async (event) => {
     let canEdit = false
     let canDelete = false
     
-    if (isTaskAssigned) {
+    if (isManager || isAdmin) {
+      // Managers and admins can edit and delete any task they can view
+      canEdit = true
+      canDelete = true
+    } else if (isTaskAssigned) {
       // If task is assigned, only assigned person can edit/delete
       canEdit = Boolean(isAssigned || isCreator)
       canDelete = isAssigned

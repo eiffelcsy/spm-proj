@@ -110,6 +110,16 @@ IT Division:
 4. **Regular Staff** see tasks for:
    - Only their own department
 
+### Edit/Delete Permissions
+
+**For Managers and Admins (is_manager=true or is_admin=true):**
+- Can **edit** any task they can view (based on department hierarchy)
+- Can **delete** any task they can view (based on department hierarchy)
+
+**For Regular Staff:**
+- Can **edit** tasks they are assigned to, OR tasks they created (if unassigned)
+- Can **delete** tasks they are assigned to, OR tasks they created (if unassigned)
+
 ### Example Scenarios
 
 **Scenario 1: Sales Director Views Tasks**
@@ -118,15 +128,17 @@ IT Division:
   - Sales Manager staff
   - Account Managers staff
 
-**Scenario 2: Finance Manager Views Reports**
-- Can see reports for:
+**Scenario 2: Finance Manager Views and Edits Tasks**
+- Can see tasks assigned to:
   - Finance Managers
   - Finance Executive
 - Cannot see Finance Director tasks (upward restriction)
+- **Can edit and delete** any tasks they can view (manager privilege)
 
 **Scenario 3: Developer Views Dashboard**
 - Can only see tasks assigned to Developers
 - Cannot see Support Team tasks (sibling restriction)
+- Can only edit/delete tasks they are personally assigned to (regular staff restriction)
 
 ## Database Requirements
 
