@@ -1,5 +1,38 @@
 <template>
-  <Dialog :open="open" @update:open="handleClose">
+  <!-- Success Confirmation Dialog -->
+  <Dialog :open="isSuccessDialogOpen" @update:open="handleSuccessDialogClose">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle class="text-green-600 flex items-center gap-2">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Success!
+        </DialogTitle>
+        <DialogDescription>
+          {{ isSubtask ? "Subtask" : "Task" }} has been updated successfully.
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div class="space-y-4 py-4">
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <span class="font-medium">{{ title }}</span>
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button @click="handleSuccessDialogClose" class="w-full">
+          Close
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- Edit Task Dialog -->
+  <Dialog :open="open && !isSuccessDialogOpen" @update:open="handleClose">
     <DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{{
@@ -399,6 +432,7 @@ const selectedProjectId = ref<string>('')
 // feedback state
 const successMessage = ref("");
 const errorMessage = ref("");
+const isSuccessDialogOpen = ref(false);
 
 // Watch for modal open and populate form with existing task data
 watch(
@@ -762,23 +796,19 @@ async function updateTask() {
     // Emit the updated task
     emit("task-updated", response.task);
 
-    // Close modal
-    // Show success feedback
-    successMessage.value = props.isSubtask
-      ? "Subtask updated successfully!"
-      : "Task updated successfully!";
-
-    // Close modal after short delay
-    setTimeout(() => {
-      successMessage.value = "";
-      emit("update:open", false);
-    }, 1000);
+    // Show success dialog
+    isSuccessDialogOpen.value = true;
   } catch (err: any) {
     console.error("Error updating task:", err);
     errorMessage.value =
       err.message || "Something went wrong. Task was not updated.";
     successMessage.value = "";
   }
+}
+
+const handleSuccessDialogClose = () => {
+  isSuccessDialogOpen.value = false;
+  emit("update:open", false);
 }
 
 function formatDate(date: DateValue) {
