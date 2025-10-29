@@ -165,7 +165,7 @@ export function createStatusColumn() {
 }
 
 /**
- * Create a reusable priority column
+ * Create a reusable priority column (with labels)
  */
 export function createPriorityColumn() {
   return {
@@ -186,6 +186,26 @@ export function createPriorityColumn() {
           h('span', { class: 'text-sm' }, getPriorityDisplay(priority))
         ]
       )
+    },
+    enableSorting: true,
+    enableFiltering: true,
+  }
+}
+
+/**
+ * Create a reusable priority column (numeric only)
+ */
+export function createNumericPriorityColumn() {
+  return {
+    accessorKey: 'priority',
+    header: ({ column }: any) => h(DataTableColumnHeader, { 
+      column: column,
+      title: 'Priority'
+    }),
+    cell: ({ row }: any) => {
+      const priority = row.getValue('priority') as number | null | undefined
+      const displayValue = priority && priority >= 1 && priority <= 10 ? priority.toString() : '—'
+      return h('div', { class: 'text-center font-medium' }, displayValue)
     },
     enableSorting: true,
     enableFiltering: true,

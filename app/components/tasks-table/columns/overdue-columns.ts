@@ -1,8 +1,7 @@
 // Create special columns for overdue tasks with red highlighting
 import { h, computed } from 'vue'
 import DataTableColumnHeader from '../data-table-column-header.vue'
-import DropdownAction from '~/components/tasks-table/columns/data-table-dropdown.vue'
-import { formatDate, createStartDateColumn, createStatusColumn, createAssigneesColumn, createTagsColumn } from './column-helpers'
+import { formatDate, createStartDateColumn, createStatusColumn, createAssigneesColumn, createTagsColumn, createNumericPriorityColumn } from './column-helpers'
 
 export const overdueColumns = computed(() => [
     {
@@ -41,30 +40,8 @@ export const overdueColumns = computed(() => [
       }, project)
     },
 },
+    createNumericPriorityColumn(),
     createAssigneesColumn(),
     createTagsColumn(),
     createStatusColumn(),
-    {
-      id: 'actions',
-      enableHiding: false,
-      cell: ({ row }: any) => {
-        const task = row.original
-
-        return h('div', { class: 'relative' }, h(DropdownAction, {
-          task: {
-            id: task.id,
-            status: task.status,
-            title: task.title
-          },
-          onTaskUpdated: () => {
-            // Emit event to refresh data table
-            window.dispatchEvent(new CustomEvent('task-updated'))
-          },
-          onTaskDeleted: () => {
-            // Emit event to refresh data table  
-            window.dispatchEvent(new CustomEvent('task-deleted'))
-          }
-        }))
-      },
-    },
   ])

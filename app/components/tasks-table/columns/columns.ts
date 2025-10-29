@@ -2,14 +2,14 @@ import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import DataTableColumnHeader from '../data-table-column-header.vue'
 import type { Task } from '../data/schema'
-import DropdownAction from '~/components/tasks-table/columns/data-table-dropdown.vue'
 import { 
   createTitleColumn, 
   createStartDateColumn, 
   createDueDateColumn, 
   createStatusColumn,
   createAssigneesColumn,
-  createTagsColumn
+  createTagsColumn,
+  createNumericPriorityColumn
 } from './column-helpers'
 
 
@@ -31,30 +31,8 @@ export const columns: ColumnDef<Task>[] = [
       }, project)
     },
   },
+  createNumericPriorityColumn(),
   createAssigneesColumn(),
   createTagsColumn(),
   createStatusColumn(),
-  {
-    id: 'actions',
-    enableHiding: false,
-    cell: ({ row }) => {
-      const task = row.original
-
-      return h('div', { class: 'relative' }, h(DropdownAction, {
-        task: {
-          id: task.id,
-          status: task.status,
-          title: task.title
-        },
-        onTaskUpdated: () => {
-          // Emit event to refresh data table
-          window.dispatchEvent(new CustomEvent('task-updated'))
-        },
-        onTaskDeleted: () => {
-          // Emit event to refresh data table  
-          window.dispatchEvent(new CustomEvent('task-deleted'))
-        }
-      }))
-    },
-  },
 ]
