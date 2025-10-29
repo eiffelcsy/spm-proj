@@ -1,6 +1,6 @@
 <template>
   <div v-if="isOpen" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" @click="handleBackdropClick">
-    <div class="relative bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 overflow-y-auto z-10" @click.stop>
+    <div class="relative bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 overflow-y-auto z-10 sm:max-w-2xl max-h-[80vh] overflow-y-auto" @click.stop>
       <h2 class="text-xl font-semibold mb-4">Edit Project</h2>
 
       <!-- Success Message -->
