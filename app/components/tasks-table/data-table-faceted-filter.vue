@@ -2,7 +2,7 @@
 import type { Column } from '@tanstack/vue-table'
 import type { Component } from 'vue'
 import type { Task } from './data/schema'
-import { computed } from 'vue'
+import { computed, nextTick } from 'vue'
 import { CheckIcon } from '@radix-icons/vue'
 import { PlusCircledIcon } from '@radix-icons/vue'
 
@@ -32,6 +32,22 @@ const props = defineProps<DataTableFacetedFilter>()
 
 const facets = computed(() => props.column?.getFacetedUniqueValues())
 const selectedValues = computed(() => new Set(props.column?.getFilterValue() as string[]))
+
+// For tags filter, reset search when a tag is selected
+const isTagsFilter = computed(() => props.title?.toLowerCase() === 'tags')
+
+function handleTagSelection() {
+  if (isTagsFilter.value) {
+    // Reset search input for tags filter
+    nextTick(() => {
+      const searchInput = document.querySelector('[data-slot="command-input"]') as HTMLInputElement
+      if (searchInput) {
+        searchInput.value = ''
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+  }
+}
 </script>
 
 <template>
@@ -72,7 +88,7 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
         </template>
       </Button>
     </PopoverTrigger>
-    <PopoverContent class="w-[200px] p-0" align="start">
+    <PopoverContent class="w-[200px] p-0" align="start" side="top" :side-offset="4">
       <Command>
         <CommandInput :placeholder="title" />
         <CommandList>
@@ -83,7 +99,6 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
               :key="option.value"
               :value="option"
               @select="(e: any) => {
-                console.log(e.detail.value)
                 const isSelected = selectedValues.has(option.value)
                 if (isSelected) {
                   selectedValues.delete(option.value)
@@ -95,6 +110,7 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
                 column?.setFilterValue(
                   filterValues.length ? filterValues : undefined,
                 )
+                handleTagSelection()
               }"
             >
               <div

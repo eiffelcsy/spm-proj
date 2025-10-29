@@ -34,6 +34,21 @@ const assigneeFilterOptions = computed(() => {
   }))
 })
 
+// Build tag filter options from table data
+const tagFilterOptions = computed(() => {
+  const column = props.table.getColumn('tags')
+  if (!column) return []
+  const all = new Set<string>()
+  props.table.getPreFilteredRowModel().rows.forEach(row => {
+    const tags = row.getValue('tags') as string[] | undefined
+    if (Array.isArray(tags)) tags.forEach(t => all.add(String(t)))
+    if (!tags || tags.length === 0) all.add('No tags')
+  })
+  return Array.from(all)
+    .map(label => ({ label, value: label.toLowerCase() === 'no tags' ? 'no-tags' : label.toLowerCase() }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
+
 defineOptions({
   name: 'DataTableToolbar'
 })
@@ -53,6 +68,12 @@ defineOptions({
         :column="table.getColumn('status')"
         title="Status"
         :options="statuses"
+      />
+      <DataTableFacetedFilter
+        v-if="table.getColumn('tags') && tagFilterOptions.length > 0"
+        :column="table.getColumn('tags')"
+        title="Tags"
+        :options="tagFilterOptions"
       />
       
       <DataTableFacetedFilter

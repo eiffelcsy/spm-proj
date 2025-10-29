@@ -311,8 +311,13 @@ export function createTagsColumn() {
         return value.includes('no-tags')
       }
       
-      // Check if any of the task's tags match the filter
-      return tags.some((tag: string) => value.includes(tag.toLowerCase()))
+      // Check if any of the task's tags match the filter (case-insensitive)
+      return tags.some((tag: string) => 
+        value.some(filterValue => 
+          filterValue === 'no-tags' ? false : 
+          tag.toLowerCase() === filterValue.toLowerCase()
+        )
+      )
     },
     enableSorting: false,
     enableFiltering: true,
