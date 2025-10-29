@@ -11,7 +11,7 @@ export const overdueColumns = computed(() => [
           title: 'Title'
       }),
       cell: ({ row }: any) => {
-        return h('div', { class: 'max-w-[500px] w-72 truncate font-medium text-red-900' }, row.getValue('title'))
+        return h('div', { class: 'max-w-[500px] w-64 truncate font-medium text-red-900' }, row.getValue('title'))
       },
     },
     createStartDateColumn(),

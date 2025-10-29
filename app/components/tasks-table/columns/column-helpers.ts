@@ -102,7 +102,7 @@ export function createTitleColumn() {
       title: 'Title'
     }),
     cell: ({ row }: any) => {
-      return h('div', { class: 'max-w-[500px] w-72 truncate font-medium' }, row.getValue('title'))
+      return h('div', { class: 'max-w-[500px] w-64 truncate font-medium' }, row.getValue('title'))
     },
   }
 }
