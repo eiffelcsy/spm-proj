@@ -788,6 +788,10 @@ async function updateTask() {
 
     // Emit the updated task
     emit("task-updated", response.task);
+    
+    window.dispatchEvent(new CustomEvent('task-updated', {
+      detail: { id: response.task?.id, priority: response.task?.priority }
+    }))
 
     // Show success dialog
     isSuccessDialogOpen.value = true;

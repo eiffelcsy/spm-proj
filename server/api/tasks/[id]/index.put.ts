@@ -158,7 +158,7 @@ export default defineEventHandler(async (event) => {
       .from('tasks')
       .select('title, start_date, due_date, status, notes, priority, repeat_interval, tags')
       .eq('id', taskId)
-      .single() as { data: { title: string, start_date: string | null, due_date: string | null, status: string, notes: string, priority: string | null, repeat_interval: number | null, tags: string[] | null } | null, error: any }
+      .single() as { data: { title: string, start_date: string | null, due_date: string | null, status: string, notes: string, priority: number | null, repeat_interval: number | null, tags: string[] | null } | null, error: any }
 
     if (currentTaskError || !currentTask) {
       throw createError({
@@ -168,6 +168,18 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Validate priority
+    const hasPriority = body.priority !== undefined && body.priority !== null
+    if (hasPriority) {
+      const p = Number(body.priority)
+      if (!Number.isInteger(p) || p < 1 || p > 10) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Invalid priority: must be an integer between 1 and 10'
+        })
+      }
+    }
+
     // Validate and prepare the update data
     const updateData: {
       title?: string
@@ -175,7 +187,7 @@ export default defineEventHandler(async (event) => {
       due_date?: string
       status?: string
       notes?: string
-      priority?: string
+      priority?: number
       repeat_interval?: number
       tags?: string[]
     } = {}
@@ -185,7 +197,7 @@ export default defineEventHandler(async (event) => {
     if (body.end_date !== undefined) updateData.due_date = body.end_date
     if (body.status) updateData.status = body.status
     if (body.notes !== undefined) updateData.notes = body.notes
-    if (body.priority !== undefined) updateData.priority = body.priority
+    if (hasPriority) updateData.priority = Number(body.priority)
     if (body.repeat_interval !== undefined) updateData.repeat_interval = body.repeat_interval
     if (body.tags !== undefined) updateData.tags = body.tags
 
@@ -226,6 +238,18 @@ export default defineEventHandler(async (event) => {
     if (Array.isArray(body.subtasks)) {
       for (const s of body.subtasks) {
         try {
+          // Validate subtask priority (if provided): must be integer 1-10
+          const hasSubPriority = s.priority !== undefined && s.priority !== null
+          if (hasSubPriority) {
+            const sp = Number(s.priority)
+            if (!Number.isInteger(sp) || sp < 1 || sp > 10) {
+              throw createError({
+                statusCode: 400,
+                statusMessage: `Invalid subtask priority: must be an integer between 1 and 10`
+              })
+            }
+          }
+          
           // If subtask has repeat_interval, calculate due_date from start_date
           let subtaskDueDate = s.due_date ?? null
           const subtaskRepeatInterval = s.repeat_interval !== undefined ? Number(s.repeat_interval) : null
@@ -241,7 +265,7 @@ export default defineEventHandler(async (event) => {
             start_date: s.start_date ?? null,
             due_date: subtaskDueDate,
             status: s.status,
-            priority: s.priority !== undefined ? String(s.priority) : null,
+            priority: s.priority !== undefined ? Number(s.priority) : null,
             repeat_interval: subtaskRepeatInterval,
             notes: s.notes ?? null,
             tags: s.tags ?? [],           
@@ -352,8 +376,8 @@ export default defineEventHandler(async (event) => {
     if (body.notes !== undefined && body.notes !== currentTask.notes) {
       changes.push({ field: 'notes', oldValue: currentTask.notes, newValue: body.notes })
     }
-    if (body.priority !== undefined && String(body.priority) !== String(currentTask.priority)) {
-      changes.push({ field: 'priority', oldValue: currentTask.priority, newValue: body.priority })
+    if (body.priority !== undefined && Number(body.priority) !== currentTask.priority) {
+      changes.push({ field: 'priority', oldValue: currentTask.priority, newValue: Number(body.priority) })
     }
     if (body.repeat_interval !== undefined && String(body.repeat_interval) !== String(currentTask.repeat_interval)) {
       changes.push({ field: 'repeat_interval', oldValue: currentTask.repeat_interval, newValue: body.repeat_interval })

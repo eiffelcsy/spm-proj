@@ -341,7 +341,7 @@ function transformTask(task: any): Task {
     project: task.project,
     status: task.status,
     notes: task.notes,
-    priority: task.priority,
+    priority: typeof task.priority === 'string' ? parseInt(task.priority, 10) : task.priority,
     tags: task.tags || [],
     assignees: task.assignees?.map((a: any) => ({
       id: a.assigned_to?.id || a.id,

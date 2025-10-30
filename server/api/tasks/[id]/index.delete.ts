@@ -134,68 +134,52 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Managers and admins can delete any task they can view (department visibility already checked above)
-    // For non-managers/admins, check assignment permissions
-    if (!isManager && !isAdmin) {
-      // Check if task is assigned to anyone
-      const isTaskAssigned = assigneeRows && assigneeRows.length > 0
-      
-      if (isTaskAssigned) {
-        // If task is assigned, only the assigned person can delete
-        const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
-        
-        if (!isCurrentUserAssigned) {
-          throw createError({
-            statusCode: 403,
-            statusMessage: 'You do not have permission to delete this task. Only assigned staff, managers, or admins can delete assigned tasks.'
-          })
-        }
-      } else {
-        // If task is unassigned, only the task creator can delete (unless manager/admin)
-        const { data: taskData, error: taskError } = await supabase
-          .from('tasks')
-          .select('creator_id')
-          .eq('id', numericTaskId)
-          .single() as { data: { creator_id: number } | null, error: any }
+    // Only managers can delete tasks
+    if (!isManager) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Only managers can delete tasks'
+      })
+    }
 
-        if (taskError || !taskData) {
-          throw createError({
-            statusCode: 500,
-            statusMessage: 'Failed to fetch task creator information'
-          })
-        }
+    // Soft-delete all descendant substasks
+    const nowIso = new Date().toISOString()
+    const queue: number[] = [numericTaskId]
+    const toDelete: number[] = []
 
-        if (taskData.creator_id !== currentStaffId) {
-          throw createError({
-            statusCode: 403,
-            statusMessage: 'You do not have permission to delete this task. Only the task creator, managers, or admins can delete unassigned tasks.'
-          })
-        }
+    while (queue.length) {
+      const parentId = queue.shift()!
+      const { data: children, error: childrenError } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('parent_task_id', parentId)
+        .is('deleted_at', null) as { data: Array<{ id: number }> | null, error: any }
+
+      if (childrenError) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch subtasks for cascade delete',
+          data: childrenError
+        })
+      }
+
+      if (children && children.length) {
+        const ids = children.map(c => c.id)
+        toDelete.push(...ids)
+        queue.push(...ids)
       }
     }
 
-    // Check if this task has subtasks (only non-deleted subtasks)
-    const { data: subtasks, error: subtaskError } = await supabase
-      .from('tasks')
-      .select('id')
-      .eq('parent_task_id', numericTaskId)
-      .is('deleted_at', null) as { data: Pick<TaskDB, 'id'>[] | null, error: any }
-
-    if (subtaskError) {
-      // Could not check for subtasks, but continue with deletion
-    } else if (subtasks && subtasks.length > 0) {
-      // Task has active subtasks - soft delete them first
-      const subtaskIds = subtasks.map(subtask => subtask.id)
-      const { error: subtasksDeleteError } = await (supabase as any)
+    if (toDelete.length > 0) {
+      const { error: cascadeError } = await supabase
         .from('tasks')
-        .update({ deleted_at: new Date().toISOString() })
-        .in('id', subtaskIds)
-
-      if (subtasksDeleteError) {
+        .update({ deleted_at: nowIso })
+        .in('id', toDelete)
+      if (cascadeError) {
         throw createError({
           statusCode: 500,
-          statusMessage: 'Failed to soft delete subtasks',
-          data: subtasksDeleteError
+          statusMessage: 'Failed to soft delete descendant subtasks',
+          data: cascadeError
         })
       }
     }
@@ -203,7 +187,7 @@ export default defineEventHandler(async (event) => {
     // Soft delete the task by setting deleted_at timestamp
     const { data: deletedData, error: deleteError } = await (supabase as any)
       .from('tasks')
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ deleted_at: nowIso })
       .eq('id', numericTaskId)
       .select() as { data: TaskDB[] | null, error: any }
 

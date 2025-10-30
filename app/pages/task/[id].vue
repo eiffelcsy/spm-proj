@@ -55,7 +55,7 @@
                               <Pencil1Icon class="mr-2 h-4 w-4" />
                               Edit {{ isSubtask ? 'Subtask' : 'Task' }}
                           </Button>
-                          <Button variant="outline" size="sm" @click="openDeleteModal"
+                          <Button v-if="canDelete" variant="outline" size="sm" @click="openDeleteModal"
                               class="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300">
                               <TrashIcon class="mr-2 h-4 w-4" />
                               Delete {{ isSubtask ? 'Subtask' : 'Task' }}
@@ -500,6 +500,7 @@ function handleTaskUpdated(updatedTask: any) {
   if (editableTask.value) {
     editableTask.value = { ...editableTask.value, ...updatedTask }
   }
+  window.dispatchEvent(new CustomEvent('task-updated', { detail: { id: updatedTask?.id, priority: updatedTask?.priority } }))
   refresh()
   closeEditModal()
 }
@@ -544,7 +545,12 @@ async function performDelete() {
 
     if (response.success) {
       closeDeleteModal()
-      router.push('/personal/dashboard')
+      // Notify all open dashboards/views
+      window.dispatchEvent(new CustomEvent('task-deleted', { detail: { id: task.value.id } }))
+      // Navigate after notifying
+      setTimeout(() => {
+        router.push('/personal/dashboard')
+      }, 0)
     } else {
       throw new Error('Failed to delete task')
     }
@@ -561,7 +567,7 @@ async function performDelete() {
 /**
  * Unified handler for task changes (create, update, delete)
  */
- function handleTaskChange() {
+function handleTaskChange() {
   fetchTask();
   isModalOpen.value = false;
 }
