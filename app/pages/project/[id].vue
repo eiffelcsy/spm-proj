@@ -530,10 +530,10 @@ function handleProjectUpdated(updatedProject: any) {
     name: updatedProject.name,
     description: updatedProject.description,
     dueDate: updatedProject.due_date,
-    status: updatedProject.status
+    status: updatedProject.status,
+    priority: updatedProject.priority ?? project.value.priority,
+    tags: Array.isArray(updatedProject.tags) ? updatedProject.tags : project.value.tags
   }
-
-  // Don't close modal immediately - let it close after success message timeout
 }
 
 

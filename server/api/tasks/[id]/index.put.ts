@@ -127,40 +127,29 @@ export default defineEventHandler(async (event) => {
     // Managers and admins can edit any task they can view (department visibility already checked above)
     // For non-managers/admins, check assignment permissions
     if (!isManager && !isAdmin) {
-      // Check if task is assigned to anyone
-      const isTaskAssigned = assigneeRows && assigneeRows.length > 0
-      
-      if (isTaskAssigned) {
-        // If task is assigned, only the assigned person can edit
-        const isCurrentUserAssigned = assigneeRows.some((row: any) => row.assigned_to_staff_id === currentStaffId)
-        
-        if (!isCurrentUserAssigned) {
-          throw createError({
-            statusCode: 403,
-            statusMessage: 'You do not have permission to edit this task. Only assigned staff, managers, or admins can edit assigned tasks.'
-          })
-        }
-      } else {
-        // If task is unassigned, only the task creator can edit (unless manager/admin)
-        const { data: taskData, error: taskError } = await supabase
-          .from('tasks')
-          .select('creator_id')
-          .eq('id', taskId)
-          .single() as { data: { creator_id: number } | null, error: any }
+      const isCurrentUserAssignedToTask = Array.isArray(assigneeRows) 
+        ? assigneeRows.some((r: any) => r.assigned_to_staff_id === currentStaffId) : false
 
-        if (taskError || !taskData) {
-          throw createError({
-            statusCode: 500,
-            statusMessage: 'Failed to fetch task creator information'
-          })
-        }
+      let isCurrentUserAssignedToAnySubtask = false
+      if (!isCurrentUserAssignedToTask) {
+        const { data: subAssignees } = await supabase
+          .from('task_assignees')
+          .select('assigned_to_staff_id, task_id')
+          .in('task_id', (
+            await supabase.from('tasks')
+              .select('id').eq('parent_task_id', Number(taskId)).is('deleted_at', null)
+          ).data?.map((t: any) => t.id) || [-1])
+          .eq('is_active', true)
+        isCurrentUserAssignedToAnySubtask = Array.isArray(subAssignees)
+          ? subAssignees.some((r: any) => r.assigned_to_staff_id === currentStaffId)
+          : false
+      }
 
-        if (taskData.creator_id !== currentStaffId) {
-          throw createError({
-            statusCode: 403,
-            statusMessage: 'You do not have permission to edit this task. Only the task creator, managers, or admins can edit unassigned tasks.'
-          })
-        }
+      if (!isCurrentUserAssignedToTask && !isCurrentUserAssignedToAnySubtask) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'You do not have permission to edit this task. Only managers/admins, task assignees, or subtask assignees may edit.'
+        })
       }
     }
 
@@ -441,7 +430,18 @@ export default defineEventHandler(async (event) => {
         }
       }
 
-      // First, deactivate all current assignees
+      const addedAssignees = assigneeIdsToSet.filter(id => !currentAssigneeIds.includes(id))
+      const removedAssignees = currentAssigneeIds.filter(id => !assigneeIdsToSet.includes(id))
+      
+      // Only managers can remove existing assignees
+      if (!isManager && removedAssignees.length > 0) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'Only managers can unassign assignees from a task'
+        })
+      }
+
+      // Deactivate current assignees
       await (supabase as any)
         .from('task_assignees')
         .update({ is_active: false })
@@ -478,10 +478,6 @@ export default defineEventHandler(async (event) => {
             data: assignError
           })
         }
-
-        // Log specific assignee changes
-        const addedAssignees = assigneeIdsToSet.filter(id => !currentAssigneeIds.includes(id))
-        const removedAssignees = currentAssigneeIds.filter(id => !assigneeIdsToSet.includes(id))
 
         // Log added assignees and create notifications
         const taskDetails = await getTaskDetails(supabase, Number(taskId))

@@ -298,7 +298,7 @@
 
                 <div class="flex flex-col gap-1 text-xs">
                   <AssignCombobox v-model="subtask.assignedTo" label="Assign To" placeholder="Select assignee"
-                    :staff-members="staffMembers.filter(s => assignedTo.includes(String(s.id)))" compact />
+                    :staff-members="staffMembers" compact />
                 </div>
 
                 <div class="flex flex-col gap-1">
@@ -741,13 +741,6 @@ async function updateTask() {
       }
       if (validSubAssignees.length > 5) {
         errorMessage.value = `Subtask ${n}: Maximum 5 assignees allowed.`
-        return
-      }
-
-      // ensure subtask assignees are subset of parent assignees
-      const invalid = validSubAssignees.find(id => !assignedTo.value.includes(String(id)))
-      if (invalid) {
-        errorMessage.value = `Subtask ${n}: assignees must be chosen from the parent task assignees.`
         return
       }
     }

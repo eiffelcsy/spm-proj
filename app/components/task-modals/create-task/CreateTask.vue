@@ -650,15 +650,6 @@ function handleSuccessOk() {
   emit('close')
 }
 
-watch(assignedTo, (newAssigned) => {
-  const allowed = newAssigned ?? []
-  for (const st of subtasks.value) {
-    if (Array.isArray(st.assignedTo) && st.assignedTo.length) {
-      st.assignedTo = st.assignedTo.filter(id => allowed.includes(String(id)))
-    }
-  }
-}, { immediate: true })
-
 async function createTask() {
   try {
     if (!title.value.trim()) {

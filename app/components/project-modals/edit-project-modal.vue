@@ -291,6 +291,12 @@ watch(() => props.isOpen, (isOpen, wasOpen) => {
 async function updateProject() {
   if (!props.project) return
 
+  // validate project name
+  if (!projectName.value.trim()) {
+    errorMessage.value = 'Project title is required'
+    return
+  }
+
   try {
     errorMessage.value = ''
     successMessage.value = ''
@@ -316,6 +322,9 @@ async function updateProject() {
     }
 
     successMessage.value = 'Project updated successfully!'
+
+    // Broadcast immediately for other views to update promptly
+    window.dispatchEvent(new CustomEvent('project-updated', { detail: response.project }))
     
     // Emit the update event and close modal after a delay to ensure success message is visible
     setTimeout(() => {

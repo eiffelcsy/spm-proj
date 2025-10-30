@@ -288,6 +288,7 @@ async function fetchProjects() {
       status: project.status || 'todo',
       createdAt: project.created_at || new Date().toISOString(),
       dueDate: project.due_date || null,
+      tags: Array.isArray(project.tags) ? project.tags : [],
       isRealData: true
     }))
   } catch (err) {
@@ -460,6 +461,22 @@ function getPriorityVariant(priority: string) {
   }
 }
 
+function handleProjectUpdatedEvent(e: CustomEvent) {
+  const updated = e.detail
+  const idx = projects.value.findIndex(p => p.id === String(updated.id))
+  if (idx !== -1) {
+    projects.value[idx] = {
+      ...projects.value[idx],
+      name: updated.name || projects.value[idx].name,
+      description: updated.description ?? projects.value[idx].description,
+      priority: updated.priority ?? projects.value[idx].priority,
+      status: updated.status ?? projects.value[idx].status,
+      dueDate: updated.due_date ?? projects.value[idx].dueDate,
+      tags: Array.isArray(updated.tags) ? updated.tags : projects.value[idx].tags
+    }
+  }
+}
+
 // ============================================================================
 // NAVIGATION FUNCTIONS
 // ============================================================================
@@ -570,6 +587,9 @@ onMounted(async () => {
   window.addEventListener('open-create-project-modal', () => {
     isCreateProjectModalOpen.value = true
   })
+
+  // Listen for project updates
+  window.addEventListener('project-updated', handleProjectUpdatedEvent as EventListener)
 })
 
 onUnmounted(() => {
@@ -581,5 +601,6 @@ onUnmounted(() => {
   window.removeEventListener('open-create-project-modal', () => {
     isCreateProjectModalOpen.value = true
   })
+  window.removeEventListener('project-updated', handleProjectUpdatedEvent as EventListener)
 })
 </script>
