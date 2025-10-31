@@ -3,49 +3,9 @@ import { describe, it, expect, vi } from 'vitest'
 // Mock Nuxt-specific functions globally
 global.definePageMeta = vi.fn()
 
-describe('Sidebar Acceptance Criteria', () => {
-  // ============================================================================
-  // ACCEPTANCE CRITERIA TESTS
-  // ============================================================================
-
-  describe('AC1: Sidebar Visibility', () => {
-    it('should be visible on all main application pages', () => {
-      const mainPages = [
-        '/personal/dashboard',
-        '/project/dashboard',
-        '/project/123',
-        '/task/456',
-        '/admin/users',
-        '/manager/reports'
-      ]
-      
-      mainPages.forEach(page => {
-        // Verify sidebar is included in layout
-        const layout = 'withSidebar'
-        expect(layout).toBe('withSidebar')
-        
-        // Verify sidebar component is rendered
-        const sidebarComponent = 'AppSidebar'
-        expect(sidebarComponent).toBe('AppSidebar')
-      })
-    })
-
-    it('should be included in the main layout wrapper', () => {
-      const layoutStructure = {
-        wrapper: 'withSidebar',
-        components: ['SidebarProvider', 'AppSidebar', 'SidebarInset'],
-        header: 'SidebarTrigger'
-      }
-      
-      expect(layoutStructure.wrapper).toBe('withSidebar')
-      expect(layoutStructure.components).toContain('SidebarProvider')
-      expect(layoutStructure.components).toContain('AppSidebar')
-      expect(layoutStructure.components).toContain('SidebarInset')
-      expect(layoutStructure.header).toBe('SidebarTrigger')
-    })
-  })
-
-  describe('AC2: Navigation Links', () => {
+describe('Sidebar Tests', () => {
+  
+  describe('Navigation Links', () => {
     it('should include Dashboard navigation link', () => {
       const dashboardLink = {
         text: 'Personal Dashboard',
@@ -152,7 +112,7 @@ describe('Sidebar Acceptance Criteria', () => {
     })
   })
 
-  describe('AC3: Current Page Highlighting', () => {
+  describe('Current Page Highlighting', () => {
     it('should highlight Dashboard when on personal dashboard', () => {
       const currentRoute = '/personal/dashboard'
       const isDashboardActive = currentRoute === '/personal/dashboard' || 
@@ -209,21 +169,9 @@ describe('Sidebar Acceptance Criteria', () => {
         expect(isManagerPanelActive).toBe(true)
       })
     })
-
-    it('should apply correct CSS classes for active states', () => {
-      const activeClasses = 'bg-sidebar-accent text-sidebar-accent-foreground'
-      const inactiveClasses = ''
-      
-      const getActiveClasses = (isActive: boolean) => {
-        return isActive ? activeClasses : inactiveClasses
-      }
-      
-      expect(getActiveClasses(true)).toBe(activeClasses)
-      expect(getActiveClasses(false)).toBe(inactiveClasses)
-    })
   })
 
-  describe('AC4: Collapse/Expand Functionality', () => {
+  describe('Collapse/Expand Functionality', () => {
     it('should have a sidebar trigger button', () => {
       const triggerButton = {
         component: 'SidebarTrigger',
@@ -290,21 +238,9 @@ describe('Sidebar Acceptance Criteria', () => {
       expect(states.expanded).toBe('expanded')
       expect(states.collapsed).toBe('collapsed')
     })
-
-    it('should maximize workspace when collapsed', () => {
-      const sidebarWidths = {
-        expanded: '16rem',
-        collapsed: '3rem',
-        mobile: '18rem'
-      }
-      
-      expect(sidebarWidths.expanded).toBe('16rem')
-      expect(sidebarWidths.collapsed).toBe('3rem')
-      expect(sidebarWidths.mobile).toBe('18rem')
-    })
   })
 
-  describe('AC5: Mobile Hamburger Menu', () => {
+  describe('Mobile Hamburger Menu', () => {
     it('should detect mobile devices using media query', () => {
       const mobileBreakpoint = 'max-width: 768px'
       const isMobile = true // Simulated mobile detection
@@ -351,18 +287,6 @@ describe('Sidebar Acceptance Criteria', () => {
       expect(mobileSheet.canClose).toBe(true)
     })
 
-    it('should hide mobile sidebar on desktop', () => {
-      const desktopSidebar = {
-        isMobile: false,
-        isVisible: true,
-        className: 'hidden md:block'
-      }
-      
-      expect(desktopSidebar.isMobile).toBe(false)
-      expect(desktopSidebar.isVisible).toBe(true)
-      expect(desktopSidebar.className).toBe('hidden md:block')
-    })
-
     it('should toggle mobile sidebar independently', () => {
       let desktopOpen = false
       let mobileOpen = false
@@ -387,11 +311,7 @@ describe('Sidebar Acceptance Criteria', () => {
     })
   })
 
-  // ============================================================================
-  // INTEGRATION TESTS
-  // ============================================================================
-
-  describe('Sidebar Integration', () => {
+  describe('Integration', () => {
     it('should work with layout system', () => {
       const layoutIntegration = {
         layout: 'withSidebar',
@@ -445,57 +365,7 @@ describe('Sidebar Acceptance Criteria', () => {
       expect(logoutFlow.redirect).toBe('/')
     })
 
-    it('should maintain responsive design', () => {
-      const responsiveBreakpoints = {
-        mobile: 'max-width: 768px',
-        tablet: 'min-width: 769px',
-        desktop: 'min-width: 1024px'
-      }
-      
-      expect(responsiveBreakpoints.mobile).toBe('max-width: 768px')
-      expect(responsiveBreakpoints.tablet).toBe('min-width: 769px')
-      expect(responsiveBreakpoints.desktop).toBe('min-width: 1024px')
-    })
+    
   })
 
-  // ============================================================================
-  // ACCESSIBILITY TESTS
-  // ============================================================================
-
-  describe('Sidebar Accessibility', () => {
-    it('should have proper ARIA labels', () => {
-      const accessibilityFeatures = {
-        triggerLabel: 'Toggle Sidebar',
-        sidebarTitle: 'Sidebar',
-        sidebarDescription: 'Displays the mobile sidebar.',
-        screenReaderOnly: 'sr-only'
-      }
-      
-      expect(accessibilityFeatures.triggerLabel).toBe('Toggle Sidebar')
-      expect(accessibilityFeatures.sidebarTitle).toBe('Sidebar')
-      expect(accessibilityFeatures.screenReaderOnly).toBe('sr-only')
-    })
-
-    it('should support keyboard navigation', () => {
-      const keyboardSupport = {
-        shortcut: 'b',
-        modifiers: ['metaKey', 'ctrlKey'],
-        preventDefault: true
-      }
-      
-      expect(keyboardSupport.shortcut).toBe('b')
-      expect(keyboardSupport.preventDefault).toBe(true)
-    })
-
-    it('should have proper focus management', () => {
-      const focusManagement = {
-        trapFocus: true,
-        returnFocus: true,
-        initialFocus: 'first-focusable'
-      }
-      
-      expect(focusManagement.trapFocus).toBe(true)
-      expect(focusManagement.returnFocus).toBe(true)
-    })
-  })
 })

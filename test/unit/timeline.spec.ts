@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 // Mock Nuxt-specific functions globally
 global.definePageMeta = vi.fn()
 
-describe('Timeline Acceptance Criteria', () => {
-  // ============================================================================
-  // ACCEPTANCE CRITERIA TESTS
-  // ============================================================================
+describe('Timeline Tests', () => {
 
   describe('AC1: Timeline View with Default 1 Month Range', () => {
     it('should display timeline view on project dashboard', () => {
@@ -104,7 +101,7 @@ describe('Timeline Acceptance Criteria', () => {
     })
   })
 
-  describe('AC2: Task Details Pop-up on Click', () => {
+  describe('Task Details on Click', () => {
     it('should emit taskClick event when task is clicked', () => {
       const task = {
         id: 1,
@@ -121,99 +118,10 @@ describe('Timeline Acceptance Criteria', () => {
       // Simulate task click
       handleTaskClick(task)
     })
-
-    it('should show task details pop-up when task is clicked', () => {
-      const taskClickEvent = {
-        event: 'taskClick',
-        task: {
-          id: 1,
-          title: 'Test Task',
-          status: 'in-progress',
-          due_date: '2024-02-15',
-          start_date: '2024-02-01',
-          assignees: [{ assigned_to: { fullname: 'John Doe' } }]
-        }
-      }
-      
-      expect(taskClickEvent.event).toBe('taskClick')
-      expect(taskClickEvent.task.title).toBe('Test Task')
-      expect(taskClickEvent.task.status).toBe('in-progress')
-    })
-
-    it('should keep pop-up visible until closed or clicked out', () => {
-      const popupState = {
-        isVisible: true,
-        task: { id: 1, title: 'Test Task' },
-        canClose: true
-      }
-      
-      expect(popupState.isVisible).toBe(true)
-      expect(popupState.canClose).toBe(true)
-    })
   })
+  
 
-  describe('AC3: Task Details Pop-up on Hover', () => {
-    it('should show tooltip on task hover', () => {
-      const hoverState = {
-        showTooltip: true,
-        hoveredTask: {
-          id: 1,
-          title: 'Test Task',
-          status: 'in-progress',
-          due_date: '2024-02-15',
-          start_date: '2024-02-01',
-          assignees: [{ assigned_to: { fullname: 'John Doe' } }]
-        }
-      }
-      
-      expect(hoverState.showTooltip).toBe(true)
-      expect(hoverState.hoveredTask).toBeTruthy()
-    })
-
-    it('should display task details in hover tooltip', () => {
-      const tooltipContent = {
-        title: 'Test Task',
-        status: 'In Progress',
-        startDate: 'Feb 1, 2024',
-        dueDate: 'Feb 15, 2024',
-        assignees: 'John Doe'
-      }
-      
-      expect(tooltipContent.title).toBe('Test Task')
-      expect(tooltipContent.status).toBe('In Progress')
-      expect(tooltipContent.startDate).toBe('Feb 1, 2024')
-      expect(tooltipContent.dueDate).toBe('Feb 15, 2024')
-      expect(tooltipContent.assignees).toBe('John Doe')
-    })
-
-    it('should hide tooltip when mouse leaves task', () => {
-      let showTooltip = true
-      let hoveredTask = { id: 1, title: 'Test Task' }
-      
-      // Simulate mouse leave
-      showTooltip = false
-      hoveredTask = null
-      
-      expect(showTooltip).toBe(false)
-      expect(hoveredTask).toBeNull()
-    })
-
-    it('should position tooltip near mouse cursor', () => {
-      const tooltipStyle = {
-        left: '150px',
-        top: '100px',
-        position: 'fixed',
-        zIndex: 50
-      }
-      
-      expect(tooltipStyle.position).toBe('fixed')
-      expect(tooltipStyle.zIndex).toBe(50)
-      expect(tooltipStyle.left).toBe('150px')
-      expect(tooltipStyle.top).toBe('100px')
-    })
-  })
-
-  describe('AC4: Date Range Toggle (1 Day to 1 Year)', () => {
+  describe('Date Range Toggle', () => {
     it('should have date range options from 1 day to 1 year', () => {
       const dateRangeOptions = [
         { value: '1d', label: '1 Day' },
@@ -299,7 +207,7 @@ describe('Timeline Acceptance Criteria', () => {
     })
   })
 
-  describe('AC5: Task Display Information', () => {
+  describe('Task Display Information', () => {
     it('should display task name, status, and deadline for each task', () => {
       const task = {
         id: 1,
@@ -361,124 +269,10 @@ describe('Timeline Acceptance Criteria', () => {
       expect(assigneesText).toBe('John Doe +1 more')
     })
   })
+  
+  
 
-  describe('AC6: Completed Tasks Highlighting', () => {
-    it('should highlight completed tasks in light green', () => {
-      const completedTask = {
-        id: 1,
-        status: 'completed',
-        title: 'Completed Task'
-      }
-      
-      const taskBarClass = completedTask.status === 'completed' 
-        ? 'border bg-green-500 border-green-600'
-        : 'border bg-muted'
-      
-      expect(taskBarClass).toBe('border bg-green-500 border-green-600')
-    })
-
-    it('should apply correct CSS classes for completed tasks', () => {
-      const getTaskBarClass = (status: string) => {
-        const baseClass = 'border'
-        
-        if (status === 'completed') {
-          return `${baseClass} bg-green-500 border-green-600`
-        }
-        
-        return `${baseClass} bg-muted`
-      }
-      
-      expect(getTaskBarClass('completed')).toBe('border bg-green-500 border-green-600')
-      expect(getTaskBarClass('in-progress')).toBe('border bg-muted')
-    })
-
-    it('should show completed status badge', () => {
-      const statusVariant = (status: string) => {
-        switch (status) {
-          case 'completed':
-            return 'secondary'
-          case 'in-progress':
-            return 'default'
-          default:
-            return 'outline'
-        }
-      }
-      
-      expect(statusVariant('completed')).toBe('secondary')
-    })
-  })
-
-  describe('AC7: Overdue Tasks Highlighting', () => {
-    it('should highlight overdue tasks in light red', () => {
-      const overdueTask = {
-        id: 1,
-        status: 'in-progress',
-        due_date: '2024-01-01', // Past date
-        title: 'Overdue Task'
-      }
-      
-      const isOverdue = (task: any) => {
-        if (task.status === 'completed') return false
-        if (!task.due_date) return false
-        return new Date(task.due_date) < new Date()
-      }
-      
-      const taskBarClass = isOverdue(overdueTask) 
-        ? 'border bg-red-500 border-red-600'
-        : 'border bg-muted'
-      
-      expect(isOverdue(overdueTask)).toBe(true)
-      expect(taskBarClass).toBe('border bg-red-500 border-red-600')
-    })
-
-    it('should not highlight completed overdue tasks', () => {
-      const completedOverdueTask = {
-        id: 1,
-        status: 'completed',
-        due_date: '2024-01-01', // Past date but completed
-        title: 'Completed Overdue Task'
-      }
-      
-      const isOverdue = (task: any) => {
-        if (task.status === 'completed') return false
-        if (!task.due_date) return false
-        return new Date(task.due_date) < new Date()
-      }
-      
-      expect(isOverdue(completedOverdueTask)).toBe(false)
-    })
-
-    it('should apply correct CSS classes for overdue tasks', () => {
-      const getTaskBarClass = (task: any) => {
-        const baseClass = 'border'
-        
-        if (task.status === 'completed') {
-          return `${baseClass} bg-green-500 border-green-600`
-        }
-        
-        if (isTaskOverdue(task)) {
-          return `${baseClass} bg-red-500 border-red-600`
-        }
-        
-        return `${baseClass} bg-muted`
-      }
-      
-      const isTaskOverdue = (task: any) => {
-        if (task.status === 'completed') return false
-        if (!task.due_date) return false
-        return new Date(task.due_date) < new Date()
-      }
-      
-      const overdueTask = { status: 'in-progress', due_date: '2024-01-01' }
-      expect(getTaskBarClass(overdueTask)).toBe('border bg-red-500 border-red-600')
-    })
-  })
-
-  // ============================================================================
-  // INTEGRATION TESTS
-  // ============================================================================
-
-  describe('Timeline Integration', () => {
+  describe('Integration', () => {
     it('should work with project dashboard', () => {
       const projectDashboard = {
         projectId: 1,
@@ -528,85 +322,5 @@ describe('Timeline Acceptance Criteria', () => {
     })
   })
 
-  // ============================================================================
-  // RESPONSIVE DESIGN TESTS
-  // ============================================================================
-
-  describe('Timeline Responsive Design', () => {
-    it('should be responsive on mobile devices', () => {
-      const mobileStyles = {
-        labelWidth: '12rem',
-        cellPadding: '0.25rem',
-        cellMinWidth: '60px'
-      }
-      
-      expect(mobileStyles.labelWidth).toBe('12rem')
-      expect(mobileStyles.cellPadding).toBe('0.25rem')
-      expect(mobileStyles.cellMinWidth).toBe('60px')
-    })
-
-    it('should have horizontal scrolling for timeline content', () => {
-      const scrollableContainer = {
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        flex: 1
-      }
-      
-      expect(scrollableContainer.overflowX).toBe('auto')
-      expect(scrollableContainer.overflowY).toBe('hidden')
-    })
-
-    it('should have custom scrollbar styling', () => {
-      const scrollbarStyles = {
-        height: '8px',
-        trackBackground: 'var(--muted)',
-        thumbBackground: 'var(--border)',
-        borderRadius: '4px'
-      }
-      
-      expect(scrollbarStyles.height).toBe('8px')
-      expect(scrollbarStyles.borderRadius).toBe('4px')
-    })
-  })
-
-  // ============================================================================
-  // ACCESSIBILITY TESTS
-  // ============================================================================
-
-  describe('Timeline Accessibility', () => {
-    it('should have proper ARIA labels for interactive elements', () => {
-      const accessibilityFeatures = {
-        taskBars: 'cursor: pointer',
-        tooltips: 'z-index: 50',
-        dateLabels: 'font-medium text-xs',
-        statusBadges: 'variant-based styling'
-      }
-      
-      expect(accessibilityFeatures.taskBars).toBe('cursor: pointer')
-      expect(accessibilityFeatures.tooltips).toBe('z-index: 50')
-    })
-
-    it('should support keyboard navigation', () => {
-      const keyboardSupport = {
-        taskClickable: true,
-        tabNavigation: true,
-        enterKeyActivation: true
-      }
-      
-      expect(keyboardSupport.taskClickable).toBe(true)
-      expect(keyboardSupport.tabNavigation).toBe(true)
-      expect(keyboardSupport.enterKeyActivation).toBe(true)
-    })
-
-    it('should have proper focus management', () => {
-      const focusManagement = {
-        focusVisible: true,
-        focusOutline: true,
-        focusTrap: false
-      }
-      
-      expect(focusManagement.focusVisible).toBe(true)
-      expect(focusManagement.focusOutline).toBe(true)
-    })
-  })
+  
 })

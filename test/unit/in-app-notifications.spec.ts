@@ -3,12 +3,12 @@ import { describe, it, expect, vi } from 'vitest'
 // Mock Nuxt-specific functions globally
 global.definePageMeta = vi.fn()
 
-describe('Notification Acceptance Criteria', () => {
+describe('Notification Tests', () => {
   // ============================================================================
   // ACCEPTANCE CRITERIA TESTS
   // ============================================================================
 
-  describe('AC1: Task Assignment Notifications', () => {
+  describe('Task Assignment Notifications', () => {
     it('should create notification with Project Name, Task Title, and Assigner name when staff is assigned a task', () => {
       // Test the message format that would be created
       const taskTitle = 'Fix Critical Bug'
@@ -26,7 +26,7 @@ describe('Notification Acceptance Criteria', () => {
 
   })
 
-  describe('AC2: Task Removal Notifications', () => {
+  describe('Task Removal Notifications', () => {
     it('should create notification with Project Name, Task Title, and Remover name when staff is removed from a task', () => {
       const taskTitle = 'Fix Critical Bug'
       const projectName = 'Website Redesign'
@@ -39,7 +39,7 @@ describe('Notification Acceptance Criteria', () => {
     })
   })
 
-  describe('AC3: Task Deletion Notifications', () => {
+  describe('Task Deletion Notifications', () => {
     it('should create notification with Project Name, Task Title, deletion notice, and deleter name when assigned task is deleted', () => {
       const taskTitle = 'Fix Critical Bug'
       const projectName = 'Website Redesign'
@@ -52,7 +52,7 @@ describe('Notification Acceptance Criteria', () => {
     })
   })
 
-  describe('AC4: Task Edit Notifications', () => {
+  describe('Task Edit Notifications', () => {
     it('should create notification with Project Name, Task Title, edit details, and editor name when assigned task is edited', () => {
       const taskTitle = 'Fix Critical Bug'
       const projectName = 'Website Redesign'
@@ -80,7 +80,7 @@ describe('Notification Acceptance Criteria', () => {
     })
   })
 
-  describe('AC5: 24-Hour Due Date Notifications', () => {
+  describe('24-Hour Due Date Notifications', () => {
     it('should create notification with Project Name, Task Title, Priority Level, and Due Date when task is due in 24 hours', () => {
       const taskTitle = 'Fix Critical Bug'
       const projectName = 'Website Redesign'
@@ -110,7 +110,7 @@ describe('Notification Acceptance Criteria', () => {
     })
   })
 
-  describe('AC6: Comment Notifications', () => {
+  describe('Comment Notifications', () => {
     it('should create notification with Project Name, Task Title, Comment message, and commenter name when comment is posted', () => {
       const taskTitle = 'Fix Critical Bug'
       const projectName = 'Website Redesign'

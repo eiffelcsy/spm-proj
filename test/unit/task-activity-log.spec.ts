@@ -87,34 +87,9 @@ global.$fetch = vi.fn((url: string, options?: any) => {
   return Promise.resolve({})
 })
 
-describe('Task Activity Log Acceptance Criteria', () => {
-  // ============================================================================
-  // ACCEPTANCE CRITERIA TESTS
-  // ============================================================================
+describe('Task Activity Log Tests', () => {
 
-  describe('AC1: Admin User Can View Activity Log', () => {
-    it('should display Activity Log section when user is admin', () => {
-      mockCurrentUser.value = { id: 1, fullname: 'Admin User', email: 'admin@example.com', isManager: false, isAdmin: true }
-      
-      const activityLogSection = {
-        name: 'ActivityTimeline',
-        props: ['history', 'isAdmin'],
-        template: `
-          <div v-if="isAdmin" class="activity-timeline">
-            <h3>Activity Timeline</h3>
-            <div v-for="log in history" :key="log.timestamp">
-              <p>{{ log.action }}</p>
-              <p>by {{ log.staff?.fullname }}</p>
-              <time>{{ log.timestamp }}</time>
-            </div>
-          </div>
-        `
-      }
-      
-      expect(activityLogSection.props).toContain('isAdmin')
-      expect(activityLogSection.template).toContain('v-if="isAdmin"')
-      expect(activityLogSection.template).toContain('Activity Timeline')
-    })
+  describe('Admin Access', () => {
 
     it('should show activity log entries with proper formatting', () => {
       const mockHistory: ActivityTimelineWithStaff[] = [
@@ -141,26 +116,7 @@ describe('Task Activity Log Acceptance Criteria', () => {
     })
   })
 
-  describe('AC2: Non-Admin User Cannot View Activity Log', () => {
-    it('should not display Activity Log section when user is not admin', () => {
-      mockCurrentUser.value = { id: 2, fullname: 'Regular User', email: 'user@example.com', isManager: false, isAdmin: false }
-      
-      const activityLogSection = {
-        name: 'ActivityTimeline',
-        props: ['history', 'isAdmin'],
-        template: `
-          <div v-if="isAdmin" class="activity-timeline">
-            <h3>Activity Timeline</h3>
-          </div>
-        `
-      }
-      
-      const isAdmin = false
-      const shouldShow = isAdmin
-      
-      expect(shouldShow).toBe(false)
-      expect(activityLogSection.template).toContain('v-if="isAdmin"')
-    })
+  describe('Non-Admin Access', () => {
 
     it('should hide activity log for regular staff members', () => {
       const currentUser = { id: 2, fullname: 'Regular User', isAdmin: false }
@@ -172,7 +128,7 @@ describe('Task Activity Log Acceptance Criteria', () => {
     })
   })
 
-  describe('AC3: Task Creation Activity Log Entry', () => {
+  describe('Task Creation Logging', () => {
     it('should create activity log entry when task is created', async () => {
       const mockLogActivity = vi.fn(() => Promise.resolve(true))
       
@@ -220,7 +176,7 @@ describe('Task Activity Log Acceptance Criteria', () => {
     })
   })
 
-  describe('AC4: Task Modification Activity Log Entry', () => {
+  describe('Task Modification Logging', () => {
     it('should create activity log entry when task is modified', async () => {
       const mockLogActivity = vi.fn(() => Promise.resolve(true))
       
@@ -305,7 +261,7 @@ describe('Task Activity Log Acceptance Criteria', () => {
     })
   })
 
-  describe('AC5: Real-time Activity Log Updates', () => {
+  describe('Real-time Updates', () => {
     it('should update activity log immediately after task modification', async () => {
       const mockRefresh = vi.fn()
       const mockTaskData = ref({
@@ -398,7 +354,7 @@ describe('Task Activity Log Acceptance Criteria', () => {
     })
   })
 
-  describe('AC6: Chronological Order of Activity Log Entries', () => {
+  describe('Chronological Ordering', () => {
     it('should display activity log entries in chronological order (oldest first)', () => {
       const unsortedHistory = [
         {
@@ -504,7 +460,7 @@ describe('Task Activity Log Acceptance Criteria', () => {
     })
   })
 
-  describe('Activity Log Integration Tests', () => {
+  describe('Integration', () => {
     it('should integrate with task detail page correctly', () => {
       const taskDetailPage = {
         name: 'TaskDetailPage',

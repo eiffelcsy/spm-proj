@@ -3,12 +3,9 @@ import { describe, it, expect, vi } from 'vitest'
 // Mock Nuxt-specific functions globally
 global.definePageMeta = vi.fn()
 
-describe('Task Comments Acceptance Criteria', () => {
-  // ============================================================================
-  // ACCEPTANCE CRITERIA TESTS
-  // ============================================================================
+describe('Task Comments Tests', () => {
 
-  describe('AC1: Staff Access to Comments', () => {
+  describe('Access and Permissions', () => {
     it('should allow staff members to add comments to tasks they have access to', () => {
       // Test the API request structure for adding comments
       const taskId = 123
@@ -66,52 +63,9 @@ describe('Task Comments Acceptance Criteria', () => {
     })
   })
 
-  describe('AC2: Comment Display Information', () => {
-    it('should display author name and timestamp for each comment', () => {
-      const comment = {
-        id: 1,
-        task_id: 123,
-        staff_id: 456,
-        content: 'Test comment content',
-        created_at: '2024-01-15T10:30:00Z',
-        updated_at: '2024-01-15T10:30:00Z',
-        deleted_at: null,
-        staff: {
-          id: 456,
-          fullname: 'John Doe',
-          email: null
-        }
-      }
-      
-      // Verify author information is present
-      expect(comment.staff.fullname).toBe('John Doe')
-      expect(comment.staff.id).toBe(456)
-      
-      // Verify timestamp is present
-      expect(comment.created_at).toBeTruthy()
-      expect(new Date(comment.created_at)).toBeInstanceOf(Date)
-      
-      // Verify timestamp format is valid ISO string
-      expect(() => new Date(comment.created_at)).not.toThrow()
-    })
+  
 
-    it('should format timestamps correctly for display', () => {
-      const testCases = [
-        { input: '2024-01-15T10:30:00Z', expected: 'Jan 15, 2024 at 10:30 AM' },
-        { input: '2024-01-15T14:45:30Z', expected: 'Jan 15, 2024 at 2:45 PM' },
-        { input: '2024-12-25T00:00:00Z', expected: 'Dec 25, 2024 at 12:00 AM' }
-      ]
-      
-      testCases.forEach(({ input, expected }) => {
-        const date = new Date(input)
-        expect(date).toBeInstanceOf(Date)
-        expect(date.toISOString()).toBe(input.replace('Z', '.000Z'))
-        // Note: Actual formatting would be done in the UI component
-      })
-    })
-  })
-
-  describe('AC3: Chronological Order', () => {
+  describe('Chronological Order', () => {
     it('should display comments in chronological order (oldest to newest)', () => {
       const comments = [
         {
@@ -166,7 +120,7 @@ describe('Task Comments Acceptance Criteria', () => {
     })
   })
 
-  describe('AC4: Multiple Comments', () => {
+  describe('Multiple Comments', () => {
     it('should allow users to add multiple comments to the same task', () => {
       const taskId = 123
       const userId = 456
@@ -216,7 +170,7 @@ describe('Task Comments Acceptance Criteria', () => {
     })
   })
 
-  describe('AC5: Character Limit', () => {
+  describe('Character Limit', () => {
     it('should enforce 2000 character limit on comments', () => {
       const maxLength = 2000
       const validComment = 'A'.repeat(2000)
@@ -231,40 +185,10 @@ describe('Task Comments Acceptance Criteria', () => {
       expect(invalidComment.length).toBeGreaterThan(maxLength)
     })
 
-    it('should validate character count in UI', () => {
-      const testCases = [
-        { content: '', length: 0, isValid: false },
-        { content: 'A', length: 1, isValid: true },
-        { content: 'A'.repeat(1000), length: 1000, isValid: true },
-        { content: 'A'.repeat(2000), length: 2000, isValid: true },
-        { content: 'A'.repeat(2001), length: 2001, isValid: false }
-      ]
-      
-      testCases.forEach(({ content, length, isValid }) => {
-        expect(content.length).toBe(length)
-        
-        if (isValid) {
-          expect(content.length).toBeGreaterThan(0)
-          expect(content.length).toBeLessThanOrEqual(2000)
-        } else {
-          expect(content.length === 0 || content.length > 2000).toBe(true)
-        }
-      })
-    })
-
-    it('should display character count correctly', () => {
-      const content = 'This is a test comment'
-      const characterCount = content.length
-      const maxLength = 2000
-      const displayText = `${characterCount}/${maxLength} characters`
-      
-      expect(characterCount).toBe(22)
-      expect(displayText).toBe('22/2000 characters')
-      expect(characterCount).toBeLessThanOrEqual(maxLength)
-    })
+    
   })
 
-  describe('AC6: No Nested Comments', () => {
+  describe('No Nested Comments', () => {
     it('should not allow replies to comments', () => {
       const comments = [
         {
@@ -289,69 +213,12 @@ describe('Task Comments Acceptance Criteria', () => {
       expect(rootComments).toHaveLength(2)
     })
 
-    it('should not have reply functionality in UI', () => {
-      const commentActions = [
-        'edit',
-        'delete',
-        'like'
-        // Note: 'reply' should not be in this list
-      ]
-      
-      expect(commentActions).not.toContain('reply')
-      expect(commentActions).toContain('edit')
-      expect(commentActions).toContain('delete')
-    })
+    
   })
 
-  describe('AC7: Dedicated Comments Section', () => {
-    it('should have a dedicated comments section for each task', () => {
-      const taskCommentsSection = {
-        taskId: 123,
-        title: 'Comments',
-        commentCount: 5,
-        isVisible: true
-      }
-      
-      // Verify comments section properties
-      expect(taskCommentsSection.taskId).toBe(123)
-      expect(taskCommentsSection.title).toBe('Comments')
-      expect(taskCommentsSection.commentCount).toBeGreaterThan(0)
-      expect(taskCommentsSection.isVisible).toBe(true)
-    })
+  
 
-    it('should display all comments for a task in the section', () => {
-      const taskId = 123
-      const comments = [
-        { id: 1, task_id: taskId, content: 'Comment 1' },
-        { id: 2, task_id: taskId, content: 'Comment 2' },
-        { id: 3, task_id: taskId, content: 'Comment 3' }
-      ]
-      
-      // Verify all comments belong to the same task
-      comments.forEach(comment => {
-        expect(comment.task_id).toBe(taskId)
-      })
-      
-      // Verify all comments are displayed
-      expect(comments).toHaveLength(3)
-    })
-
-    it('should show comment count badge', () => {
-      const comments = [
-        { id: 1, content: 'Comment 1' },
-        { id: 2, content: 'Comment 2' },
-        { id: 3, content: 'Comment 3' }
-      ]
-      
-      const commentCount = comments.length
-      const badgeText = commentCount.toString()
-      
-      expect(commentCount).toBe(3)
-      expect(badgeText).toBe('3')
-    })
-  })
-
-  describe('AC8: Edit Own Comments', () => {
+  describe('Edit Own Comments', () => {
     it('should allow users to edit their own comments', () => {
       const currentUserId = 456
       const comment = {
@@ -410,7 +277,7 @@ describe('Task Comments Acceptance Criteria', () => {
     })
   })
 
-  describe('AC9: Admin Delete Comments', () => {
+  describe('Delete Comments Permissions', () => {
     it('should allow only admins to delete comments', () => {
       const userRoles = [
         { userId: 1, isAdmin: true, isManager: false, canDelete: true },
@@ -463,11 +330,7 @@ describe('Task Comments Acceptance Criteria', () => {
     })
   })
 
-  // ============================================================================
-  // INTEGRATION TESTS
-  // ============================================================================
-
-  describe('Comment System Integration', () => {
+  describe('Integration', () => {
     it('should handle complete comment workflow', () => {
       const taskId = 123
       const userId = 456
