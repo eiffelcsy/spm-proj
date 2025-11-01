@@ -9,7 +9,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
-      include: ['app/**/*.{js,ts,vue}'],
+      include: ['server/api/**/*.{js,ts}'],
       exclude: [
         'node_modules/',
         'test/',
@@ -17,8 +17,6 @@ export default defineConfig({
         '**/*.config.*',
         '**/mockData',
         '**/dist',
-        'app/assets/**',
-        'app/lib/utils.ts',
       ],
       all: true,
       lines: 80,

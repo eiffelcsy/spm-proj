@@ -1,4 +1,4 @@
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readBody, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { TaskDB } from '~/types'
 import { logTaskCreation } from '../../utils/activityLogger'
@@ -209,6 +209,10 @@ export default defineEventHandler(async (event) => {
 
     return { success: true, task: parentTask }
   } catch (err: any) {
+    // If it's already a formatted error with statusCode, re-throw it
+    if (err.statusCode) {
+      throw err
+    }
     await rollbackParent()
     throw createError({ statusCode: 500, statusMessage: err.message || 'Failed to create task/subtasks' })
   }

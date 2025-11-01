@@ -1,419 +1,1099 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ref } from 'vue'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import handler from '~/server/api/tasks/[id]/index.put'
+import type { H3Event } from 'h3'
 
-// Mock Nuxt-specific functions globally
-global.definePageMeta = vi.fn()
-
-// Mock $fetch
-const mockFetch = vi.fn()
-global.$fetch = mockFetch as any
-
-// Mock lucide-vue-next icons
-vi.mock('lucide-vue-next', () => ({
-  CalendarIcon: { template: '<span>CalendarIcon</span>' },
-  XIcon: { template: '<span>XIcon</span>' },
-  PlusIcon: { template: '<span>PlusIcon</span>' }
+// Mock the Supabase server functions
+vi.mock('#supabase/server', () => ({
+  serverSupabaseServiceRole: vi.fn(),
+  serverSupabaseUser: vi.fn(),
 }))
 
-// Mock @internationalized/date
-vi.mock('@internationalized/date', () => ({
-  parseDate: vi.fn((dateStr) => ({ toString: () => dateStr })),
-  getLocalTimeZone: vi.fn(() => 'UTC'),
-  today: vi.fn(() => ({ toString: () => '2024-01-01' }))
+// Mock the utility functions
+vi.mock('~/server/utils/activityLogger', () => ({
+  logTaskUpdate: vi.fn().mockResolvedValue(undefined),
+  logTaskAssignment: vi.fn().mockResolvedValue(undefined),
+  logTaskCompletion: vi.fn().mockResolvedValue(undefined),
+  logTaskUnassignment: vi.fn().mockResolvedValue(undefined),
 }))
 
-describe('Task Update API Integration', () => {
-  const getMockTask = () => ({
-    id: 1,
+vi.mock('~/server/utils/notificationService', () => ({
+  createTaskAssignmentNotification: vi.fn().mockResolvedValue(undefined),
+  createTaskUnassignmentNotification: vi.fn().mockResolvedValue(undefined),
+  createTaskUpdateNotification: vi.fn().mockResolvedValue(undefined),
+  getTaskDetails: vi.fn().mockResolvedValue({
     title: 'Test Task',
-    task_name: 'Test Task',
-    start_date: '2024-01-01',
-    due_date: '2024-01-15',
-    end_date: '2024-01-15',
-    status: 'in-progress',
-    priority: 5,
-    repeat_interval: 0,
-    notes: 'Test notes',
-    tags: ['#urgent', '#test'],
-    project_id: 1,
-    project: {
-      id: 1,
-      name: 'Test Project'
-    },
-    assignees: [
-      {
-        assigned_to: {
-          id: 1,
-          fullname: 'John Doe'
-        }
-      }
-    ],
-    subtasks: [
-      {
-        id: 1,
-        title: 'Subtask 1',
-        start_date: '2024-01-02',
-        due_date: '2024-01-10',
-        status: 'not-started',
-        priority: 3,
-        repeat_interval: 0,
-        notes: 'Subtask notes',
-        tags: ['#subtask'],
-        assignees: [
-          {
-            assigned_to: {
-              id: 1,
-              fullname: 'John Doe'
-            }
-          }
-        ]
-      }
-    ]
-  })
+    projectName: 'Test Project'
+  }),
+}))
 
-  const getMockStaffMembers = () => [
-    {
-      id: 1,
-      fullname: 'John Doe',
-      email: 'john@example.com'
-    },
-    {
+vi.mock('~/server/utils/recurringTaskService', () => ({
+  replicateCompletedTask: vi.fn().mockResolvedValue({
+    success: true,
+    newTask: {
       id: 2,
-      fullname: 'Jane Smith',
-      email: 'jane@example.com'
+      title: 'Test Task',
+      due_date: '2024-02-07',
+      start_date: '2024-02-01'
     }
-  ]
+  }),
+}))
 
-  let mockTask: ReturnType<typeof getMockTask>
-  let mockStaffMembers: ReturnType<typeof getMockStaffMembers>
+// Mock h3 functions
+vi.mock('h3', async () => {
+  const actual = await vi.importActual('h3')
+  return {
+    ...actual,
+    readBody: vi.fn(),
+    getRouterParam: vi.fn(),
+    defineEventHandler: (fn: any) => fn,
+    createError: (error: any) => {
+      const err = new Error(error.statusMessage) as any
+      err.statusCode = error.statusCode
+      err.statusMessage = error.statusMessage
+      return err
+    },
+  }
+})
 
-  beforeEach(() => {
-    mockTask = getMockTask()
-    mockStaffMembers = getMockStaffMembers()
-    
-    // Mock successful API responses
-    mockFetch.mockImplementation((url) => {
-      if (url === '/api/staff') {
-        return Promise.resolve(mockStaffMembers)
-      }
-      if (url === '/api/projects') {
-        return Promise.resolve([{ id: 1, name: 'Test Project' }])
-      }
-      if (url.includes('/api/tasks/')) {
-        return Promise.resolve({ success: true, task: mockTask })
-      }
-      return Promise.resolve({})
-    })
-  })
+describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
+  let mockEvent: Partial<H3Event>
+  let mockSupabase: any
+  let mockReadBody: any
+  let mockGetRouterParam: any
 
-  afterEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    
+    const { readBody, getRouterParam } = await import('h3')
+    mockReadBody = vi.mocked(readBody)
+    mockGetRouterParam = vi.mocked(getRouterParam)
+    
+    // Setup mock event
+    mockEvent = {
+      node: { req: {}, res: {} }
+    } as any
+    
+    // Setup mock Supabase client
+    mockSupabase = {
+      from: vi.fn()
+    }
   })
 
-  describe('API Integration', () => {
-    it('should fetch staff members successfully', async () => {
-      const result = await mockFetch('/api/staff')
-      
-      expect(mockFetch).toHaveBeenCalledWith('/api/staff')
-      expect(result).toEqual(mockStaffMembers)
-    })
-
-    it('should fetch projects successfully', async () => {
-      const result = await mockFetch('/api/projects')
-      
-      expect(mockFetch).toHaveBeenCalledWith('/api/projects')
-      expect(result).toEqual([{ id: 1, name: 'Test Project' }])
-    })
-
+  describe('Successful Task Update', () => {
     it('should update task successfully', async () => {
-      const taskData = {
-        task_name: 'Updated Task Title',
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      // Mock staff lookup
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
+        })
+      }
+      
+      // Mock task existence check
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      // Mock task assignees check
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }]
+      }
+      
+      // Mock department staff
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }],
+        error: null
+      }
+      
+      // Mock current task data
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Old Title',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'not-started',
+            notes: 'Old notes',
+            priority: 5,
+            repeat_interval: 0,
+            tags: ['old']
+          },
+          error: null
+        })
+      }
+      
+      // Mock task update
+      const mockTaskUpdate = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Updated Task',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'in-progress',
+            notes: 'Updated notes',
+            priority: 7,
+            repeat_interval: 0,
+            tags: ['updated'],
+            project_id: 1
+          },
+          error: null
+        })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          if (callCount === 4) return mockCurrentTaskQuery
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') return mockAssigneesQuery
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Updated Task',
         start_date: '2024-01-01',
-        end_date: '2024-01-15',
+        end_date: '2024-01-31',
         status: 'in-progress',
-        priority: '5',
+        priority: '7',
         repeat_interval: '0',
         notes: 'Updated notes',
-        tags: ['#urgent', '#updated'],
-        assignee_ids: [1],
-        subtasks: []
-      }
-
-      const result = await mockFetch(`/api/tasks/${mockTask.id}`, {
-        method: 'PUT',
-        body: taskData
+        tags: ['updated']
       })
+      
+      const response = await handler(mockEvent as any)
+      
+      expect(response.success).toBe(true)
+      expect(response.task).toBeDefined()
+      expect(response.task.title).toBe('Updated Task')
+      expect(response.task.status).toBe('in-progress')
+      expect(response.task.priority).toBe(7)
+    })
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `/api/tasks/${mockTask.id}`,
-        expect.objectContaining({
-          method: 'PUT',
-          body: taskData
+    it('should calculate due_date from start_date and repeat_interval', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
         })
-      )
-      expect(result.success).toBe(true)
-      expect(result.task).toEqual(mockTask)
-    })
-  })
-
-  describe('Task Data Validation', () => {
-    it('should validate required task fields', () => {
-      const taskData = {
-        task_name: '',
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }],
+        error: null
+      }
+      
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Test Task',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'not-started',
+            notes: 'Test notes',
+            priority: 5,
+            repeat_interval: 0,
+            tags: []
+          },
+          error: null
+        })
+      }
+      
+      let capturedUpdateData: any = null
+      const mockTaskUpdate = {
+        update: vi.fn((data: any) => {
+          capturedUpdateData = data
+          return mockTaskUpdate
+        }),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            ...capturedUpdateData,
+            repeat_interval: 7,
+            project_id: 1
+          },
+          error: null
+        })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          if (callCount === 4) return mockCurrentTaskQuery
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') return mockAssigneesQuery
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task',
         start_date: '2024-01-01',
-        end_date: '2024-01-15',
-        status: 'in-progress',
-        priority: '5',
-        repeat_interval: '0',
-        notes: 'Test notes',
-        tags: ['#urgent'],
-        assignee_ids: [1],
-        subtasks: []
-      }
-
-      // Test empty title validation
-      expect(taskData.task_name.trim()).toBe('')
+        repeat_interval: 7 // 7 days
+      })
       
-      // Test assignee validation
-      expect(taskData.assignee_ids.length).toBeGreaterThan(0)
-      expect(taskData.assignee_ids.length).toBeLessThanOrEqual(5)
+      const response = await handler(mockEvent as any)
+      
+      expect(response.success).toBe(true)
+      expect(capturedUpdateData.due_date).toBe('2024-01-08') // 7 days after start_date
     })
 
-    it('should validate subtask data structure', () => {
-      const subtask = {
+    it('should trigger recurring task replication when completed', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      const { replicateCompletedTask } = await import('~/server/utils/recurringTaskService')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
+        })
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }],
+        error: null
+      }
+      
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Test Task',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'not-started', // Was not completed
+            notes: 'Test notes',
+            priority: 5,
+            repeat_interval: 7,
+            tags: []
+          },
+          error: null
+        })
+      }
+      
+      const mockTaskUpdate = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
         id: 1,
-        title: 'Subtask 1',
-        start_date: '2024-01-02',
-        due_date: '2024-01-10',
-        status: 'not-started',
-        priority: 3,
-        repeat_interval: 0,
-        notes: 'Subtask notes',
-        tags: ['#subtask'],
-        assignee_ids: [1]
+            title: 'Test Task',
+            status: 'completed', // Now completed
+            repeat_interval: 7,
+            project_id: 1
+          },
+          error: null
+        })
       }
-
-      expect(subtask.title.trim()).toBeTruthy()
-      expect(subtask.start_date).toBeTruthy()
-      expect(subtask.due_date).toBeTruthy()
-      expect(subtask.notes.trim()).toBeTruthy()
-      expect(subtask.assignee_ids.length).toBeGreaterThan(0)
-      expect(subtask.assignee_ids.length).toBeLessThanOrEqual(5)
-    })
-
-    it('should handle date validation', () => {
-      const startDate = '2024-01-01'
-      const dueDate = '2024-01-15'
       
-      const start = new Date(startDate)
-      const due = new Date(dueDate)
-      
-      expect(due.getTime()).toBeGreaterThan(start.getTime())
-    })
-
-    it('should validate priority range', () => {
-      const validPriorities = [1, 5, 10]
-      const invalidPriorities = [0, 11, -1]
-      
-      validPriorities.forEach(priority => {
-        expect(priority).toBeGreaterThanOrEqual(1)
-        expect(priority).toBeLessThanOrEqual(10)
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          if (callCount === 4) return mockCurrentTaskQuery
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') return mockAssigneesQuery
+        return {}
       })
       
-      invalidPriorities.forEach(priority => {
-        expect(priority < 1 || priority > 10).toBe(true)
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task',
+        status: 'completed'
       })
+      
+      const response = await handler(mockEvent as any)
+      
+      expect(response.success).toBe(true)
+      expect(replicateCompletedTask).toHaveBeenCalled()
+      expect(response.replicatedTask).toBeDefined()
+      expect(response.replicatedTask.id).toBe(2)
     })
   })
 
-  describe('Date Handling Utilities', () => {
-    it('should calculate due date from start date and repeat interval', () => {
-      const startDate = '2024-01-01'
-      const repeatInterval = 7
+  describe('Authentication and Authorization', () => {
+    it('should return 401 if user is not authenticated', async () => {
+      const { serverSupabaseUser } = await import('#supabase/server')
       
-      const start = new Date(startDate)
-      const due = new Date(start.getTime() + (repeatInterval * 24 * 60 * 60 * 1000))
+      vi.mocked(serverSupabaseUser).mockResolvedValue(null as any)
+      mockGetRouterParam.mockReturnValue('1')
       
-      expect(due.toISOString().split('T')[0]).toBe('2024-01-08')
-    })
-
-    it('should handle repeat interval of 0', () => {
-      const startDate = '2024-01-01'
-      const repeatInterval = 0
-      
-      const start = new Date(startDate)
-      const due = new Date(start.getTime() + (repeatInterval * 24 * 60 * 60 * 1000))
-      
-      expect(due.toISOString().split('T')[0]).toBe(startDate)
-    })
-
-    it('should validate date format', () => {
-      const validDates = ['2024-01-01', '2024-12-31', '2023-06-15']
-      const invalidDates = ['invalid', '2024/01/01', '01-01-2024']
-      
-      validDates.forEach(date => {
-        expect(/^\d{4}-\d{2}-\d{2}$/.test(date)).toBe(true)
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task'
       })
-      
-      invalidDates.forEach(date => {
-        expect(/^\d{4}-\d{2}-\d{2}$/.test(date)).toBe(false)
-      })
-    })
-  })
-
-  describe('Error Handling', () => {
-    it('should handle API errors gracefully', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'))
       
       try {
-        await mockFetch('/api/tasks/1', { method: 'PUT' })
-      } catch (error) {
-        expect(error.message).toBe('Network error')
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(401)
+        expect(error.statusMessage).toContain('Unauthorized')
       }
     })
 
-    it('should handle missing task data', () => {
-      const emptyTask = {
-        id: null,
-        title: '',
-        start_date: null,
-        due_date: null,
-        status: '',
-        priority: null,
-        notes: '',
-        tags: [],
-        assignees: [],
-        subtasks: []
-      }
-
-      expect(emptyTask.id).toBeNull()
-      expect(emptyTask.title.trim()).toBe('')
-      expect(emptyTask.assignees.length).toBe(0)
-    })
-
-    it('should handle invalid task status', () => {
-      const validStatuses = ['not-started', 'in-progress', 'completed', 'blocked']
-      const invalidStatus = 'invalid-status'
+    it('should return 400 if task ID is missing', async () => {
+      const { serverSupabaseUser } = await import('#supabase/server')
       
-      expect(validStatuses.includes(invalidStatus)).toBe(false)
-      expect(validStatuses.includes('in-progress')).toBe(true)
-    })
-  })
-
-  describe('Subtask Data Processing', () => {
-    it('should process subtask data correctly', () => {
-      const rawSubtask = {
-        id: 1,
-        title: 'Subtask 1',
-        start_date: '2024-01-02',
-        due_date: '2024-01-10',
-        status: 'not-started',
-        priority: 3,
-        repeat_interval: 0,
-        notes: 'Subtask notes',
-        tags: ['#subtask'],
-        assignees: [
-          {
-            assigned_to: {
-              id: 1,
-              fullname: 'John Doe'
-            }
-          }
-        ]
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue(null)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task'
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(400)
+        expect(error.statusMessage).toBe('Task ID is required')
       }
+    })
 
-      const processedSubtask = {
-        id: rawSubtask.id,
-        title: rawSubtask.title,
-        start_date: rawSubtask.start_date,
-        due_date: rawSubtask.due_date,
-        status: rawSubtask.status,
-        priority: rawSubtask.priority.toString(),
-        repeat_interval: rawSubtask.repeat_interval.toString(),
-        notes: rawSubtask.notes,
-        tags: rawSubtask.tags,
-        assignee_ids: rawSubtask.assignees.map(a => a.assigned_to.id)
+    it('should return 400 if request body is missing', async () => {
+      const { serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      mockReadBody.mockResolvedValue(null)
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(400)
+        expect(error.statusMessage).toBe('Request body is required')
       }
-
-      expect(processedSubtask.id).toBe(1)
-      expect(processedSubtask.title).toBe('Subtask 1')
-      expect(processedSubtask.priority).toBe('3')
-      expect(processedSubtask.assignee_ids).toEqual([1])
     })
 
-    it('should handle empty subtasks array', () => {
-      const subtasks = []
-      const processedSubtasks = subtasks.map(sub => ({
-        id: sub.id,
-        title: sub.title,
-        start_date: sub.start_date,
-        due_date: sub.due_date,
-        status: sub.status,
-        priority: sub.priority.toString(),
-        repeat_interval: sub.repeat_interval.toString(),
-        notes: sub.notes,
-        tags: sub.tags,
-        assignee_ids: sub.assignees?.map(a => a.assigned_to.id) || []
-      }))
-
-      expect(processedSubtasks).toEqual([])
+    it('should return 403 if user has no permission to edit task', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: false, is_admin: false },
+          error: null
+        })
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      // User is not assigned to task
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 99 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }, { id: 99 }],
+        error: null
+      }
+      
+      // No subtasks
+      const mockSubtasksQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        data: [],
+        error: null
+      }
+      
+      const mockSubAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: []
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          return mockSubtasksQuery
+        }
+        if (table === 'task_assignees') {
+          callCount++
+          if (callCount === 3) return mockAssigneesQuery
+          return mockSubAssigneesQuery
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task'
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(403)
+        expect(error.statusMessage).toContain('You do not have permission to edit this task')
+      }
     })
-  })
 
-  describe('Data Transformation', () => {
-    it('should transform task data for API correctly', () => {
-      const formData = {
-        title: 'Test Task',
-        startDate: '2024-01-01',
-        dueDate: '2024-01-15',
-        status: 'in-progress',
-        priority: 5,
-        repeatInterval: 0,
-        description: 'Test notes',
-        tags: ['#urgent', '#test'],
-        assignedTo: ['1', '2'],
-        subtasks: [
-          {
-            title: 'Subtask 1',
-            startDate: '2024-01-02',
-            dueDate: '2024-01-10',
+    it('should allow managers to edit any task in their department', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
+        })
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      // Task assigned to someone else in the department
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 2 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }, { id: 2 }],
+        error: null
+      }
+      
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Test Task',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
             status: 'not-started',
-            priority: 3,
-            repeatInterval: 0,
-            notes: 'Subtask notes',
-            tags: ['#subtask'],
-            assignedTo: ['1']
-          }
-        ]
+            notes: 'Test notes',
+            priority: 5,
+            repeat_interval: 0,
+            tags: []
+          },
+          error: null
+        })
       }
-
-      const apiData = {
-        task_name: formData.title,
-        start_date: formData.startDate,
-        end_date: formData.dueDate,
-        status: formData.status,
-        priority: formData.priority.toString(),
-        repeat_interval: formData.repeatInterval.toString(),
-        notes: formData.description,
-        tags: formData.tags,
-        assignee_ids: formData.assignedTo.map(id => parseInt(id)),
-        subtasks: formData.subtasks.map(sub => ({
-          title: sub.title,
-          start_date: sub.startDate,
-          due_date: sub.dueDate,
-          status: sub.status,
-          priority: sub.priority.toString(),
-          repeat_interval: sub.repeatInterval.toString(),
-          notes: sub.notes,
-          tags: sub.tags,
-          assignee_ids: sub.assignedTo.map(id => parseInt(id))
-        }))
+      
+      const mockTaskUpdate = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Updated Task',
+            status: 'in-progress',
+            repeat_interval: 0,
+            project_id: 1
+          },
+          error: null
+        })
       }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          if (callCount === 4) return mockCurrentTaskQuery
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') return mockAssigneesQuery
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Updated Task',
+        status: 'in-progress'
+      })
+      
+      const response = await handler(mockEvent as any)
+      
+      expect(response.success).toBe(true)
+      expect(response.task.title).toBe('Updated Task')
+    })
+  })
 
-      expect(apiData.task_name).toBe('Test Task')
-      expect(apiData.assignee_ids).toEqual([1, 2])
-      expect(apiData.subtasks).toHaveLength(1)
-      expect(apiData.subtasks[0].assignee_ids).toEqual([1])
+  describe('Validation', () => {
+    it('should reject invalid priority value', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
+        })
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }],
+        error: null
+      }
+      
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Test Task',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'not-started',
+            notes: 'Test notes',
+            priority: 5,
+            repeat_interval: 0,
+            tags: []
+          },
+          error: null
+        })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          return mockCurrentTaskQuery
+        }
+        if (table === 'task_assignees') return mockAssigneesQuery
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task',
+        priority: 11 // Invalid: must be 1-10
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(400)
+        expect(error.statusMessage).toContain('Invalid priority')
+      }
+    })
+
+    it('should reject more than 5 assignees', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
+        })
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }],
+        error: null
+      }
+      
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Test Task',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'not-started',
+            notes: 'Test notes',
+            priority: 5,
+            repeat_interval: 0,
+            tags: []
+          },
+          error: null
+        })
+      }
+      
+      const mockTaskUpdate = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            status: 'not-started',
+            repeat_interval: 0,
+            project_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockCurrentAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }]
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          if (callCount === 4) return mockCurrentTaskQuery
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') {
+          callCount++
+          if (callCount === 3) return mockAssigneesQuery
+          return mockCurrentAssigneesQuery
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task',
+        assignee_ids: [1, 2, 3, 4, 5, 6] // 6 assignees (exceeds limit)
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(400)
+        expect(error.statusMessage).toBe('Maximum 5 assignees allowed per task')
+      }
+    })
+
+    it('should reject removing assignees by non-manager', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: false, is_admin: false },
+          error: null
+        })
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }, { assigned_to_staff_id: 2 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }, { id: 2 }],
+        error: null
+      }
+      
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Test Task',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'not-started',
+            notes: 'Test notes',
+            priority: 5,
+            repeat_interval: 0,
+            tags: []
+          },
+          error: null
+        })
+      }
+      
+      const mockTaskUpdate = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+        id: 1,
+            title: 'Test Task',
+        status: 'not-started',
+        repeat_interval: 0,
+            project_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockCurrentAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }, { assigned_to_staff_id: 2 }]
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          if (callCount === 4) return mockCurrentTaskQuery
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') {
+          callCount++
+          if (callCount === 3) return mockAssigneesQuery
+          return mockCurrentAssigneesQuery
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'Test Task',
+        assignee_ids: [1] // Removing assignee 2
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(403)
+        expect(error.statusMessage).toContain('Only managers can unassign assignees')
+      }
+    })
+  })
+
+  describe('Activity Logging and Notifications', () => {
+    it('should log task updates', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      const { logTaskUpdate } = await import('~/server/utils/activityLogger')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
+        })
+      }
+      
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 1 }]
+      }
+      
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }],
+        error: null
+      }
+      
+      const mockCurrentTaskQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            title: 'Old Title',
+            start_date: '2024-01-01',
+            due_date: '2024-01-31',
+            status: 'not-started',
+            notes: 'Old notes',
+            priority: 5,
+            repeat_interval: 0,
+            tags: []
+          },
+          error: null
+        })
+      }
+      
+      const mockTaskUpdate = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'New Title',
+            status: 'in-progress',
+            repeat_interval: 0,
+            project_id: 1
+          },
+          error: null
+        })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          callCount++
+          if (callCount === 1) return mockStaffQuery
+          return mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 2) return mockTaskExistsQuery
+          if (callCount === 4) return mockCurrentTaskQuery
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') return mockAssigneesQuery
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        task_name: 'New Title',
+        status: 'in-progress'
+      })
+      
+      await handler(mockEvent as any)
+      
+      expect(logTaskUpdate).toHaveBeenCalledWith(
+        mockSupabase,
+        1,
+        1,
+        expect.arrayContaining([
+          expect.objectContaining({ field: 'title' }),
+          expect.objectContaining({ field: 'status' })
+        ])
+      )
     })
   })
 })

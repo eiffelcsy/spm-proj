@@ -1,4 +1,4 @@
-import { defineEventHandler, readBody, getRouterParam } from 'h3'
+import { defineEventHandler, readBody, getRouterParam, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import { logTaskUpdate, logTaskAssignment, logTaskCompletion, logTaskUnassignment } from '../../../utils/activityLogger'
 import { 
