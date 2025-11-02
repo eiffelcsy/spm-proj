@@ -33,6 +33,7 @@ import {
     LogOut,
     UserCog,
     FileChartColumn,
+    Archive,
 } from "lucide-vue-next"
 
 // ============================================================================
@@ -81,7 +82,8 @@ const isProjectsDashboardActive = computed(() => {
 /**
  * Determine if the current route is within the admin section
  */
-const isAdminPanelActive = computed(() => route.path.startsWith('/admin')) // <-- 3. ADDED ACTIVE CHECK FOR ADMIN
+const isAdminUsersActive = computed(() => route.path.startsWith('/admin/users'))
+const isAdminArchiveActive = computed(() => route.path.startsWith('/admin/archive'))
 
 /**
  * Determine if the current route is within the manager section
@@ -211,11 +213,20 @@ onMounted(() => {
               </SidebarMenuButton>
             </SidebarMenuItem> 
 
-            <SidebarMenuItem v-if="isAdmin" key="AdminPanel">
-              <SidebarMenuButton as-child :class="getActiveClasses(isAdminPanelActive)">
+            <SidebarMenuItem v-if="isAdmin" key="AdminUsers">
+              <SidebarMenuButton as-child :class="getActiveClasses(isAdminUsersActive)">
                 <NuxtLink to="/admin/users">
                   <UserCog class="size-4" />
                   <span>User Management</span>
+                </NuxtLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem v-if="isAdmin" key="AdminArchive">
+              <SidebarMenuButton as-child :class="getActiveClasses(isAdminArchiveActive)">
+                <NuxtLink to="/admin/archive">
+                  <Archive class="size-4" />
+                  <span>Archived Items</span>
                 </NuxtLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
