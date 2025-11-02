@@ -1,6 +1,5 @@
 import { defineEventHandler } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
-import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseServiceRole(event)
@@ -28,25 +27,14 @@ export default defineEventHandler(async (event) => {
     })
   }
   const currentStaffId = (staffIdData as { id: number; department: string | null }).id
-  const currentDepartment = (staffIdData as { id: number; department: string | null }).department
   
   try {
-    // Get staff IDs from departments visible to current user based on hierarchy
-    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
-
-    // If user has no department or can't see any staff, they can't see any tasks
-    if (visibleStaffIds.length === 0) {
-      return {
-        tasks: [],
-        count: 0
-      }
-    }
-
-    // Get task IDs where visible staff are assignees
+    // For personal dashboard, only show tasks assigned to the current user
+    // Get task IDs where the current user is an assignee
     const { data: assignedTaskIds, error: assigneeError } = await supabase
       .from('task_assignees')
       .select('task_id')
-      .in('assigned_to_staff_id', visibleStaffIds)
+      .eq('assigned_to_staff_id', currentStaffId)
       .eq('is_active', true)
 
     if (assigneeError && assigneeError.code !== 'PGRST116') {
@@ -59,7 +47,7 @@ export default defineEventHandler(async (event) => {
 
     const assignedTaskIdList = assignedTaskIds?.map((row: any) => row.task_id) || []
 
-    // Fetch overdue tasks assigned to visible staff (excluding soft-deleted tasks)
+    // Fetch overdue tasks assigned to current user (excluding soft-deleted tasks)
     let query = supabase
       .from('tasks')
       .select('*')
@@ -68,7 +56,7 @@ export default defineEventHandler(async (event) => {
       .is('deleted_at', null)
       .order('due_date', { ascending: true })
 
-    // Only show tasks where visible staff are assigned
+    // Only show tasks where the current user is assigned
     if (assignedTaskIdList.length > 0) {
       query = query.in('id', assignedTaskIdList)
     } else {
