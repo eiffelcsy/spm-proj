@@ -22,6 +22,27 @@ if (!RESEND_CONFIG.apiKey) {
 // Create Resend instance
 const resend = new Resend(RESEND_CONFIG.apiKey)
 
+// Rate limiting configuration - Resend allows 2 requests per second
+const RATE_LIMIT = {
+  maxRequests: 2,
+  windowMs: 1000, // 1 second
+  minDelayMs: 500 // Minimum delay between requests (500ms = max 2 per second)
+}
+
+// Email queue for rate limiting
+interface EmailQueueItem {
+  recipient: EmailRecipient
+  template: EmailTemplate
+  resolve: (value: boolean) => void
+  reject: (reason: any) => void
+  retries: number
+}
+
+const emailQueue: EmailQueueItem[] = []
+let isProcessing = false
+let lastEmailSentAt = 0
+const maxRetries = 3
+
 export interface EmailTemplate {
   subject: string
   html: string
@@ -552,11 +573,12 @@ ${COMMON_TEXT_FOOTER}
 }
 
 /**
- * Core email sending function (Resend API)
+ * Process a single email with rate limiting and retry logic
  */
-export async function sendEmail(
+async function processEmailRequest(
   recipient: EmailRecipient,
-  template: EmailTemplate
+  template: EmailTemplate,
+  retries: number = 0
 ): Promise<boolean> {
   try {
     const { data, error } = await resend.emails.send({
@@ -568,16 +590,103 @@ export async function sendEmail(
     })
 
     if (error) {
+      // Check if it's a rate limit error (429)
+      if (error.statusCode === 429) {
+        if (retries < maxRetries) {
+          // Exponential backoff: wait longer for each retry
+          const backoffDelay = Math.min(1000 * Math.pow(2, retries), 10000)
+          console.warn(`Rate limit hit for ${recipient.email}, retrying after ${backoffDelay}ms (attempt ${retries + 1}/${maxRetries})`)
+          await new Promise(resolve => setTimeout(resolve, backoffDelay))
+          return processEmailRequest(recipient, template, retries + 1)
+        } else {
+          console.error(`Rate limit exceeded for ${recipient.email} after ${maxRetries} retries`)
+          return false
+        }
+      }
+      
       console.error('Failed to send email:', error)
       return false
     }
 
     console.log('Email sent successfully:', data?.id)
     return true
-  } catch (error) {
+  } catch (error: any) {
+    // Check if it's a rate limit error (429)
+    if (error?.statusCode === 429) {
+      if (retries < maxRetries) {
+        const backoffDelay = Math.min(1000 * Math.pow(2, retries), 10000)
+        console.warn(`Rate limit exception for ${recipient.email}, retrying after ${backoffDelay}ms (attempt ${retries + 1}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, backoffDelay))
+        return processEmailRequest(recipient, template, retries + 1)
+      } else {
+        console.error(`Rate limit exceeded for ${recipient.email} after ${maxRetries} retries`)
+        return false
+      }
+    }
+    
     console.error('Failed to send email:', error)
     return false
   }
+}
+
+/**
+ * Process the email queue with rate limiting
+ */
+async function processEmailQueue() {
+  if (isProcessing || emailQueue.length === 0) {
+    return
+  }
+
+  isProcessing = true
+
+  while (emailQueue.length > 0) {
+    const item = emailQueue.shift()
+    if (!item) break
+
+    try {
+      // Ensure minimum delay between requests
+      const timeSinceLastEmail = Date.now() - lastEmailSentAt
+      if (timeSinceLastEmail < RATE_LIMIT.minDelayMs) {
+        await new Promise(resolve => 
+          setTimeout(resolve, RATE_LIMIT.minDelayMs - timeSinceLastEmail)
+        )
+      }
+
+      const success = await processEmailRequest(
+        item.recipient,
+        item.template,
+        item.retries
+      )
+      
+      lastEmailSentAt = Date.now()
+      item.resolve(success)
+    } catch (error) {
+      item.reject(error)
+    }
+  }
+
+  isProcessing = false
+}
+
+/**
+ * Core email sending function (Resend API) with rate limiting
+ */
+export async function sendEmail(
+  recipient: EmailRecipient,
+  template: EmailTemplate
+): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    emailQueue.push({
+      recipient,
+      template,
+      resolve,
+      reject,
+      retries: 0
+    })
+
+    // Start processing if not already processing
+    processEmailQueue().catch(reject)
+  })
 }
 
 /**
