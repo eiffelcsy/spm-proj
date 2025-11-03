@@ -35,11 +35,14 @@
   <Dialog :open="open && !isSuccessDialogOpen" @update:open="handleClose">
     <DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{{
-          isSubtask ? "Edit Subtask" : "Edit Task"
-        }}</DialogTitle>
+        <DialogTitle>{{ isSubtask ? "Edit Subtask" : "Edit Task" }}</DialogTitle>
         <DialogDescription> Update the task details below. </DialogDescription>
       </DialogHeader>
+
+      <!-- Error message (match CreateTask style) -->
+      <div v-if="errorMessage" class="mb-4 p-3 rounded bg-red-100 text-red-700">
+        {{ errorMessage }}
+      </div>
 
       <form @submit.prevent="updateTask" class="space-y-4">
         <!-- Title -->
@@ -193,7 +196,7 @@
               <div class="flex gap-2 mb-2">
                 <Input v-model="subtask.title" type="text" placeholder="Subtask Title"
                   class="flex-1 border rounded-lg px-3 py-2 bg-white" required />
-                <Button type="button" @click="toggleSubtaskExpanded(index)" variant="outline" class="px-3 py-2"
+                <Button variant="outline" type="button" @click="toggleSubtaskExpanded(index)" class="px-3 py-2"
                   :title="subtask.expanded ? 'Collapse details' : 'Expand details'">
                   <span class="inline-block transition-transform duration-200"
                     :class="{ '-rotate-90': !subtask.expanded }">▼</span> Details
@@ -308,7 +311,7 @@
                 </div>
               </div>
             </div>
-            <Button variant="outline" @click="addSubtask">
+            <Button variant="outline" type="button" @click="addSubtask">
               <PlusIcon class="h-4 w-4 mr-2" />
               Add Subtask
             </Button>
@@ -316,7 +319,7 @@
         </div>
 
         <DialogFooter class="gap-2">
-          <Button variant="outline" @click="$emit('update:open', false)">
+          <Button type="button" variant="outline" @click="handleClose">
             Cancel
           </Button>
           <Button type="submit">
@@ -504,7 +507,11 @@ watch(startDate, (newStartDate) => {
 });
 
 const handleClose = () => {
-  emit("update:open", false);
+  // clear UI messages when modal closed
+  errorMessage.value = ""
+  successMessage.value = ""
+  isSuccessDialogOpen.value = false
+  emit("update:open", false)
 };
 
 function populateForm() {
@@ -795,17 +802,30 @@ async function updateTask() {
 
     // Show success dialog
     isSuccessDialogOpen.value = true;
+    successMessage.value = "Task updated successfully."
+    errorMessage.value = ""
   } catch (err: any) {
     console.error("Error updating task:", err);
-    errorMessage.value =
-      err.message || "Something went wrong. Task was not updated.";
+
+    const serverMessage =
+      err?.data?.statusMessage ||
+      err?.data?.message ||
+      err?.statusMessage ||
+      (err?.response && err.response?.statusText) ||
+      err?.message ||
+      JSON.stringify(err);
+
+    errorMessage.value = String(serverMessage);
     successMessage.value = "";
   }
 }
 
 const handleSuccessDialogClose = () => {
-  isSuccessDialogOpen.value = false;
-  emit("update:open", false);
+  // clear messages and close both dialogs
+  isSuccessDialogOpen.value = false
+  errorMessage.value = ""
+  successMessage.value = ""
+  emit("update:open", false)
 }
 
 function formatDate(date: DateValue) {
