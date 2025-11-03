@@ -34,7 +34,8 @@ const emit = defineEmits(['rowClick', 'create-task', 'refresh-tasks'])
 function handleRowClick(row: any) {
     emit('rowClick', row.original)
 }
-const sorting = ref([])
+// Set default sorting to priority descending (highest priority at the top)
+const sorting = ref([{ id: 'priority', desc: true }])
 const table = useVueTable({
     get data() { return props.data },
     get columns() { return props.columns },

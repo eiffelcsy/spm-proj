@@ -205,7 +205,9 @@ export function createNumericPriorityColumn() {
     cell: ({ row }: any) => {
       const priority = row.getValue('priority') as number | null | undefined
       const displayValue = priority && priority >= 1 && priority <= 10 ? priority.toString() : '—'
-      return h('div', { class: 'text-center font-medium' }, displayValue)
+      // Color priorities 8, 9, and 10 in red to indicate high priority
+      const colorClass = priority && priority >= 8 && priority <= 10 ? 'text-red-600' : ''
+      return h('div', { class: `text-center font-medium ${colorClass}` }, displayValue)
     },
     enableSorting: true,
     enableFiltering: true,
