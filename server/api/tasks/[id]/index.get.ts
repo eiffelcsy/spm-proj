@@ -1,4 +1,4 @@
-import { defineEventHandler, getRouterParam } from 'h3'
+import { defineEventHandler, getRouterParam, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import { getVisibleStaffIds } from '../../../utils/departmentHierarchy'
 
@@ -218,27 +218,19 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if current user can edit/delete this task
-    // Managers and admins can edit/delete any task they can view (based on department hierarchy)
-    // Regular staff: assigned users OR task creator (if unassigned)
     const isAssigned = assignees.some((assignee: any) => assignee.assigned_to.id === currentStaffId)
-    const isTaskAssigned = assignees.some((assignee: any) => assignee.assigned_to.id !== null)
-    const isCreator = creator && (creator as any).id === currentStaffId
-    
+
     let canEdit = false
     let canDelete = false
     
-    if (isManager || isAdmin) {
-      // Managers and admins can edit and delete any task they can view
+    if (isManager) {
+      // Managers can edit and delete any task they can view
       canEdit = true
       canDelete = true
-    } else if (isTaskAssigned) {
-      // If task is assigned, only assigned person can edit/delete
-      canEdit = Boolean(isAssigned || isCreator)
-      canDelete = isAssigned
-    } else {
-      // If task is unassigned, only task creator can edit/delete
-      canEdit = Boolean(isCreator)
-      canDelete = Boolean(isCreator)
+    } else if (isAssigned) {
+      // Assigned users can edit and delete the task
+      canEdit = true
+      canDelete = true
     }
     
     // Attach history, subtasks, assignees, creator, project, and permissions to the task object
