@@ -1,4 +1,4 @@
-import { defineEventHandler, readBody, getRouterParam } from 'h3'
+import { defineEventHandler, readBody, getRouterParam, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import { getVisibleStaffIds } from '../../../../utils/departmentHierarchy'
 import type { CommentCreateInput, TaskCommentWithStaff } from '~/types'
