@@ -1,6 +1,7 @@
 import { defineEventHandler } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { ProjectDB } from '~/types'
+import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
 // Using ProjectDB from types instead of local interface
 
@@ -30,19 +31,11 @@ export default defineEventHandler(async (event) => {
         return []
     }
 
-    // Get all staff IDs in the same department
-    const { data: departmentStaff, error: deptError } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('department', currentDepartment)
+    // Get staff IDs from departments visible to current user based on hierarchy
+    // This includes the user's own department and all sub-departments they can view
+    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
 
-    if (deptError) {
-        throw createError({ statusCode: 500, statusMessage: deptError.message })
-    }
-
-    const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
-
-    if (departmentStaffIds.length === 0) {
+    if (visibleStaffIds.length === 0) {
         return []
     }
 
@@ -90,13 +83,13 @@ export default defineEventHandler(async (event) => {
             continue
         }
 
-        // Check if any assignee is from the user's department
+        // Check if any assignee is from visible departments (based on hierarchy)
         if (taskAssignees) {
-            const hasDepartmentAssignee = taskAssignees.some((assignee: any) => 
-                departmentStaffIds.includes(assignee.assigned_to_staff_id)
+            const hasVisibleAssignee = taskAssignees.some((assignee: any) => 
+                visibleStaffIds.includes(assignee.assigned_to_staff_id)
             )
 
-            if (hasDepartmentAssignee) {
+            if (hasVisibleAssignee) {
                 visibleProjectIds.add(project.id)
             }
         }
