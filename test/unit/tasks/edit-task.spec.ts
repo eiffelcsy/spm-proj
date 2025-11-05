@@ -1343,8 +1343,6 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
     })
   })
 
-  // Note: assignee update handling tests removed temporarily
-
   describe('Update DB error paths', () => {
     it('returns 404 when update returns PGRST116', async () => {
       const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
