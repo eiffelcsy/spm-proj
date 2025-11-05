@@ -152,6 +152,106 @@ describe('DELETE /api/tasks/[id] - Delete Task API Endpoint', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('tasks')
     })
 
+    it('should cascade soft delete descendant subtasks before deleting task', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'manager-1' } as any)
+      mockGetRouterParam.mockReturnValue('10')
+
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 5, department: 'Engineering', is_manager: true, is_admin: false },
+          error: null
+        })
+      }
+
+      const mockTaskExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 10, deleted_at: null },
+          error: null
+        })
+      }
+
+      const mockAssigneesQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ assigned_to_staff_id: 5 }]
+      }
+
+      const mockDepartmentStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        data: [{ id: 5 }, { id: 6 }],
+        error: null
+      }
+
+      const createSubtaskQuery = (children: Array<{ id: number }>) => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        data: children,
+        error: null
+      })
+
+      const subtaskQueries = [
+        createSubtaskQuery([{ id: 11 }, { id: 12 }]),
+        createSubtaskQuery([{ id: 13 }]),
+        createSubtaskQuery([]),
+        createSubtaskQuery([])
+      ]
+
+      const cascadeUpdate = {
+        update: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({ error: null })
+      }
+
+      const mockTaskUpdate = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockResolvedValue({
+          data: [{ id: 10, title: 'Parent Task', deleted_at: new Date().toISOString() }],
+          error: null
+        })
+      }
+
+      let staffCall = 0
+      let taskCall = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') {
+          staffCall++
+          return staffCall === 1 ? mockStaffQuery : mockDepartmentStaffQuery
+        }
+        if (table === 'tasks') {
+          taskCall++
+          if (taskCall === 1) return mockTaskExistsQuery
+          if (taskCall >= 2 && taskCall <= 5) {
+            return subtaskQueries[taskCall - 2]
+          }
+          if (taskCall === 6) {
+            return cascadeUpdate
+          }
+          return mockTaskUpdate
+        }
+        if (table === 'task_assignees') {
+          return mockAssigneesQuery
+        }
+        return {}
+      })
+
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+
+      const response = await handler(mockEvent as any)
+
+      expect(response.success).toBe(true)
+      expect(cascadeUpdate.update).toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String) }))
+      expect(cascadeUpdate.in).toHaveBeenCalledWith('id', [11, 12, 13])
+    })
+
   })
 
   describe('Authentication and Authorization', () => {
@@ -783,6 +883,24 @@ describe('DELETE /api/tasks/[id] - Delete Task API Endpoint', () => {
         expect(error.statusCode).toBe(500)
         expect(error.statusMessage).toBe('Failed to soft delete task')
       }
+    })
+
+    it('wraps unexpected exceptions in an internal server error', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+
+      mockSupabase.from.mockImplementation(() => {
+        throw new Error('Unexpected failure')
+      })
+
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+
+      await expect(handler(mockEvent as any)).rejects.toMatchObject({
+        statusCode: 500,
+        statusMessage: 'Internal server error'
+      })
     })
   })
 })

@@ -256,4 +256,35 @@ describe('GET /api/admin/archive', () => {
       task_count: 1,
     })
   })
+
+  it('should skip project lookup when no archived tasks reference a project', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 1, is_admin: true }),
+      tasks: createResult([
+        {
+          id: 1,
+          title: 'Archived Orphan',
+          status: 'archived',
+          deleted_at: '2024-03-01T00:00:00Z',
+          project_id: null,
+          creator_id: 4,
+          parent_task_id: null,
+          priority: 2,
+        },
+      ]),
+      projects: createResult([], null),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.tasks).toHaveLength(1)
+    expect(response.tasks[0]).toMatchObject({ id: 1, project: null })
+    expect(response.projects).toEqual([])
+
+    const projectCalls = supabase.from.mock.calls.filter(([table]) => table === 'projects')
+    expect(projectCalls).toHaveLength(1)
+  })
 })
