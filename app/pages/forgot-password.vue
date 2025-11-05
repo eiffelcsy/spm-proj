@@ -1,53 +1,52 @@
 <template>
-  <div class="home-container">
-    <div class="left-section">
-      <img src="../assets/office-picture.jpg" alt="office" class="left-image" />
+  <div class="grid min-h-svh lg:grid-cols-2">
+    <div class="relative hidden bg-muted lg:block">
+      <img src="/assets/office-picture.jpg" alt="Image"
+        class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale">
     </div>
-
-    <div class="right-section forgot-password-section">
-      <div class="forgot-password-card-container">
-        <NuxtLink to="/login" class="back-link">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="back-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          <span class="back-text">Back to Login</span>
-        </NuxtLink>
-        <div class="forgot-password-card">
-          <h1 class="forgot-password-title">Forgot Password</h1>
-          <p class="forgot-password-description">
-            Enter your email to receive a password reset link.
-          </p>
-          <form @submit.prevent="handleReset" class="forgot-password-form">
-            <div class="form-group">
-              <label for="email" class="form-label">Email</label>
-              <input
-                id="email"
-                type="email"
-                v-model="email"
-                class="form-input"
-                placeholder="Enter your email"
-                required
-              />
+    <div class="flex flex-col gap-4 p-6 md:p-10">
+      <div class="flex flex-1 items-center justify-center">
+        <div class="w-full max-w-sm">
+          <div class="flex items-center justify-center text-center mb-10">
+            <CheckSquare class="w-10 h-10 mr-2" />
+            <h1 class="text-4xl font-bold">
+              TaskAIO
+            </h1>
+          </div>
+          <form @submit.prevent="handleReset" :class="cn('flex flex-col gap-6')">
+            <div class="flex flex-col items-center gap-2 text-center">
+              <h1 class="text-2xl font-bold">
+                Forgot your password?
+              </h1>
+              <p class="text-balance text-sm text-muted-foreground">
+                Enter your email, and we'll send you a reset link.
+              </p>
             </div>
-            <button
-              type="submit"
-              class="forgot-password-button"
-              :disabled="loading"
-            >
-              {{ loading ? 'Sending...' : 'Send Reset Link' }}
-            </button>
-            <div v-if="successMsg" class="success-message">{{ successMsg }}</div>
-            <div v-if="errorMsg" class="error-message">{{ errorMsg }}</div>
+            <div class="grid gap-6">
+              <div v-if="errorMsg" class="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                {{ errorMsg }}
+              </div>
+              <div v-if="successMsg" class="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md">
+                {{ successMsg }}
+              </div>
+              <div class="grid gap-2">
+                <Label for="email">Email</Label>
+                <Input id="email" v-model="email" type="email" placeholder="m@example.com" required />
+              </div>
+              <Button type="submit" class="w-full" :disabled="loading">
+                <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {{ loading ? 'Sending...' : 'Send Reset Link' }}
+              </Button>
+            </div>
+            <div class="text-center text-sm">
+              Remembered your password?
+              <NuxtLink href="/login" class="underline underline-offset-4">
+                Back to Login
+              </NuxtLink>
+            </div>
           </form>
         </div>
       </div>
@@ -57,6 +56,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { cn } from '@/lib/utils'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { CheckSquare } from "lucide-vue-next"
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -96,174 +100,5 @@ const handleReset = async () => {
 };
 </script>
 
-<style scoped>
-/* Main container for the layout */
-.home-container {
-  display: flex;
-  min-height: 100vh;
-  overflow: hidden;
-}
-
-/* Left Section with Photo */
-.left-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.left-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  max-height: 100vh;
-}
-
-/* Right Section with Forgot Password Card */
-.right-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f0f2f5;
-}
-
-/* Back Link Styling */
-.back-link {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #5a5a5a;
-  text-decoration: none;
-  font-size: 1em;
-  font-weight: 500;
-  transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.back-link:hover {
-  color: #007bff;
-  transform: translateX(-4px);
-}
-
-.back-icon {
-  width: 20px;
-  height: 20px;
-}
-
-/* Forgot Password Card Styling */
-.forgot-password-card-container {
-  position: relative;
-  padding: 40px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  max-width: 450px;
-  width: 100%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.8s ease-in-out forwards;
-}
-
-.forgot-password-card {
-  text-align: left;
-}
-
-.forgot-password-title {
-  font-size: 2.5em;
-  margin-bottom: 0.2em;
-  color: #333;
-  text-align: center;
-  font-weight: 700;
-}
-
-.forgot-password-description {
-  font-size: 1.2em;
-  margin-bottom: 1.5em;
-  color: #777;
-  text-align: center;
-}
-
-.forgot-password-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group {
-  margin-bottom: 1.5em;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 0.5em;
-  font-size: 1em;
-  color: #555;
-}
-
-.form-input {
-  width: 100%;
-  padding: 12px;
-  font-size: 1em;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  transition: border-color 0.3s ease;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-}
-
-.forgot-password-button {
-  padding: 14px 24px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1.1em;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  font-weight: 600;
-}
-
-.forgot-password-button:hover {
-  background-color: #0056b3;
-  transform: translateY(-2px);
-}
-
-.success-message {
-  color: #28a745;
-  font-size: 1em;
-  margin-top: 1.5em;
-  text-align: center;
-  background-color: #e9f7ef;
-  border: 1px solid #d4edda;
-  padding: 10px;
-  border-radius: 6px;
-}
-
-.error-message {
-  color: #dc3545;
-  font-size: 1em;
-  margin-top: 1.5em;
-  text-align: center;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  padding: 10px;
-  border-radius: 6px;
-}
-
-/* Optional animation to make it look nicer */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+<style>
 </style>

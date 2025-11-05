@@ -1,30 +1,74 @@
 <template>
-    <div class="update-password-container">
-      <h1>Update Your Password</h1>
-      <p>Please enter your new password below.</p>
-      <form @submit.prevent="handleUpdate">
-        <div>
-          <label for="new-password">New Password</label>
-          <input id="new-password" type="password" v-model="newPassword" required />
-        </div>
-        <button type="submit" :disabled="loading">
-          {{ loading ? 'Updating...' : 'Update Password' }}
-        </button>
-        <div v-if="successMsg" class="success-message">{{ successMsg }}</div>
-        <div v-if="errorMsg" class="error-message">{{ errorMsg }}</div>
-      </form>
+  <div class="grid min-h-svh lg:grid-cols-2">
+    <div class="relative hidden bg-muted lg:block">
+      <img src="/assets/office-picture.jpg" alt="Image"
+        class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale">
     </div>
-  </template>
+    <div class="flex flex-col gap-4 p-6 md:p-10">
+      <div class="flex flex-1 items-center justify-center">
+        <div class="w-full max-w-sm">
+          <div class="flex items-center justify-center text-center mb-10">
+            <CheckSquare class="w-10 h-10 mr-2" />
+            <h1 class="text-4xl font-bold">
+              TaskAIO
+            </h1>
+          </div>
+          <form @submit.prevent="handleUpdate" :class="cn('flex flex-col gap-6')">
+            <div class="flex flex-col items-center gap-2 text-center">
+              <h1 class="text-2xl font-bold">
+                Update your password
+              </h1>
+              <p class="text-balance text-sm text-muted-foreground">
+                Enter a new password for your account.
+              </p>
+            </div>
+            <div class="grid gap-6">
+              <div v-if="errorMsg" class="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                {{ errorMsg }}
+              </div>
+              <div v-if="successMsg" class="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md">
+                {{ successMsg }}
+              </div>
+              <div class="grid gap-2">
+                <Label for="new-password">New Password</Label>
+                <Input id="new-password" v-model="newPassword" type="password" required />
+              </div>
+              <Button type="submit" class="w-full" :disabled="loading">
+                <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {{ loading ? 'Updating...' : 'Update Password' }}
+              </Button>
+            </div>
+            <div class="text-center text-sm">
+              Remembered your password?
+              <NuxtLink href="/login" class="underline underline-offset-4">
+                Back to Login
+              </NuxtLink>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
   
-  <script setup lang="ts">
-  import { onMounted, ref } from 'vue';
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { useSupabaseClient, useRouter } from '#imports'
+import { cn } from '@/lib/utils'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { CheckSquare } from "lucide-vue-next"
 
-  // ============================================================================
-  // ROUTING & SERVICES
-  // ============================================================================
-  
-  const supabase = useSupabaseClient();
-  const router = useRouter();
+// ============================================================================
+// ROUTING & SERVICES
+// ============================================================================
+
+const supabase = useSupabaseClient();
+const router = useRouter();
 
   // ============================================================================
   // STATE MANAGEMENT
@@ -52,38 +96,37 @@
   // EVENT HANDLERS
   // ============================================================================
   
-  const handleUpdate = async () => {
-    try {
-      loading.value = true;
-      errorMsg.value = '';
-      successMsg.value = '';
-  
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        throw new Error('Auth session missing. Please use the password reset link from your email.');
-      }
-  
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword.value,
-      });
-  
-      if (error) {
-        throw error;
-      }
-  
-      successMsg.value = 'Password updated successfully! Redirecting to login...';
-      
-      // Redirect to login page after a short delay
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
-  
-    } catch (error: any) {
-      errorMsg.value = error.message;
-    } finally {
-      loading.value = false;
+const handleUpdate = async () => {
+  try {
+    loading.value = true;
+    errorMsg.value = '';
+    successMsg.value = '';
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      throw new Error('Auth session missing. Please use the password reset link from your email.');
     }
-  };
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword.value,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    successMsg.value = 'Password updated successfully! Redirecting to login...';
+    
+    setTimeout(() => {
+      router.push('/login');
+    }, 2000);
+
+  } catch (error: any) {
+    errorMsg.value = error.message;
+  } finally {
+    loading.value = false;
+  }
+};
 
   // ============================================================================
   // LIFECYCLE HOOKS
@@ -112,51 +155,7 @@
       }
     }
   });
-  </script>
-  
-  <style scoped>
-  .update-password-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    text-align: center;
-  }
-  
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  input {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-  }
-  
-  button {
-    padding: 10px;
-    cursor: pointer;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-  }
-  
-  button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-  
-  .error-message {
-    color: red;
-    margin-top: 10px;
-  }
-  
-  .success-message {
-    color: green;
-    margin-top: 10px;
-  }
-  </style>
+</script>
+
+<style>
+</style>
