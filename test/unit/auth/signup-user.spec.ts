@@ -105,8 +105,8 @@ describe('Signup user', () => {
     })
 
     await expect(handler(mockEvent as any)).rejects.toMatchObject({
-      statusCode: 400,
-      statusMessage: 'User already registered',
+      statusCode: 409,
+      statusMessage: 'An account with this email already exists. Try signing in or resetting your password.',
     })
     expect(mockInsert).not.toHaveBeenCalled()
   })
