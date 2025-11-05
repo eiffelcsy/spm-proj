@@ -22,9 +22,13 @@ export default defineEventHandler(async (event) => {
   });
 
   if (authError) {
+    const rawMessage = authError.message || '';
+    const looksLikeDuplicateEmail = /already\s+registered|already\s+exists|email\s+exists/i.test(rawMessage);
     throw createError({
-      statusCode: authError.status || 400,
-      statusMessage: authError.message,
+      statusCode: looksLikeDuplicateEmail ? 409 : (authError.status || 400),
+      statusMessage: looksLikeDuplicateEmail
+        ? 'An account with this email already exists. Try signing in or resetting your password.'
+        : rawMessage,
     });
   }
   
@@ -50,9 +54,14 @@ export default defineEventHandler(async (event) => {
     }]);
 
   if (staffInsertError) {
+    const code = (staffInsertError as any).code;
+    const message = staffInsertError.message || '';
+    const fkViolation = code === '23503' || /staff_user_id_fkey/i.test(message);
     throw createError({
-      statusCode: 500,
-      statusMessage: staffInsertError.message,
+      statusCode: fkViolation ? 409 : 500,
+      statusMessage: fkViolation
+        ? 'An account with this email already exists. Try signing in or resetting your password.'
+        : message,
     });
   }
 
