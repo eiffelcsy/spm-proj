@@ -185,6 +185,9 @@
               <div class="flex items-center space-x-2 text-muted-foreground">
                 <ListTodo class="h-4 w-4" />
                 <span>{{ getProjectTaskCount(project.id) }} tasks</span>
+                <span v-if="getProjectOverdueCount(project.id) > 0" class="text-red-600">
+                  ({{ getProjectOverdueCount(project.id) }} overdue)
+                </span>
               </div>
               <div class="flex items-center space-x-2 text-muted-foreground">
                 <Calendar class="h-4 w-4" />
@@ -264,6 +267,9 @@
                   <div class="flex items-center space-x-1">
                     <ListTodo class="h-4 w-4" />
                     <span>{{ getProjectTaskCount(project.id) }}</span>
+                    <span v-if="getProjectOverdueCount(project.id) > 0" class="text-red-600">
+                      ({{ getProjectOverdueCount(project.id) }} overdue)
+                    </span>
                   </div>
                   <div v-if="project.assigned_user_ids && project.assigned_user_ids.length > 0" class="flex items-center space-x-1">
                     <Users class="h-4 w-4" />
@@ -563,6 +569,21 @@ function getProjectTaskCount(projectId: string): number {
   return count
 }
 
+function getProjectOverdueCount(projectId: string): number {
+  // Ensure rawTasks.value is an array before calling filter
+  if (!Array.isArray(rawTasks.value)) {
+    return 0
+  }
+  
+  // Count overdue tasks for the specified project
+  const projectIdNum = parseInt(projectId, 10)
+  const count = rawTasks.value.filter(task => {
+    const taskProjectId = typeof task.project_id === 'number' ? task.project_id : parseInt(task.project_id, 10)
+    return taskProjectId === projectIdNum && task.status !== 'completed' && isOverdue(task.due_date)
+  }).length
+  
+  return count
+}
 
 function capitalizeStatus(status: string): string {
   if (status === 'in-progress') return 'In Progress'
