@@ -154,6 +154,32 @@ describe('POST /api/notifications/read-all', () => {
     })
     expect(supabase.from).toHaveBeenCalledWith('notifications')
   })
+
+  it('should wrap unexpected errors as internal server error', async () => {
+    const unexpectedSupabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'staff') {
+          return createQuery(createResult({ id: 25 }))
+        }
+        if (table === 'notifications') {
+          return {
+            update: vi.fn(() => {
+              throw new Error('unexpected update failure')
+            }),
+          }
+        }
+        return createQuery(createResult(null))
+      }),
+    }
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(unexpectedSupabase as any)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
 })
 
 

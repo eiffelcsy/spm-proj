@@ -213,6 +213,59 @@ describe('POST /api/assignee - Assign assignees to a task', () => {
       statusMessage: 'Failed to insert'
     })
   })
+
+  it('should treat non-array assignee_ids as empty and throw 400', async () => {
+    const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+    vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+
+    mockSupabase.from.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: 9 }, error: null })
+    }))
+
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+
+    mockReadBody.mockResolvedValue({
+      task_id: 1,
+      assignee_ids: '2'
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 400,
+      statusMessage: 'At least one assignee is required'
+    })
+  })
+
+  it('should return 500 when staff lookup fails', async () => {
+    const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+    vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+
+    const mockStaffQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } })
+    }
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'staff') return mockStaffQuery
+      return {
+        insert: vi.fn()
+      }
+    })
+
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+
+    mockReadBody.mockResolvedValue({
+      task_id: 1,
+      assignee_ids: [2]
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'boom'
+    })
+  })
 })
 
 

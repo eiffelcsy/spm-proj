@@ -233,6 +233,95 @@ describe('GET /api/tasks/[id]', () => {
       },
     })
   })
+
+  it('should return 500 when activity timeline fetch fails', async () => {
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering', is_manager: true, is_admin: false }),
+        createResult([{ id: 10, fullname: 'Current User' }]),
+      ],
+      tasks: [
+        createResult({
+          id: 1,
+          creator_id: null,
+          project_id: null,
+          parent_task_id: null,
+        }),
+        createResult([]),
+      ],
+      task_assignees: createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: null }]),
+      activity_timeline: createResult(null, { message: 'timeline failed' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Failed to fetch activity timeline',
+    })
+  })
+
+  it('should include subtasks with creators and assignees', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10, 13])
+
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering', is_manager: true, is_admin: false }),
+        createResult({ id: 5, fullname: 'Main Creator' }),
+        createResult([{ id: 10, fullname: 'Current User' }, { id: 11, fullname: 'Manager User' }]),
+        createResult({ id: 12, fullname: 'Sub Creator' }),
+        createResult([{ id: 13, fullname: 'Sub Assignee' }, { id: 11, fullname: 'Manager User' }]),
+      ],
+      tasks: [
+        createResult({
+          id: 1,
+          creator_id: 5,
+          project_id: 3,
+          parent_task_id: null,
+        }),
+        createResult([{ id: 100, creator_id: 12, parent_task_id: 1, title: 'Subtask A' }]),
+      ],
+      projects: createResult({ id: 3, name: 'Project X' }),
+      task_assignees: [
+        createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: 11 }]),
+        createResult([{ assigned_to_staff_id: 13, assigned_by_staff_id: 11 }]),
+      ],
+      activity_timeline: createResult([{ id: 1, action: 'update', staff_id: 11 }]),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.task).toMatchObject({
+      project: { id: 3, name: 'Project X' },
+      creator: { id: 5, fullname: 'Main Creator' },
+      assignees: [
+        expect.objectContaining({
+          assigned_to: expect.objectContaining({ id: 10, fullname: 'Current User' }),
+          assigned_by: expect.objectContaining({ id: 11, fullname: 'Manager User' }),
+        }),
+      ],
+      subtasks: [
+        expect.objectContaining({
+          id: 100,
+          creator: { id: 12, fullname: 'Sub Creator' },
+          assignees: [
+            expect.objectContaining({
+              assigned_to: expect.objectContaining({ id: 13, fullname: 'Sub Assignee' })
+            })
+          ]
+        })
+      ],
+      permissions: {
+        canEdit: true,
+        canDelete: true,
+      },
+      history: expect.any(Array)
+    })
+  })
 })
 
 
