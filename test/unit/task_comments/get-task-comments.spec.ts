@@ -240,6 +240,29 @@ describe('GET /api/tasks/[id]/comments', () => {
       },
     })
   })
+
+  it('should wrap unexpected errors as internal server error', async () => {
+    const unexpectedSupabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'tasks') {
+          return {
+            select: vi.fn(() => {
+              throw new Error('unexpected failure')
+            }),
+          }
+        }
+        return createQuery(createResult(null))
+      }),
+    }
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(unexpectedSupabase as any)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
 })
 
 

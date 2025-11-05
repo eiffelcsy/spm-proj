@@ -193,6 +193,21 @@ describe('DELETE /api/tasks/[id]/comments/[commentId]', () => {
     })
   })
 
+  it('should return 404 when comment already deleted', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ is_manager: true, is_admin: false }),
+      task_comments: [
+        createResult({ id: 7, task_id: 42, staff_id: 10 }),
+        createResult([]),
+      ],
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 404,
+      statusMessage: 'Comment not found or already deleted',
+    })
+  })
+
   it('should soft delete the comment when requester is manager', async () => {
     const timestamp = '2024-01-01T00:00:00Z'
     vi.useFakeTimers().setSystemTime(new Date(timestamp))
@@ -214,6 +229,32 @@ describe('DELETE /api/tasks/[id]/comments/[commentId]', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('should wrap unexpected errors as internal server error', async () => {
+    const unexpectedSupabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'staff') {
+          return createQuery(createResult({ is_manager: true, is_admin: true }))
+        }
+        if (table === 'task_comments') {
+          return {
+            select: vi.fn(() => {
+              throw new Error('unexpected select failure')
+            }),
+          }
+        }
+        return createQuery(createResult(null))
+      }),
+    }
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(unexpectedSupabase as any)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
   })
 })
 

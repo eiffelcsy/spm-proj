@@ -287,6 +287,31 @@ describe('PUT /api/tasks/[id]/comments/[commentId]', () => {
     })
   })
 
+  it('should return 500 when updated comment response is empty', async () => {
+    supabase = createSupabaseMock({
+      tasks: createResult({ id: 42 }),
+      staff: createResult({ id: 10, fullname: 'Alice', department: 'Engineering' }),
+      task_assignees: createResult([{ assigned_to_staff_id: 55 }]),
+      task_comments: [
+        createResult({
+          id: 7,
+          task_id: 42,
+          staff_id: 10,
+          content: 'Original comment',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+          deleted_at: null,
+        }),
+        createResult(null),
+      ],
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Failed to update comment',
+    })
+  })
+
   it('should update the comment successfully', async () => {
     const now = '2024-01-02T00:00:00Z'
     vi.useFakeTimers().setSystemTime(new Date(now))
@@ -337,6 +362,32 @@ describe('PUT /api/tasks/[id]/comments/[commentId]', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('should wrap unexpected errors as internal server error', async () => {
+    const unexpectedSupabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'staff') {
+          return createQuery(createResult({ id: 10, fullname: 'Alice', department: 'Engineering' }))
+        }
+        if (table === 'tasks') {
+          return {
+            select: vi.fn(() => {
+              throw new Error('unexpected failure')
+            }),
+          }
+        }
+        return createQuery(createResult(null))
+      }),
+    }
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(unexpectedSupabase as any)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
   })
 })
 

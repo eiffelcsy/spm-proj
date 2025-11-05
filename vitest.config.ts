@@ -37,7 +37,7 @@ export default defineConfig({
         },
         test: {
           name: 'unit',
-          include: ['test/{e2e,functional_tests}/**/*.{test,spec}.ts'],
+          include: ['test/unit/**/*.{test,spec}.ts', 'test/functional_tests/**/*.{test,spec}.ts', 'test/e2e/**/*.{test,spec}.ts'],
           environment: 'happy-dom',
           setupFiles: ['./test/setup.ts'],
         },
