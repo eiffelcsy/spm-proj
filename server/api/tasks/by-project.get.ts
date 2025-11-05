@@ -1,4 +1,4 @@
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getQuery, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
