@@ -300,6 +300,7 @@ function transformTask(task: any): Task {
     startDate: new Date(task.start_date),
     dueDate: new Date(task.due_date),
     project: task.project?.name || task.project || 'Unknown',
+    project_id: task.project_id || task.project?.id || null,
     status: task.status,
     notes: task.notes,
     priority: typeof task.priority === 'string' ? parseInt(task.priority, 10) : task.priority,

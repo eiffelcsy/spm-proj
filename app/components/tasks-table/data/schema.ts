@@ -6,6 +6,7 @@ export const taskSchema = z.object({
   startDate: z.date(),
   dueDate: z.date(),
   project: z.string(),
+  project_id: z.number().nullable().optional(),
   status: z.enum(['not-started', 'in-progress', 'completed', 'blocked']),
   notes: z.string().optional(),
   priority: z.number().optional(),

@@ -136,6 +136,7 @@ function transformTask(task: any): Task {
     startDate: new Date(task.start_date || task.startDate),
     dueDate: new Date(task.due_date || task.dueDate),
     project: task.project?.name || task.project || "personal",
+    project_id: task.project_id || task.project?.id || null,
     status: task.status || "not-started",
     notes: task.notes,
     priority: typeof task.priority === 'string' ? parseInt(task.priority, 10) : task.priority,

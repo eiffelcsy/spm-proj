@@ -244,6 +244,7 @@ export interface TaskForUI {
   startDate: Date
   dueDate: Date
   project: string
+  project_id?: number | null
   status: TaskStatus
   notes?: string
   priority?: number
@@ -771,6 +772,7 @@ export function transformTaskForUI(
     startDate: apiTask.start_date ? new Date(apiTask.start_date) : new Date(),
     dueDate: apiTask.due_date ? new Date(apiTask.due_date) : new Date(),
     project: projectName || apiTask.project?.name || 'personal',
+    project_id: apiTask.project_id || apiTask.project?.id || null,
     status: apiTask.status,
     notes: apiTask.notes || undefined,
     priority: apiTask.priority || undefined,

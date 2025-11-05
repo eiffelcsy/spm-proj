@@ -25,10 +25,23 @@ export const columns: ColumnDef<Task>[] = [
     }),
     cell: ({ row }) => {
       const project = row.getValue('project') as string
-      const projectClass = project === 'personal' ? 'text-gray-500 italic' : 'text-blue-600'
+      const projectId = row.original.project_id
+      const isPersonal = project === 'personal'
+      const projectClass = isPersonal ? 'text-gray-500 italic' : 'text-blue-600 hover:underline cursor-pointer'
+      
       return h('div', { 
-        class: `whitespace-normal break-words min-w-[120px] max-w-[180px] leading-tight py-1 ${projectClass}` 
-      }, project)
+        class: `whitespace-normal break-words min-w-[120px] max-w-[180px] leading-tight py-1` 
+      }, [
+        isPersonal || !projectId ? h('span', { class: projectClass }, project) : h('a', {
+          class: projectClass,
+          href: `/project/${projectId}`,
+          onClick: (e: Event) => {
+            e.stopPropagation()
+            // Navigate using window.location to ensure proper routing
+            window.location.href = `/project/${projectId}`
+          }
+        }, project)
+      ])
     },
   },
   createNumericPriorityColumn(),
