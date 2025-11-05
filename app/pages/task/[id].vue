@@ -215,7 +215,7 @@
               <CardHeader>
                   <CardTitle class="flex items-center space-x-2">
                       <ClockIcon class="h-5 w-5" />
-                      <span>Activity Timeline</span>
+                      <span>Activity Log</span>
                   </CardTitle>
               </CardHeader>
               <CardContent>

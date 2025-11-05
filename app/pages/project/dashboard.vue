@@ -1,28 +1,123 @@
 <template>
   <div class="w-full mx-auto p-8 md:px-12 lg:max-w-5xl xl:max-w-7xl space-y-8">
     <!-- Header Section -->
-    <div class="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-      <div class="space-y-1">
-        <h1 class="text-3xl font-bold tracking-tight">Project Dashboard</h1>
+    <div class="flex flex-col space-y-4">
+      <div class="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div class="space-y-1">
+          <h1 class="text-3xl font-bold tracking-tight">Project Dashboard</h1>
+        </div>
+        <div class="flex items-center space-x-2">
+          <Input v-model="searchQuery" placeholder="Search projects" class="w-full md:w-64" />
+          <Button 
+            size="sm" 
+            @click="isManager ? openCreateProjectModal() : null"
+            :disabled="!isManager"
+            :class="!isManager ? 'cursor-not-allowed opacity-50' : ''"
+            :title="!isManager ? 'Only managers can create projects' : ''"
+          >
+            <Plus class="mr-2 h-4 w-4" />
+            New Project
+          </Button>
+        </div>
       </div>
-      <div class="flex items-center space-x-2">
-        <Input v-model="searchQuery" placeholder="Search projects" />
-        <Button 
-          size="sm" 
-          @click="isManager ? openCreateProjectModal() : null"
-          :disabled="!isManager"
-          :class="!isManager ? 'cursor-not-allowed opacity-50' : ''"
-          :title="!isManager ? 'Only managers can create projects' : ''"
-        >
-          <Plus class="mr-2 h-4 w-4" />
-          New Project
-        </Button>
+
+      <!-- Filters and Sort -->
+      <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div class="flex flex-wrap gap-2">
+          <!-- Status Filter -->
+          <Select v-model="selectedStatus">
+            <SelectTrigger class="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="todo">To Do</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <!-- Tag Filter -->
+          <Select v-model="selectedTag">
+            <SelectTrigger class="w-[180px]">
+              <SelectValue placeholder="Filter by tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tags</SelectItem>
+              <SelectItem v-for="tag in availableTags" :key="tag" :value="tag">
+                {{ tag }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          <!-- Clear Filters Button -->
+          <Button 
+            v-if="selectedStatus !== 'all' || selectedTag !== 'all'"
+            variant="ghost" 
+            size="sm" 
+            @click="clearFilters"
+          >
+            Clear Filters
+          </Button>
+        </div>
+
+        <!-- Sort Dropdown -->
+        <div class="flex items-center space-x-2">
+          <Select v-model="sortBy">
+            <SelectTrigger class="w-[200px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+              <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+              <SelectItem value="created-desc">Newest First</SelectItem>
+              <SelectItem value="created-asc">Oldest First</SelectItem>
+              <SelectItem value="deadline-asc">Deadline (Earliest)</SelectItem>
+              <SelectItem value="deadline-desc">Deadline (Latest)</SelectItem>
+              <SelectItem value="tasks-desc">Most Tasks</SelectItem>
+              <SelectItem value="tasks-asc">Fewest Tasks</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="flex justify-center items-center py-8">
       <div class="text-gray-500">Loading projects...</div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="filteredProjects.length === 0" class="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div class="rounded-full bg-muted p-6 mb-4">
+        <LayoutGrid class="h-12 w-12 text-muted-foreground" />
+      </div>
+      <h3 class="text-xl font-semibold mb-2">
+        {{ projects.length === 0 ? 'No projects yet' : 'No projects found' }}
+      </h3>
+      <p class="text-muted-foreground mb-6 max-w-md">
+        {{ projects.length === 0 
+          ? 'Get started by creating your first project to organize your tasks and collaborate with your team.'
+          : 'Try adjusting your filters or search query to find what you\'re looking for.'
+        }}
+      </p>
+      <div class="flex gap-2">
+        <Button 
+          v-if="projects.length === 0 && isManager"
+          @click="openCreateProjectModal()"
+        >
+          <Plus class="mr-2 h-4 w-4" />
+          Create Your First Project
+        </Button>
+        <Button 
+          v-if="projects.length > 0"
+          variant="outline"
+          @click="clearFilters"
+        >
+          Clear Filters
+        </Button>
+      </div>
     </div>
 
     <!-- Projects Grid -->
@@ -220,6 +315,13 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { 
   Plus, 
   ListTodo, 
   LayoutGrid, 
@@ -252,6 +354,11 @@ const currentUserStaffId = ref<number | null>(null)
 const viewMode = ref<'grid' | 'list'>('grid')
 const searchQuery = ref('')
 
+// Filter and sort state
+const selectedStatus = ref<string>('all')
+const selectedTag = ref<string>('all')
+const sortBy = ref<string>('created-desc')
+
 // Initialize with empty array - will be populated with real data
 const projects = ref<any[]>([])
 const rawTasks = ref<any[]>([])
@@ -270,7 +377,6 @@ async function fetchCurrentUser() {
   } catch (err) {
     console.error('Failed to fetch current user:', err)
     currentUserStaffId.value = null
-    currentUserStaffType.value = null
   }
 }
 
@@ -354,16 +460,85 @@ function transformTask(task: any): Task {
 // COMPUTED PROPERTIES
 // ============================================================================
 
+/**
+ * Get all unique tags from all projects
+ */
+const availableTags = computed(() => {
+  const tagsSet = new Set<string>()
+  projects.value.forEach(project => {
+    if (Array.isArray(project.tags)) {
+      project.tags.forEach((tag: string) => tagsSet.add(tag))
+    }
+  })
+  return Array.from(tagsSet).sort()
+})
+
+/**
+ * Filter and sort projects based on search query, status, and tags
+ */
 const filteredProjects = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return projects.value
+  let filtered = projects.value
+
+  // Apply search query filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(project => 
+      project.name.toLowerCase().includes(query) ||
+      (project.description && project.description.toLowerCase().includes(query))
+    )
   }
+
+  // Apply status filter
+  if (selectedStatus.value !== 'all') {
+    filtered = filtered.filter(project => project.status === selectedStatus.value)
+  }
+
+  // Apply tag filter
+  if (selectedTag.value !== 'all') {
+    filtered = filtered.filter(project => 
+      Array.isArray(project.tags) && project.tags.includes(selectedTag.value)
+    )
+  }
+
+  // Apply sorting
+  const sorted = [...filtered]
   
-  const query = searchQuery.value.toLowerCase()
-  return projects.value.filter(project => 
-    project.name.toLowerCase().includes(query) ||
-    (project.description && project.description.toLowerCase().includes(query))
-  )
+  switch (sortBy.value) {
+    case 'name-asc':
+      sorted.sort((a, b) => a.name.localeCompare(b.name))
+      break
+    case 'name-desc':
+      sorted.sort((a, b) => b.name.localeCompare(a.name))
+      break
+    case 'created-asc':
+      sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      break
+    case 'created-desc':
+      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      break
+    case 'deadline-asc':
+      sorted.sort((a, b) => {
+        if (!a.dueDate) return 1
+        if (!b.dueDate) return -1
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+      })
+      break
+    case 'deadline-desc':
+      sorted.sort((a, b) => {
+        if (!a.dueDate) return 1
+        if (!b.dueDate) return -1
+        return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()
+      })
+      break
+    case 'tasks-asc':
+      sorted.sort((a, b) => getProjectTaskCount(a.id) - getProjectTaskCount(b.id))
+      break
+    case 'tasks-desc':
+      sorted.sort((a, b) => getProjectTaskCount(b.id) - getProjectTaskCount(a.id))
+      break
+  }
+
+  return sorted
 })
 
 // ============================================================================
@@ -459,6 +634,15 @@ function getPriorityVariant(priority: string) {
     default:
       return 'outline'
   }
+}
+
+/**
+ * Clear all filters and reset to default view
+ */
+function clearFilters() {
+  selectedStatus.value = 'all'
+  selectedTag.value = 'all'
+  searchQuery.value = ''
 }
 
 function handleProjectUpdatedEvent(e: CustomEvent) {
