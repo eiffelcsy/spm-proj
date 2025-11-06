@@ -95,11 +95,6 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
         })
       }
       
-      // Mock project_members insert
-      const mockMemberInsert = {
-        insert: vi.fn().mockResolvedValue({ error: null })
-      }
-      
       let callCount = 0
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'staff') return mockStaffQuery
@@ -108,7 +103,6 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
           if (callCount === 1) return mockDuplicateCheck
           return mockProjectInsert
         }
-        if (table === 'project_members') return mockMemberInsert
         return {}
       })
       
@@ -132,10 +126,9 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
       expect(response.project.priority).toBe('medium')
       expect(response.project.status).toBe('todo')
       expect(mockSupabase.from).toHaveBeenCalledWith('projects')
-      expect(mockSupabase.from).toHaveBeenCalledWith('project_members')
     })
 
-    it('should create project with assigned users', async () => {
+    it('should create project ignoring assigned users when project_members removed', async () => {
       const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
       
       vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
@@ -172,14 +165,6 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
         })
       }
       
-      let memberInsertCalls = 0
-      const mockMemberInsert = {
-        insert: vi.fn((data: any) => {
-          memberInsertCalls++
-          return { error: null }
-        })
-      }
-      
       let callCount = 0
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'staff') return mockStaffQuery
@@ -188,7 +173,6 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
           if (callCount === 1) return mockDuplicateCheck
           return mockProjectInsert
         }
-        if (table === 'project_members') return mockMemberInsert
         return {}
       })
       
@@ -205,8 +189,8 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
       const response = await handler(mockEvent as any)
       
       expect(response.success).toBe(true)
-      // Should insert creator as manager + 3 assigned users = 2 insert calls
-      expect(mockMemberInsert.insert).toHaveBeenCalledTimes(2)
+      // No project_members table, so no additional inserts expected
+      expect(mockSupabase.from).not.toHaveBeenCalledWith('project_members')
     })
 
     it('should create project without assigned users', async () => {
@@ -246,10 +230,6 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
         })
       }
       
-      const mockMemberInsert = {
-        insert: vi.fn().mockResolvedValue({ error: null })
-      }
-      
       let callCount = 0
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'staff') return mockStaffQuery
@@ -258,7 +238,6 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
           if (callCount === 1) return mockDuplicateCheck
           return mockProjectInsert
         }
-        if (table === 'project_members') return mockMemberInsert
         return {}
       })
       
@@ -275,8 +254,8 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
       const response = await handler(mockEvent as any)
       
       expect(response.success).toBe(true)
-      // Should only insert creator as manager
-      expect(mockMemberInsert.insert).toHaveBeenCalledTimes(1)
+      // No project_members calls expected
+      expect(mockSupabase.from).not.toHaveBeenCalledWith('project_members')
     })
   })
 

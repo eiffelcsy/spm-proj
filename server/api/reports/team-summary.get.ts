@@ -190,23 +190,24 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Get all team members (project members) filtered by visible departments
-    const { data: projectMembers, error: membersError } = await supabase
-      .from('project_members')
-      .select('staff_id')
-      .eq('project_id', filters.project_id)
+    // Derive staff from task assignees within the project (no membership table)
+    const { data: assigneesRecords, error: assigneesError } = await supabase
+      .from('task_assignees')
+      .select('assigned_to_staff_id, task_id')
       .is('deleted_at', null)
 
-    if (membersError) {
+    if (assigneesError) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'Failed to fetch project members',
-        data: membersError
+        statusMessage: 'Failed to fetch task assignees',
+        data: assigneesError
       })
     }
 
-    // Filter project members to only include visible staff based on department hierarchy
-    const projectStaffIds = projectMembers.map(pm => pm.staff_id)
+    const taskIdsInProject = new Set((tasks || []).map(t => t.id))
+    const projectStaffIds = Array.from(new Set((assigneesRecords || [])
+      .filter(r => taskIdsInProject.has(r.task_id))
+      .map(r => r.assigned_to_staff_id)))
     const staffIds = projectStaffIds.filter(id => visibleStaffIds.includes(id))
 
     // Fetch staff details only for visible staff

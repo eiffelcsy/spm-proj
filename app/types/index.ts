@@ -19,7 +19,7 @@ export type TaskStatus = 'not-started' | 'in-progress' | 'completed' | 'blocked'
 
 export type ProjectStatus = 'todo' | 'in-progress' | 'completed' | 'blocked'
 
-export type ProjectMemberRole = 'member' | 'manager'
+// Project membership types removed; ProjectMemberRole no longer used
 
 export type ProjectPriority = 'low' | 'medium' | 'high'
 
@@ -121,7 +121,6 @@ export interface ProjectDB {
  */
 export interface ProjectWithRelations extends ProjectDB {
   owner?: StaffMember
-  members?: ProjectMemberDB[]
   task_count?: number
 }
 
@@ -151,31 +150,7 @@ export interface ProjectUpdateInput {
   status?: ProjectStatus
 }
 
-// ============================================================================
-// PROJECT MEMBERS TYPES
-// ============================================================================
-
-/**
- * Project member record from database
- * Maps to 'project_members' table in ERD
- */
-export interface ProjectMemberDB {
-  id: number
-  project_id: number
-  staff_id: number
-  created_at: string
-  role: string  // project_roles_enum
-  invited_at: string
-  joined_at: string | null
-  deleted_at: string | null
-}
-
-/**
- * Project member with staff details
- */
-export interface ProjectMemberWithStaff extends ProjectMemberDB {
-  staff: StaffMember
-}
+// Project members types removed along with table
 
 // ============================================================================
 // TASK TYPES (Database Schema)

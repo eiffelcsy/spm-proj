@@ -106,28 +106,7 @@ export default defineEventHandler(async (event) => {
 
     if (updateError) throw createError({ statusCode: 500, statusMessage: updateError.message })
 
-    // Handle assigned users update if provided
-    if (body.assigned_user_ids && Array.isArray(body.assigned_user_ids)) {
-        const existingMembers = await supabase
-            .from('project_members')
-            .select('staff_id')
-            .eq('project_id', projectId);
-
-        const existingIds = existingMembers.data?.map((m: any) => m.staff_id) || [];
-        const newIds = body.assigned_user_ids.filter((id: number) => !existingIds.includes(id));
-
-        if (newIds.length > 0) {
-            const assigneePayloads = newIds.map((staffId: number) => ({
-                project_id: parseInt(projectId),
-                staff_id: staffId,
-                role: 'member',
-                invited_at: new Date().toISOString(),
-                joined_at: new Date().toISOString()
-            }));
-
-            await supabase.from('project_members').insert(assigneePayloads);
-        }
-    }
+    // Membership table no longer used: skip assigned users update
 
     return { success: true, project: updatedProject }
 })

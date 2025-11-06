@@ -1,4 +1,4 @@
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { ProjectDB } from '~/types'
 import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
@@ -51,11 +51,19 @@ export default defineEventHandler(async (event) => {
         return []
     }
 
-    // Filter projects: only include projects that have at least one task assigned to someone in visible departments
+    // Filter projects: include projects that are either:
+    // 1. Owned by staff in visible departments, OR
+    // 2. Have at least one task assigned to someone in visible departments
     const visibleProjectIds = new Set<number>()
 
     for (const project of projects) {
-        // Get all tasks for this project
+        // First check: Is the project owned by someone in visible departments?
+        if (visibleStaffIds.includes(project.owner_id)) {
+            visibleProjectIds.add(project.id)
+            continue
+        }
+
+        // Second check: Does the project have tasks assigned to visible departments?
         const { data: projectTasks, error: tasksError } = await supabase
             .from('tasks')
             .select('id')

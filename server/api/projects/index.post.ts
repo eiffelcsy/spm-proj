@@ -103,47 +103,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 500, statusMessage: projectError.message });
     }
 
-    // Add the creator as a project member with 'manager' role
-    if (project) {
-        const projectMemberPayload = {
-            project_id: project.id,
-            staff_id: staffRow.id,
-            role: 'manager',
-            invited_at: new Date().toISOString(),
-            joined_at: new Date().toISOString()
-        };
-
-        const { error: memberError } = await (supabase as any)
-            .from("project_members")
-            .insert(projectMemberPayload as any);
-
-        if (memberError) {
-            throw createError({ statusCode: 500, statusMessage: memberError.message });
-        }
-
-        // Add assigned users if provided
-        if (body.assigned_user_ids && Array.isArray(body.assigned_user_ids) && body.assigned_user_ids.length > 0) {
-            const assigneePayloads = body.assigned_user_ids
-                .filter((id: number) => id !== staffRow.id)  // Don't duplicate creator
-                .map((staffId: number) => ({
-                    project_id: project.id,
-                    staff_id: staffId,
-                    role: 'member',
-                    invited_at: new Date().toISOString(),
-                    joined_at: new Date().toISOString()
-                }));
-
-            if (assigneePayloads.length > 0) {
-                const { error: assignError } = await supabase
-                    .from("project_members")
-                    .insert(assigneePayloads);
-
-                if (assignError) {
-                    console.error('Error adding assigned users:', assignError);
-                }
-            }
-        }
-    }
+    // Membership table no longer used: skip adding creator or assignees
 
     return { success: true, project } as { success: boolean; project: ProjectDB };
 });

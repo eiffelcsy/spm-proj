@@ -147,7 +147,7 @@ describe('PUT /api/projects/[id] - Update Project API Endpoint', () => {
       expect(response.project.status).toBe('in-progress')
     })
 
-    it('should update project with new assigned users', async () => {
+    it('should update project and ignore assigned users when project_members removed', async () => {
       const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
       
       vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
@@ -202,18 +202,6 @@ describe('PUT /api/projects/[id] - Update Project API Endpoint', () => {
         })
       }
       
-      // Mock existing members query
-      const mockExistingMembersQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ staff_id: 1 }, { staff_id: 2 }]
-      }
-      
-      // Mock member insert
-      const mockMemberInsert = {
-        insert: vi.fn().mockResolvedValue({ error: null })
-      }
-      
       let callCount = 0
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'staff') return mockStaffQuery
@@ -222,11 +210,6 @@ describe('PUT /api/projects/[id] - Update Project API Endpoint', () => {
           if (callCount === 1) return mockProjectExistsQuery
           if (callCount === 2) return mockDuplicateCheck
           return mockProjectUpdate
-        }
-        if (table === 'project_members') {
-          callCount++
-          if (callCount === 4) return mockExistingMembersQuery
-          return mockMemberInsert
         }
         return {}
       })
@@ -244,7 +227,8 @@ describe('PUT /api/projects/[id] - Update Project API Endpoint', () => {
       const response = await handler(mockEvent as any)
       
       expect(response.success).toBe(true)
-      expect(mockMemberInsert.insert).toHaveBeenCalled()
+      // No project_members calls expected
+      expect(mockSupabase.from).not.toHaveBeenCalledWith('project_members')
     })
   })
 
