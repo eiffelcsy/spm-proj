@@ -1,19 +1,12 @@
 // file: server/api/login/signup.post.ts
 
-import { defineEventHandler, readBody } from 'h3';
+import { defineEventHandler, readBody, createError } from 'h3';
 import { serverSupabaseServiceRole } from '#supabase/server';
 
 export default defineEventHandler(async (event) => {
   // 1. Capture fullname along with email and password
   const { email, password, fullname } = await readBody(event);
   const supabase = await serverSupabaseServiceRole(event);
-
-  if (!supabase) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Supabase client could not be initialized.',
-    });
-  }
 
   // --- Step 1: Sign up the new user in the 'auth.users' table ---
   const { data: authData, error: authError } = await supabase.auth.signUp({

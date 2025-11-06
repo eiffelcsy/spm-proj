@@ -825,4 +825,1014 @@ describe('POST /api/tasks - Create Task API Endpoint', () => {
       )
     })
   })
+
+  describe('Subtask Error Handling', () => {
+    it('should handle subtask insert error', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockSubtaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Failed to insert subtask' }
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      let taskInsertCallCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          taskInsertCallCount++
+          if (taskInsertCallCount === 1) return mockTaskInsert
+          return mockSubtaskInsert
+        }
+        if (table === 'task_assignees') {
+          return {
+            ...mockAssigneeInsert,
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        start_date: '2024-01-01',
+        due_date: '2024-01-31',
+        status: 'not-started',
+        priority: '5',
+        repeat_interval: '0',
+        notes: 'Test notes',
+        tags: [],
+        project_id: 1,
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            start_date: '2024-01-02',
+            due_date: '2024-01-15',
+            status: 'not-started',
+            priority: '3',
+            notes: 'Subtask notes',
+            repeat_interval: '0',
+            tags: [],
+            assignee_ids: [2]
+          }
+        ]
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toContain('Failed to insert subtask')
+      }
+    })
+
+    it('should handle subtask assignee insert error', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockSubtaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockResolvedValue({
+          data: [{
+            id: 2,
+            title: 'Subtask 1',
+            parent_task_id: 1,
+            creator_id: 1
+          }],
+          error: null
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      const mockSubtaskAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({
+          error: { message: 'Failed to insert subtask assignees' }
+        })
+      }
+      
+      let taskInsertCallCount = 0
+      let assigneeInsertCallCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          taskInsertCallCount++
+          if (taskInsertCallCount === 1) return mockTaskInsert
+          return mockSubtaskInsert
+        }
+        if (table === 'task_assignees') {
+          assigneeInsertCallCount++
+          if (assigneeInsertCallCount === 1) return mockAssigneeInsert
+          return {
+            ...mockSubtaskAssigneeInsert,
+            delete: vi.fn().mockReturnThis(),
+            in: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        start_date: '2024-01-01',
+        due_date: '2024-01-31',
+        status: 'not-started',
+        priority: '5',
+        repeat_interval: '0',
+        notes: 'Test notes',
+        tags: [],
+        project_id: 1,
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            start_date: '2024-01-02',
+            due_date: '2024-01-15',
+            status: 'not-started',
+            priority: '3',
+            notes: 'Subtask notes',
+            repeat_interval: '0',
+            tags: [],
+            assignee_ids: [2]
+          }
+        ]
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toContain('Failed to insert subtask assignees')
+      }
+    })
+
+    it('should handle subtask with repeat_interval calculation', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      let capturedSubtaskPayload: any = null
+      const mockSubtaskInsert = {
+        insert: vi.fn((payload: any) => {
+          capturedSubtaskPayload = payload[0]
+          return mockSubtaskInsert
+        }),
+        select: vi.fn().mockResolvedValue({
+          data: [{
+            id: 2,
+            title: 'Subtask 1',
+            parent_task_id: 1,
+            creator_id: 1,
+            ...capturedSubtaskPayload
+          }],
+          error: null
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      let taskInsertCallCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          taskInsertCallCount++
+          if (taskInsertCallCount === 1) return mockTaskInsert
+          return mockSubtaskInsert
+        }
+        if (table === 'task_assignees') return mockAssigneeInsert
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        start_date: '2024-01-01',
+        due_date: '2024-01-31',
+        status: 'not-started',
+        priority: '5',
+        repeat_interval: '0',
+        notes: 'Test notes',
+        tags: [],
+        project_id: 1,
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            start_date: '2024-01-02',
+            status: 'not-started',
+            priority: '3',
+            notes: 'Subtask notes',
+            repeat_interval: '7', // 7 days
+            tags: [],
+            assignee_ids: [2]
+          }
+        ]
+      })
+      
+      const response = await handler(mockEvent as any)
+      
+      expect(response.success).toBe(true)
+      expect(capturedSubtaskPayload.due_date).toBe('2024-01-09') // 7 days after start_date
+    })
+
+    it('should handle subtask without repeat_interval property', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      let capturedSubtaskPayload: any = null
+      const mockSubtaskInsert = {
+        insert: vi.fn((payload: any) => {
+          capturedSubtaskPayload = payload[0]
+          return mockSubtaskInsert
+        }),
+        select: vi.fn().mockResolvedValue({
+          data: [{
+            id: 2,
+            title: 'Subtask 1',
+            parent_task_id: 1,
+            creator_id: 1,
+            ...capturedSubtaskPayload
+          }],
+          error: null
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      let taskInsertCallCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          taskInsertCallCount++
+          if (taskInsertCallCount === 1) return mockTaskInsert
+          return mockSubtaskInsert
+        }
+        if (table === 'task_assignees') return mockAssigneeInsert
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        start_date: '2024-01-01',
+        due_date: '2024-01-31',
+        status: 'not-started',
+        priority: '5',
+        repeat_interval: '0',
+        notes: 'Test notes',
+        tags: [],
+        project_id: 1,
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            start_date: '2024-01-02',
+            status: 'not-started',
+            priority: '3',
+            notes: 'Subtask notes',
+            tags: [],
+            assignee_ids: [2]
+            // No repeat_interval property - should default to null
+          }
+        ]
+      })
+      
+      const response = await handler(mockEvent as any)
+      
+      expect(response.success).toBe(true)
+      expect(capturedSubtaskPayload.repeat_interval).toBe(null)
+    })
+
+    it('should reject subtask with more than 5 assignees', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 1) return mockTaskInsert
+          return mockTaskDelete
+        }
+        if (table === 'task_assignees') {
+          return {
+            insert: vi.fn().mockResolvedValue({ error: null }),
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            assignee_ids: [1, 2, 3, 4, 5, 6] // 6 assignees - exceeds limit
+          }
+        ]
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        // The error might be wrapped by catch block, but should still contain the message
+        expect(error.statusCode).toBeGreaterThanOrEqual(400)
+        expect(error.statusMessage || error.message).toContain('Subtask 1: Maximum 5 assignees allowed')
+      }
+    })
+
+    it('should handle task with repeat_interval calculation', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      let capturedPayload: any = null
+      const mockTaskInsert = {
+        insert: vi.fn((payload: any) => {
+          capturedPayload = payload[0]
+          return mockTaskInsert
+        }),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1,
+            ...capturedPayload
+          },
+          error: null
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') return mockTaskInsert
+        if (table === 'task_assignees') return mockAssigneeInsert
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        start_date: '2024-01-01',
+        repeat_interval: 7, // 7 days
+        assignee_ids: [2]
+      })
+      
+      const response = await handler(mockEvent as any)
+      
+      expect(response.success).toBe(true)
+      expect(capturedPayload.due_date).toBe('2024-01-08') // 7 days after start_date
+    })
+
+    it('should handle project member insert error with rollback', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1,
+            project_id: 5
+          },
+          error: null
+        })
+      }
+      
+      const mockProjectMemberInsert = {
+        insert: vi.fn().mockResolvedValue({ error: { message: 'Project member insert failed' } })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 1) return mockTaskInsert
+          return mockTaskDelete
+        }
+        if (table === 'task_assignees') return mockProjectMemberInsert
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        project_id: 5,
+        assignee_ids: [2]
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('Project member insert failed')
+        expect(mockTaskDelete.delete).toHaveBeenCalled()
+      }
+    })
+
+    it('should handle parent task with assignee_ids that is not an array', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          return {
+            ...mockTaskInsert,
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        if (table === 'task_assignees') {
+          return {
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        assignee_ids: 'not-an-array' // Not an array - should default to []
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(400)
+        expect(error.statusMessage).toBe('At least one assignee is required for the task')
+      }
+    })
+
+    it('should handle subtask with assignee_ids that is not an array', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockSubtaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockResolvedValue({
+          data: [{ id: 2, title: 'Subtask 1', parent_task_id: 1 }],
+          error: null
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 1) return mockTaskInsert
+          if (callCount === 2) return mockSubtaskInsert
+          return mockTaskDelete
+        }
+        if (table === 'task_assignees') return mockAssigneeInsert
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            assignee_ids: 'not-an-array' // Not an array
+          }
+        ]
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(400)
+        expect(error.statusMessage).toContain('Subtask 1: At least one assignee is required')
+      }
+    })
+
+    it('should handle assignee insert error with rollback', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({
+          error: { message: 'Failed to insert assignees' }
+        })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          return {
+            ...mockTaskInsert,
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        if (table === 'task_assignees') {
+          return {
+            ...mockAssigneeInsert,
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        start_date: '2024-01-01',
+        due_date: '2024-01-31',
+        status: 'not-started',
+        priority: '5',
+        repeat_interval: '0',
+        notes: 'Test notes',
+        tags: [],
+        project_id: 1,
+        assignee_ids: [2],
+        subtasks: []
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('Failed to insert assignees')
+      }
+    })
+
+    it('should handle subtask assignee insert error with rollback', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockSubtaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockResolvedValue({
+          data: [{
+            id: 2,
+            title: 'Subtask 1',
+            parent_task_id: 1,
+            creator_id: 1
+          }],
+          error: null
+        })
+      }
+      
+      const mockAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      const mockSubtaskAssigneeInsert = {
+        insert: vi.fn().mockResolvedValue({
+          error: { message: 'Failed to insert subtask assignees' }
+        })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+        in: vi.fn().mockReturnThis()
+      }
+      
+      let taskInsertCallCount = 0
+      let assigneeInsertCallCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          taskInsertCallCount++
+          if (taskInsertCallCount === 1) return mockTaskInsert
+          if (taskInsertCallCount === 2) return mockSubtaskInsert
+          return mockTaskDelete
+        }
+        if (table === 'task_assignees') {
+          assigneeInsertCallCount++
+          if (assigneeInsertCallCount === 1) return mockAssigneeInsert
+          return {
+            ...mockSubtaskAssigneeInsert,
+            delete: vi.fn().mockReturnThis(),
+            in: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        start_date: '2024-01-01',
+        due_date: '2024-01-31',
+        status: 'not-started',
+        priority: '5',
+        repeat_interval: '0',
+        notes: 'Test notes',
+        tags: [],
+        project_id: 1,
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            start_date: '2024-01-02',
+            due_date: '2024-01-15',
+            status: 'not-started',
+            priority: '3',
+            notes: 'Subtask notes',
+            repeat_interval: '0',
+            tags: [],
+            assignee_ids: [2]
+          }
+        ]
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('Failed to insert subtask assignees')
+      }
+    })
+
+    it('should handle subtask with more than 5 assignees validation', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null
+        })
+      }
+      
+      const mockTaskInsert = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            title: 'Test Task',
+            creator_id: 1
+          },
+          error: null
+        })
+      }
+      
+      const mockTaskDelete = {
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null })
+      }
+      
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'tasks') {
+          return {
+            ...mockTaskInsert,
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        if (table === 'task_assignees') {
+          return {
+            insert: vi.fn().mockResolvedValue({ error: null }),
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null })
+          }
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        title: 'Test Task',
+        assignee_ids: [2],
+        subtasks: [
+          {
+            title: 'Subtask 1',
+            assignee_ids: [1, 2, 3, 4, 5, 6] // 6 assignees - exceeds limit
+          }
+        ]
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(400)
+        expect(error.statusMessage).toContain('Subtask 1: Maximum 5 assignees allowed')
+      }
+    })
+  })
 })

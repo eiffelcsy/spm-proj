@@ -1,4 +1,4 @@
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getQuery, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import { getVisibleStaffIds } from '../../utils/departmentHierarchy'
 
@@ -271,7 +271,12 @@ export default defineEventHandler(async (event) => {
         generatedAt: new Date().toISOString()
       }
     }
-  } catch (error) {
+  } catch (error: any) {
+    // If it's already a createError, rethrow it
+    if (error.statusCode) {
+      throw error
+    }
+    
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

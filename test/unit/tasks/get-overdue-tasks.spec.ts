@@ -182,6 +182,159 @@ describe('GET /api/tasks/overdue', () => {
     expect(response.tasks[0].creator).toMatchObject({ id: 2, fullname: 'Creator User' })
     expect(response.tasks[0].assignees[0].assigned_to).toMatchObject({ id: 10, fullname: 'Assigned User' })
   })
+
+  it('should handle PGRST116 error code (empty result)', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      task_assignees: createResult([]),
+      tasks: createResult(null, { code: 'PGRST116' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response).toEqual({ tasks: [], count: 0 })
+  })
+
+  it('should return empty result when tasks array is empty', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      task_assignees: createResult([{ task_id: 1 }]),
+      tasks: createResult([]),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response).toEqual({ tasks: [], count: 0 })
+  })
+
+  it('should handle task with project_id', async () => {
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering' }),
+        createResult({ id: 2, fullname: 'Creator User' }),
+        createResult([{ id: 10, fullname: 'Assigned User' }]),
+      ],
+      task_assignees: [
+        createResult([{ task_id: 1 }]),
+        createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: null }]),
+      ],
+      tasks: createResult([
+        {
+          id: 1,
+          title: 'Overdue Task',
+          creator_id: 2,
+          project_id: 5,
+        },
+      ]),
+      projects: createResult({ id: 5, name: 'Test Project' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.count).toBe(1)
+    expect(response.tasks[0].project).toMatchObject({ id: 5, name: 'Test Project' })
+  })
+
+  it('should handle task without project_id', async () => {
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering' }),
+        createResult({ id: 2, fullname: 'Creator User' }),
+        createResult([{ id: 10, fullname: 'Assigned User' }]),
+      ],
+      task_assignees: [
+        createResult([{ task_id: 1 }]),
+        createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: null }]),
+      ],
+      tasks: createResult([
+        {
+          id: 1,
+          title: 'Overdue Task',
+          creator_id: 2,
+          project_id: null,
+        },
+      ]),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.count).toBe(1)
+    expect(response.tasks[0].project).toBeNull()
+  })
+
+  it('should handle PGRST116 error code when fetching tasks', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      task_assignees: createResult([{ task_id: 1 }]),
+      tasks: createResult(null, { code: 'PGRST116' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response).toEqual({ tasks: [], count: 0 })
+  })
+
+  it('should handle error when fetching tasks with non-PGRST116 code', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      task_assignees: createResult([{ task_id: 1 }]),
+      tasks: createResult(null, { message: 'Database error', code: 'OTHER_ERROR' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
+
+  it('should handle project fetch error when task has project_id', async () => {
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering' }),
+        createResult({ id: 2, fullname: 'Creator User' }),
+        createResult([{ id: 10, fullname: 'Assigned User' }]),
+      ],
+      task_assignees: [
+        createResult([{ task_id: 1 }]),
+        createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: null }]),
+      ],
+      tasks: createResult([
+        {
+          id: 1,
+          title: 'Overdue Task',
+          creator_id: 2,
+          project_id: 5,
+        },
+      ]),
+      projects: createResult(null, { message: 'Project fetch error' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.count).toBe(1)
+    expect(response.tasks[0].project).toBeNull()
+  })
 })
 
 

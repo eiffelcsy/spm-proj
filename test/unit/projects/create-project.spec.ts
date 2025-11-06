@@ -677,6 +677,52 @@ describe('POST /api/projects - Create Project API Endpoint', () => {
       }
     })
 
+    it('should handle database errors during duplicate check', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1, is_manager: true },
+          error: null
+        })
+      }
+      
+      const mockDuplicateCheck = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error during duplicate check' }
+        })
+      }
+      
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'projects') return mockDuplicateCheck
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      mockReadBody.mockResolvedValue({
+        name: 'Test Project',
+        description: 'Test description'
+      })
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('Database error during duplicate check')
+      }
+    })
+
     it('should handle database errors during project insert', async () => {
       const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
       

@@ -63,25 +63,10 @@ export default defineEventHandler(async (event) => {
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        // Check if task exists but is soft-deleted
-        const { data: deletedTask } = await supabase
-          .from('tasks')
-          .select('id, deleted_at')
-          .eq('id', numericTaskId)
-          .not('deleted_at', 'is', null)
-          .maybeSingle() as { data: Pick<TaskDB, 'id' | 'deleted_at'> | null, error: any }
-        
-        if (deletedTask) {
-          throw createError({
-            statusCode: 404,
-            statusMessage: 'Task not found'
-          })
-        } else {
-          throw createError({
-            statusCode: 404,
-            statusMessage: 'Task not found'
-          })
-        }
+        throw createError({
+          statusCode: 404,
+          statusMessage: 'Task not found'
+        })
       }
       throw createError({
         statusCode: 500,

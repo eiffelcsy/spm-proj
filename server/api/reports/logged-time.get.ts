@@ -1,4 +1,4 @@
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getQuery, createError } from 'h3'
 import { serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import { getVisibleStaffIds, getVisibleDepartments } from '../../utils/departmentHierarchy'
 
@@ -287,8 +287,11 @@ export default defineEventHandler(async (event) => {
         generatedAt: new Date().toISOString()
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating logged time report:', error)
+    if (error.statusCode) {
+      throw error
+    }
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

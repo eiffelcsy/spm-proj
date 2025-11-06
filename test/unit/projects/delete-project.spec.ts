@@ -588,5 +588,255 @@ describe('DELETE /api/projects/[id] - Delete Project API Endpoint', () => {
         expect(error.statusMessage).toBe('Failed to fetch associated tasks')
       }
     })
+
+    it('should handle errors when soft deleting tasks fails', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1, is_manager: true },
+          error: null
+        })
+      }
+      
+      const mockProjectExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            name: 'Test Project',
+            owner_id: 1,
+            deleted_at: null
+          },
+          error: null
+        })
+      }
+      
+      const mockTasksQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }, { id: 2 }],
+        error: null
+      }
+      
+      const mockTasksUpdate = {
+        update: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({
+          error: { message: 'Failed to delete tasks' }
+        })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'projects') return mockProjectExistsQuery
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 1) return mockTasksQuery
+          return mockTasksUpdate
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('Failed to soft delete associated tasks')
+      }
+    })
+
+    it('should handle catch block with error.message', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1, is_manager: true },
+          error: null
+        })
+      }
+      
+      const mockProjectExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            name: 'Test Project',
+            owner_id: 1,
+            deleted_at: null
+          },
+          error: null
+        })
+      }
+      
+      const mockTasksQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockImplementation(() => {
+          const err = new Error('Custom error message') as any
+          err.message = 'Custom error message'
+          throw err
+        })
+      }
+      
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'projects') return mockProjectExistsQuery
+        if (table === 'tasks') return mockTasksQuery
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('Custom error message')
+      }
+    })
+
+    it('should handle catch block without error.message', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1, is_manager: true },
+          error: null
+        })
+      }
+      
+      const mockProjectExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            name: 'Test Project',
+            owner_id: 1,
+            deleted_at: null
+          },
+          error: null
+        })
+      }
+      
+      const mockTasksQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockImplementation(() => {
+          throw { } // Error without message property
+        })
+      }
+      
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'projects') return mockProjectExistsQuery
+        if (table === 'tasks') return mockTasksQuery
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('An error occurred while deleting the project')
+      }
+    })
+
+    it('should handle error when soft deleting tasks fails', async () => {
+      const { serverSupabaseServiceRole, serverSupabaseUser } = await import('#supabase/server')
+      
+      vi.mocked(serverSupabaseUser).mockResolvedValue({ id: 'user-123' } as any)
+      mockGetRouterParam.mockReturnValue('1')
+      
+      const mockStaffQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1, is_manager: true },
+          error: null
+        })
+      }
+      
+      const mockProjectExistsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            name: 'Test Project',
+            owner_id: 1,
+            deleted_at: null
+          },
+          error: null
+        })
+      }
+      
+      const mockTasksQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        data: [{ id: 1 }, { id: 2 }],
+        error: null
+      }
+      
+      const mockTasksUpdate = {
+        update: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({
+          error: { message: 'Failed to soft delete associated tasks' }
+        })
+      }
+      
+      let callCount = 0
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'staff') return mockStaffQuery
+        if (table === 'projects') return mockProjectExistsQuery
+        if (table === 'tasks') {
+          callCount++
+          if (callCount === 1) return mockTasksQuery
+          return mockTasksUpdate
+        }
+        return {}
+      })
+      
+      vi.mocked(serverSupabaseServiceRole).mockResolvedValue(mockSupabase as any)
+      
+      try {
+        await handler(mockEvent as any)
+        expect.fail('Should have thrown an error')
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500)
+        expect(error.statusMessage).toBe('Failed to soft delete associated tasks')
+      }
+    })
   })
 })

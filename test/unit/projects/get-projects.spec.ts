@@ -233,6 +233,28 @@ describe.each([
       { id: 1, name: 'Visible Project' },
     ])
   })
+
+  it('returns projects owned by visible staff (active.get.ts continue path)', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([101, 102])
+
+    const projects = [
+      { id: 1, name: 'Owned Project', owner_id: 101 },
+      { id: 2, name: 'Other Project', owner_id: 999 },
+    ]
+
+    setSupabaseResponses({
+      staff: createResult({ id: 7, department: 'Engineering' }),
+      projects: createResult(projects),
+    })
+
+    const response = await activeHandler(mockEvent as any)
+
+    // Project 1 should be included because owner_id (101) is in visibleStaffIds
+    // Project 2 should not be included because owner_id (999) is not in visibleStaffIds
+    expect(response).toEqual([
+      { id: 1, name: 'Owned Project', owner_id: 101 },
+    ])
+  })
 })
 
 

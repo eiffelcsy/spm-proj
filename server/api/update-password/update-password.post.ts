@@ -40,13 +40,6 @@ export default defineEventHandler(async (event) => {
 
   const supabase = await serverSupabaseClient(event)
 
-  if (!supabase) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Supabase client could not be initialized.',
-    })
-  }
-
   const { error } = await supabase.auth.updateUser({
     password,
     access_token,

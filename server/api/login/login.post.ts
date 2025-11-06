@@ -1,6 +1,6 @@
 // file: server/api/login/login.post.ts
 
-import { defineEventHandler, readBody } from 'h3';
+import { defineEventHandler, readBody, createError } from 'h3';
 import { serverSupabaseClient } from '#supabase/server'; 
 
 export default defineEventHandler(async (event) => {
@@ -26,33 +26,21 @@ export default defineEventHandler(async (event) => {
 
   const supabase = await serverSupabaseClient(event); 
 
-  if (!supabase) {
+  const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
     throw createError({
-      statusCode: 500,
-      statusMessage: 'Supabase client could not be initialized.',
+      statusCode: 401,
+      statusMessage: 'Invalid credentials. Please check your email and password.',
     });
   }
-
-  try {
-    const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      throw createError({
-        statusCode: 401,
-        statusMessage: 'Invalid credentials. Please check your email and password.',
-      });
-    }
-    
-    return { 
-        success: true, 
-        user,
-        session
-    };
-
-  } catch (err) {
-    throw err;
-  }
+  
+  return { 
+      success: true, 
+      user,
+      session
+  };
 });

@@ -192,6 +192,38 @@ describe('GET /api/notifications/[id]', () => {
     })
     expect(supabase.from).toHaveBeenCalledWith('notifications')
   })
+
+  it('should handle unexpected errors in catch block', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10 }),
+    })
+
+    // Make the update throw an unexpected error (without statusCode)
+    const mockUpdate = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockImplementation(() => {
+        throw new Error('Unexpected error without statusCode')
+      }),
+    }
+
+    supabase.from.mockImplementation((table: string) => {
+      if (table === 'staff') {
+        return createQuery(createResult({ id: 10 }))
+      }
+      if (table === 'notifications') {
+        return mockUpdate
+      }
+      return createQuery(createResult(null))
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
 })
 
 

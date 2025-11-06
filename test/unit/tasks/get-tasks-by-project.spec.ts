@@ -242,6 +242,186 @@ describe('GET /api/tasks/by-project', () => {
     })
     expect(response.tasks[0].assignees[0].assigned_to).toMatchObject({ id: 10, fullname: 'Assignee User' })
   })
+
+  it('should handle assignee fetch error', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      projects: createResult({ id: 5 }),
+      tasks: createResult([
+        {
+          id: 1,
+          project_id: 5,
+          creator_id: 2,
+          parent_task_id: null,
+        },
+      ]),
+      task_assignees: createResult(null, { message: 'Assignee fetch failed' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
+
+  it('should return empty result when no visible tasks', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      projects: createResult({ id: 5 }),
+      tasks: createResult([
+        {
+          id: 1,
+          project_id: 5,
+          creator_id: 2,
+          parent_task_id: null,
+        },
+      ]),
+      task_assignees: createResult([{ task_id: 1, assigned_to_staff_id: 20 }]), // Different staff ID
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response).toEqual({ tasks: [], count: 0 })
+  })
+
+  it('should handle task without creator_id', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering' }),
+        createResult([{ id: 10, fullname: 'Assignee User' }]),
+      ],
+      projects: [
+        createResult({ id: 5 }),
+        createResult({ id: 5, name: 'Project X' }),
+      ],
+      tasks: createResult([
+        {
+          id: 1,
+          project_id: 5,
+          creator_id: null,
+          parent_task_id: null,
+        },
+      ]),
+      task_assignees: [
+        createResult([{ task_id: 1, assigned_to_staff_id: 10 }]),
+        createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: null }]),
+      ],
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.count).toBe(1)
+    expect(response.tasks[0].creator).toBeNull()
+  })
+
+  it('should handle task without project_id', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering' }),
+        createResult({ id: 2, fullname: 'Creator User' }),
+        createResult([{ id: 10, fullname: 'Assignee User' }]),
+      ],
+      projects: createResult({ id: 5 }),
+      tasks: createResult([
+        {
+          id: 1,
+          project_id: null,
+          creator_id: 2,
+          parent_task_id: null,
+        },
+      ]),
+      task_assignees: [
+        createResult([{ task_id: 1, assigned_to_staff_id: 10 }]),
+        createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: null }]),
+      ],
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.count).toBe(1)
+    expect(response.tasks[0].project).toBeNull()
+  })
+
+  it('should handle PGRST116 error code when fetching tasks', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      projects: createResult({ id: 5 }),
+      tasks: createResult(null, { code: 'PGRST116' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response).toEqual({ tasks: [], count: 0 })
+  })
+
+  it('should handle error when fetching tasks', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      projects: createResult({ id: 5 }),
+      tasks: createResult(null, { message: 'Database error', code: 'OTHER_ERROR' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
+
+  it('should handle error when fetching task assignees', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      projects: createResult({ id: 5 }),
+      tasks: createResult([
+        {
+          id: 1,
+          project_id: 5,
+          creator_id: 2,
+          parent_task_id: null,
+        },
+      ]),
+      task_assignees: createResult(null, { message: 'Assignee fetch error' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
 })
 
 

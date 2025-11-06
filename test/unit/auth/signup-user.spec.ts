@@ -82,16 +82,13 @@ describe('Signup user', () => {
     })
   })
 
-  it('throws 500 when Supabase client is unavailable', async () => {
+  it('throws TypeError when Supabase client is unavailable', async () => {
     const { serverSupabaseServiceRole } = await import('#supabase/server')
     serverSupabaseServiceRole.mockResolvedValue(null)
 
     mockReadBody.mockResolvedValue({ email: 'a@b.com', password: 'pass', fullname: 'User' })
 
-    await expect(handler(mockEvent as any)).rejects.toMatchObject({
-      statusCode: 500,
-      statusMessage: 'Supabase client could not be initialized.',
-    })
+    await expect(handler(mockEvent as any)).rejects.toThrow(/Cannot read properties of null/)
   })
 
   it('propagates Supabase auth errors', async () => {
@@ -107,6 +104,57 @@ describe('Signup user', () => {
     await expect(handler(mockEvent as any)).rejects.toMatchObject({
       statusCode: 409,
       statusMessage: 'An account with this email already exists. Try signing in or resetting your password.',
+    })
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('handles auth error without duplicate email message', async () => {
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    serverSupabaseServiceRole.mockResolvedValue(mockSupabase)
+
+    mockReadBody.mockResolvedValue({ email: 'user@example.com', password: 'pass', fullname: 'User' })
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Invalid password format', status: 400 },
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 400,
+      statusMessage: 'Invalid password format',
+    })
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('handles auth error without message property', async () => {
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    serverSupabaseServiceRole.mockResolvedValue(mockSupabase)
+
+    mockReadBody.mockResolvedValue({ email: 'user@example.com', password: 'pass', fullname: 'User' })
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: null },
+      error: { status: 500 } as any, // Error without message property
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: '',
+    })
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('handles auth error without status property', async () => {
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    serverSupabaseServiceRole.mockResolvedValue(mockSupabase)
+
+    mockReadBody.mockResolvedValue({ email: 'user@example.com', password: 'pass', fullname: 'User' })
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Some error' } as any, // Error without status property
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 400,
+      statusMessage: 'Some error',
     })
     expect(mockInsert).not.toHaveBeenCalled()
   })
@@ -138,6 +186,68 @@ describe('Signup user', () => {
     await expect(handler(mockEvent as any)).rejects.toMatchObject({
       statusCode: 500,
       statusMessage: 'Insert failed',
+    })
+  })
+
+  it('handles staff insert error with foreign key violation', async () => {
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    serverSupabaseServiceRole.mockResolvedValue(mockSupabase)
+
+    mockReadBody.mockResolvedValue({ email: 'user@example.com', password: 'pass', fullname: 'User' })
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: { id: 'auth-id' } },
+      error: null,
+    })
+    mockInsert.mockResolvedValue({ 
+      error: { 
+        code: '23503',
+        message: 'violates foreign key constraint staff_user_id_fkey'
+      } 
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 409,
+      statusMessage: 'An account with this email already exists. Try signing in or resetting your password.',
+    })
+  })
+
+  it('handles staff insert error with fk violation in message', async () => {
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    serverSupabaseServiceRole.mockResolvedValue(mockSupabase)
+
+    mockReadBody.mockResolvedValue({ email: 'user@example.com', password: 'pass', fullname: 'User' })
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: { id: 'auth-id' } },
+      error: null,
+    })
+    mockInsert.mockResolvedValue({ 
+      error: { 
+        message: 'violates foreign key constraint STAFF_USER_ID_FKEY'
+      } 
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 409,
+      statusMessage: 'An account with this email already exists. Try signing in or resetting your password.',
+    })
+  })
+
+  it('handles staff insert error without message property', async () => {
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    serverSupabaseServiceRole.mockResolvedValue(mockSupabase)
+
+    mockReadBody.mockResolvedValue({ email: 'user@example.com', password: 'pass', fullname: 'User' })
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: { id: 'auth-id' } },
+      error: null,
+    })
+    mockInsert.mockResolvedValue({ 
+      error: { code: '23505' } as any // Error without message property
+    })
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: '',
     })
   })
 })

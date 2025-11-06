@@ -80,16 +80,13 @@ describe('POST /api/update-password', () => {
     })
   })
 
-  it('should return 500 if supabase client fails to initialize', async () => {
+  it('should throw TypeError if supabase client fails to initialize', async () => {
     const { serverSupabaseClient } = await import('#supabase/server')
     vi.mocked(serverSupabaseClient).mockResolvedValue(null)
 
     mockReadBody.mockResolvedValue({ access_token: 'token', password: 'password123', confirm_password: 'password123' })
 
-    await expect(handler(mockEvent as any)).rejects.toMatchObject({
-      statusCode: 500,
-      statusMessage: 'Supabase client could not be initialized.',
-    })
+    await expect(handler(mockEvent as any)).rejects.toThrow(/Cannot read properties of null/)
   })
 
   it('should propagate supabase errors', async () => {

@@ -322,6 +322,79 @@ describe('GET /api/tasks/[id]', () => {
       history: expect.any(Array)
     })
   })
+
+  it('should handle subtasks with no assignees (unassigned)', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering', is_manager: true, is_admin: false }),
+        createResult({ id: 5, fullname: 'Main Creator' }),
+        createResult([{ id: 10, fullname: 'Current User' }]),
+        createResult({ id: 12, fullname: 'Sub Creator' }),
+        createResult([]), // No assignees for subtask
+      ],
+      tasks: [
+        createResult({
+          id: 1,
+          creator_id: 5,
+          project_id: 3,
+          parent_task_id: null,
+        }),
+        createResult([{ id: 100, creator_id: 12, parent_task_id: 1, title: 'Unassigned Subtask' }]),
+      ],
+      projects: createResult({ id: 3, name: 'Project X' }),
+      task_assignees: [
+        createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: 11 }]),
+        createResult([]), // Empty assignees for subtask
+      ],
+      activity_timeline: createResult([]),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.task.subtasks).toHaveLength(1)
+    expect(response.task.subtasks[0]).toMatchObject({
+      id: 100,
+      creator: { id: 12, fullname: 'Sub Creator' },
+      assignees: [{ assigned_to: { id: null, fullname: 'Unassigned' }, assigned_by: null }]
+    })
+  })
+
+  it('should handle unexpected errors in catch block', async () => {
+    mockGetVisibleStaffIds.mockResolvedValue([10])
+
+    supabase = createSupabaseMock({
+      staff: [
+        createResult({ id: 10, department: 'Engineering', is_manager: true, is_admin: false }),
+      ],
+      tasks: [
+        createResult({
+          id: 1,
+          creator_id: 5,
+          project_id: 3,
+          parent_task_id: null,
+        }),
+      ],
+      projects: createResult({ id: 3, name: 'Project X' }),
+      task_assignees: createResult([{ assigned_to_staff_id: 10, assigned_by_staff_id: 11 }]),
+      activity_timeline: createResult([]),
+    })
+
+    // Make getVisibleStaffIds throw an unexpected error
+    mockGetVisibleStaffIds.mockRejectedValueOnce(new Error('Unexpected database error'))
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  })
 })
 
 

@@ -150,6 +150,21 @@ describe('GET /api/tasks', () => {
     expect(response).toEqual({ tasks: [], count: 0 })
   })
 
+  it('should return empty result when tasks query returns PGRST116 error', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 10, department: 'Engineering' }),
+      task_assignees: createResult([{ task_id: 1 }]),
+      tasks: createResult(null, { code: 'PGRST116', message: 'No rows found' }),
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response).toEqual({ tasks: [], count: 0 })
+  })
+
   it('should return 500 when tasks query fails', async () => {
     supabase = createSupabaseMock({
       staff: createResult({ id: 10, department: 'Engineering' }),

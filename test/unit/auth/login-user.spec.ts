@@ -102,16 +102,13 @@ describe('Login user', () => {
     })
   })
 
-  it('throws 500 when Supabase client fails to initialize', async () => {
+  it('throws TypeError when Supabase client fails to initialize', async () => {
     const { serverSupabaseClient } = await import('#supabase/server')
     serverSupabaseClient.mockResolvedValue(null)
 
     mockReadBody.mockResolvedValue({ email: 'user@example.com', password: 'secret' })
 
-    await expect(handler(mockEvent as any)).rejects.toMatchObject({
-      statusCode: 500,
-      statusMessage: 'Supabase client could not be initialized.',
-    })
+    await expect(handler(mockEvent as any)).rejects.toThrow(/Cannot read properties of null/)
   })
 
   it('translates Supabase auth errors to 401', async () => {

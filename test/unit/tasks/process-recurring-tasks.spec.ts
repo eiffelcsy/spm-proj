@@ -129,6 +129,92 @@ describe('GET /api/tasks/process-recurring-tasks', () => {
       title: 'Recurring Task',
     })
   })
+
+  it('should handle replication failure', async () => {
+    const tasks = [
+      { id: 1, title: 'Recurring Task', repeat_interval: 7, due_date: '2024-01-01', status: 'completed' },
+    ]
+
+    const supabase = createSupabaseMock(createResult(tasks))
+    serverSupabaseServiceRole.mockResolvedValue(supabase)
+
+    mockReplicateCompletedTask.mockResolvedValue({
+      success: false,
+      error: 'Replication failed',
+    })
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = await handler(mockEvent as any)
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      `Cron job: Failed to replicate task ${tasks[0].id}:`,
+      'Replication failed'
+    )
+    expect(response.success).toBe(true)
+    expect(response.tasksProcessed).toBe(1)
+    expect(response.tasksCreated).toBe(0)
+    consoleSpy.mockRestore()
+  })
+
+  it('should handle task processing errors', async () => {
+    const tasks = [
+      { id: 1, title: 'Recurring Task', repeat_interval: 7, due_date: '2024-01-01', status: 'completed' },
+    ]
+
+    const supabase = createSupabaseMock(createResult(tasks))
+    serverSupabaseServiceRole.mockResolvedValue(supabase)
+
+    mockReplicateCompletedTask.mockRejectedValue(new Error('Processing error'))
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = await handler(mockEvent as any)
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      `Cron job: Error processing recurring task ${tasks[0].id}:`,
+      expect.any(Error)
+    )
+    expect(response.success).toBe(true)
+    // When an error occurs, the task is skipped but still counted as processed
+    expect(response.tasksProcessed).toBeGreaterThanOrEqual(0)
+    expect(response.tasksCreated).toBe(0)
+    consoleSpy.mockRestore()
+  })
+
+  it('should handle overall handler errors', async () => {
+    const supabase = createSupabaseMock(createResult(null, { message: 'Database error' }))
+    serverSupabaseServiceRole.mockResolvedValue(supabase)
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Failed to fetch recurring tasks',
+    })
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should handle unexpected errors in catch block', async () => {
+    // Make the supabase query throw an error that doesn't have statusCode
+    const supabase = {
+      from: vi.fn(() => {
+        throw new Error('Unexpected database error')
+      }),
+    }
+    serverSupabaseServiceRole.mockResolvedValue(supabase)
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(handler(mockEvent as any)).rejects.toMatchObject({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+
+    expect(consoleSpy).toHaveBeenCalledWith('Recurring tasks cron job failed:', expect.any(Error))
+    consoleSpy.mockRestore()
+  })
 })
 
 

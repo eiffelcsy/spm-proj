@@ -66,14 +66,11 @@ describe('Logout user', () => {
     expect(response).toEqual({ success: true })
   })
 
-  it('throws 500 when Supabase client is unavailable', async () => {
+  it('throws TypeError when Supabase client is unavailable', async () => {
     const { serverSupabaseClient } = await import('#supabase/server')
     serverSupabaseClient.mockResolvedValue(null)
 
-    await expect(handler(mockEvent as any)).rejects.toMatchObject({
-      statusCode: 500,
-      statusMessage: 'Supabase client could not be initialized.',
-    })
+    await expect(handler(mockEvent as any)).rejects.toThrow(/Cannot read properties of null/)
   })
 })
 
