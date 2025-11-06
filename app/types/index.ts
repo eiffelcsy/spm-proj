@@ -27,7 +27,6 @@ export type NotificationType =
   | 'deadline_reminder' 
   | 'task_assigned' 
   | 'task_updated' 
-  | 'task_unassigned'
   | 'task_deleted'
   | 'comment_added' 
   | 'mention' 
@@ -244,7 +243,6 @@ export interface TaskForUI {
   startDate: Date
   dueDate: Date
   project: string
-  project_id?: number | null
   status: TaskStatus
   notes?: string
   priority?: number
@@ -584,100 +582,6 @@ export interface LoggedTimeReportData {
   generatedAt: string
 }
 
-/**
- * Team member performance data
- * Used in team summary reports
- */
-export interface TeamMemberPerformance {
-  staff_id: number
-  fullname: string
-  tasks_completed: number
-  tasks_in_progress: number
-  tasks_not_started: number
-  tasks_blocked: number
-  total_tasks: number
-  completion_rate: number
-  total_hours_logged: number
-}
-
-/**
- * Task status breakdown
- * Used in team summary reports
- */
-export interface TaskStatusBreakdown {
-  not_started: number
-  in_progress: number
-  completed: number
-  blocked: number
-  total: number
-}
-
-/**
- * Completion trend data point
- * Used in team summary reports
- */
-export interface CompletionTrend {
-  date: string
-  completed_count: number
-  total_count: number
-}
-
-/**
- * Workload distribution for team members
- * Used in team summary reports
- */
-export interface WorkloadDistribution {
-  staff_id: number
-  fullname: string
-  task_count: number
-  percentage: number
-  variance_from_avg: number
-}
-
-/**
- * Team summary report metrics
- * Used in manager reports page
- */
-export interface TeamSummaryMetrics {
-  statusBreakdown: TaskStatusBreakdown
-  overallCompletionRate: number
-  overdueTaskCount: number
-  totalTeamMembers: number
-  avgTasksPerMember: number
-  totalHoursLogged: number
-}
-
-/**
- * Team summary report filters
- * Used in manager reports page
- */
-export interface TeamSummaryFilters {
-  project_id?: number
-  start_date?: string
-  end_date?: string
-  period?: 'weekly' | 'monthly'
-  projectName?: string | null
-}
-
-/**
- * Team summary report data
- * Used in manager reports page
- */
-export interface TeamSummaryReportData {
-  project: {
-    id: number
-    name: string
-    description: string | null
-  }
-  metrics: TeamSummaryMetrics
-  completionTrends: CompletionTrend[]
-  topPerformers: TeamMemberPerformance[]
-  teamPerformance: TeamMemberPerformance[]
-  workloadDistribution: WorkloadDistribution[]
-  filters: TeamSummaryFilters
-  generatedAt: string
-}
-
 // ============================================================================
 // FORM STATE TYPES (UI Components)
 // ============================================================================
@@ -772,7 +676,6 @@ export function transformTaskForUI(
     startDate: apiTask.start_date ? new Date(apiTask.start_date) : new Date(),
     dueDate: apiTask.due_date ? new Date(apiTask.due_date) : new Date(),
     project: projectName || apiTask.project?.name || 'personal',
-    project_id: apiTask.project_id || apiTask.project?.id || null,
     status: apiTask.status,
     notes: apiTask.notes || undefined,
     priority: apiTask.priority || undefined,

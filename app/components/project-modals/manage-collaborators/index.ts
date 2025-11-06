@@ -1,1 +1,0 @@
-export { default as ManageCollaboratorsModal } from './ManageCollaborators.vue'
