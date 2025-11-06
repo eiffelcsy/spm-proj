@@ -23,6 +23,7 @@ import {
 
 import {
     CheckSquare,
+    Bell,
     PlusSquare,
     Folder,
     FolderOpen,
@@ -59,6 +60,8 @@ const isDashboardActive = computed(() => {
   if (route.path.startsWith('/task') && route.query.from === 'personal') return true
   return false
 })
+
+const isNotificationsActive = computed(() => route.path.startsWith('/notifications'))
 
 /**
  * Determine if the current route is within the projects section
@@ -170,6 +173,14 @@ onMounted(() => {
               <SidebarMenuButton @click="$emit('create-task')">
                 <PlusSquare class="size-4" />
                 <span>Create New Task</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem key="Notifications">
+              <SidebarMenuButton as-child :class="getActiveClasses(isNotificationsActive)">
+                <NuxtLink to="/notifications">
+                  <Bell class="size-4" />
+                  <span>Notifications</span>
+                </NuxtLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <Collapsible key="Projects" title="Projects" default-open class="group/collapsible">

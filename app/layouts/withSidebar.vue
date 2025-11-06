@@ -38,15 +38,6 @@
             </ClientOnly>
           </BreadcrumbList>
         </Breadcrumb>
-        <!-- Notification bell button -->
-        <Button 
-          variant="ghost" 
-          @click="goToNotifications" 
-          class="text-foreground hover:bg-amber-100 shrink-0 mr-4 font-normal"
-        >
-          <Bell class="h-4 w-4 mr-0.5" />
-          <span>Notifications</span>
-        </Button>
       </header>
       <main class="flex-1 overflow-auto">
         <slot />
@@ -60,10 +51,8 @@ import { useRouter } from 'vue-router'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
 import { AppSidebar } from '@/components/app-sidebar'
 import { useBreadcrumbs } from '@/composables/useBreadcrumbs'
-import { Bell } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -100,8 +89,5 @@ function openCreateProjectModal() {
   }
 }
 
-function goToNotifications() {
-  router.push('/notifications')
-}
 </script>
 
