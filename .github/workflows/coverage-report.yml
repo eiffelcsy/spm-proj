@@ -33,9 +33,28 @@ jobs:
         run: |
           echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          cat coverage/coverage-summary.txt 2>/dev/null || echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          if [ -f "coverage/coverage-summary.json" ]; then
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            node -e "
+              const fs = require('fs');
+              const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+              const total = coverage.total;
+              console.log('Coverage Summary:');
+              console.log('================');
+              console.log('Statements:', total.statements.pct.toFixed(2) + '%');
+              console.log('Branches:  ', total.branches.pct.toFixed(2) + '%');
+              console.log('Functions:  ', total.functions.pct.toFixed(2) + '%');
+              console.log('Lines:      ', total.lines.pct.toFixed(2) + '%');
+              console.log('');
+              const avg = (total.statements.pct + total.branches.pct + total.functions.pct + total.lines.pct) / 4;
+              console.log('Average:    ', avg.toFixed(2) + '%');
+            " >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Archive coverage results
         uses: actions/upload-artifact@v4
