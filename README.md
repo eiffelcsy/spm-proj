@@ -1,6 +1,35 @@
-# Nuxt Minimal Starter
+# SPM Project Management System
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+A comprehensive project and task management application built with Nuxt 3, Vue 3, and Supabase.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Setup](#setup)
+- [Development](#development)
+- [Production](#production)
+- [Project Structure](#project-structure)
+- [Key Features](#key-features)
+  - [Recurring Tasks](#recurring-tasks)
+  - [Department Hierarchy](#department-hierarchy)
+- [Technology Stack](#technology-stack)
+- [Documentation](#documentation)
+
+## Overview
+
+This is a full-stack project management system that enables teams to manage tasks, projects, and collaborate effectively. The system includes role-based access control, department-based visibility, recurring task automation, and comprehensive reporting capabilities.
+
+## Features
+
+- **Task Management**: Create, assign, and track tasks with subtasks, priorities, and due dates
+- **Project Organization**: Organize tasks by projects with collaboration features
+- **Recurring Tasks**: Automatically replicate tasks based on completion and repeat intervals
+- **Department Hierarchy**: Restrict task visibility based on organizational structure
+- **Role-Based Access**: Admin, Manager, and Staff roles with appropriate permissions
+- **Notifications**: Real-time notifications for task assignments and updates
+- **Reports**: Task completion, logged time, and team summary reports
+- **User Management**: Admin interface for managing users and departments
 
 ## Setup
 
@@ -20,7 +49,16 @@ yarn install
 bun install
 ```
 
-## Development Server
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+```
+
+## Development
 
 Start the development server on `http://localhost:3000`:
 
@@ -72,9 +110,29 @@ yarn preview
 bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+Check out the [Nuxt deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
 
-## Features
+## Project Structure
+
+```
+spm-proj/
+├── app/                    # Frontend application
+│   ├── components/         # Vue components
+│   ├── pages/              # Nuxt pages (routes)
+│   ├── composables/        # Vue composables
+│   ├── layouts/            # Page layouts
+│   └── types/              # TypeScript types
+├── server/                 # Backend API
+│   ├── api/                # API endpoints
+│   └── utils/              # Server utilities
+├── test/                   # Test suite
+│   ├── unit/               # Unit tests
+│   └── regression/         # Regression tests
+├── coverage/               # Test coverage reports
+└── public/                 # Static assets
+```
+
+## Key Features
 
 ### Recurring Tasks
 
@@ -140,7 +198,7 @@ The application supports automatic task replication based on completion and a re
 - **Backup Cron Job**: `/api/tasks/process-recurring-tasks`
   - **Schedule**: `0 0 * * *` (runs at midnight daily)
   - **Purpose**: Safety net to catch any tasks that weren't replicated on completion
-  - **Configuration**: See `vercel.json` for cron job setup
+  - **Configuration**: See deployment platform configuration for cron job setup
 - **Replication Logic**: Centralized in `/server/utils/recurringTaskService.ts`
 
 To manually trigger the recurring tasks processor (for testing):
@@ -175,3 +233,126 @@ When working with recurring tasks in the Create Task or Edit Task modals:
   - Display a helper text showing the calculation (e.g., "Due date is automatically set to 7 day(s) from start date")
 - Changing the start date will automatically recalculate the due date if a repeat interval is set
 - Setting the repeat interval to 0 re-enables manual due date selection
+
+### Department Hierarchy
+
+The system implements a department hierarchy that restricts task visibility based on organizational structure. Users can only view tasks assigned to staff in their department or sub-departments.
+
+#### Hierarchy Structure
+
+```
+Managing Director → ALL departments (Full visibility)
+
+Sales Division:
+├─ Sales Director → Sales Manager, Account Managers
+└─ Sales Manager → Account Managers
+
+Consultancy Division:
+└─ Consultancy Division Director → Consultant
+
+System Solutioning Division:
+└─ System Solutioning Division Director → Developers, Support Team
+
+Engineering Operations Division:
+└─ Engineering Operation Division Director → Senior Engineers, Junior Engineers, Call Centre, Operations Planning Team
+
+HR and Admin Division:
+└─ HR and Admin Director → HR Team, L&D Team, Admin Team
+
+Finance Division:
+├─ Finance Director → Finance Managers, Finance Executive
+└─ Finance Managers → Finance Executive
+
+IT Division:
+└─ IT Director → IT Team
+```
+
+#### Visibility Rules
+
+1. **Managing Director** sees ALL tasks across all departments
+2. **Division Directors** see tasks for:
+   - Their own department
+   - All sub-departments under them
+3. **Managers** see tasks for:
+   - Their own department
+   - Their direct reports' departments
+4. **Regular Staff** see tasks for:
+   - Only their own department
+
+#### Edit/Delete Permissions
+
+**For Managers and Admins (is_manager=true or is_admin=true):**
+- Can **edit** any task they can view (based on department hierarchy)
+- Can **delete** any task they can view (based on department hierarchy)
+
+**For Regular Staff:**
+- Can **edit** tasks they are assigned to, OR tasks they created (if unassigned)
+- Can **delete** tasks they are assigned to, OR tasks they created (if unassigned)
+
+#### Implementation
+
+- **Backend**: Department hierarchy logic in `/server/utils/departmentHierarchy.ts`
+- **API Endpoints**: All task, project, and report endpoints respect department visibility
+- **Frontend**: Department selection dropdown in admin user management
+- **Database**: Uses existing `staff.department` field (no migrations required)
+
+#### Data Setup
+
+All staff members must have their department field set to one of the predefined values for the system to work correctly.
+
+To assign departments to users:
+1. Go to Admin → User Management
+2. Edit each user
+3. Select their department from the dropdown
+4. Save changes
+
+#### Maintenance
+
+**Adding New Departments:**
+1. Update `server/utils/departmentHierarchy.ts`:
+   - Add department to `DEPARTMENT_HIERARCHY` array
+   - Define its visibility rules (canView array)
+2. Update `app/pages/admin/users.vue`:
+   - Add new SelectItem to department dropdown
+3. Test the new department's visibility rules
+
+**Modifying Hierarchy:**
+1. Edit the `canView` array for affected departments in `departmentHierarchy.ts`
+2. Test visibility changes thoroughly
+3. Document changes
+
+## Technology Stack
+
+- **Framework**: Nuxt 3
+- **Frontend**: Vue 3, TypeScript
+- **UI Components**: shadcn-nuxt, Tailwind CSS
+- **Backend**: Nuxt Server API (H3)
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Testing**: Vitest, Vue Test Utils
+- **Build Tool**: Vite
+
+## Documentation
+
+- **[Test Documentation](./test/TEST_README.md)**: Comprehensive guide to testing, coverage, and regression tests
+- **[API Documentation](./API_README.md)**: Complete API endpoint reference
+- **[CI/CD Documentation](./CI_README.md)**: Continuous integration and deployment guide
+
+## Contributing
+
+When adding new features:
+1. Write tests before implementing (TDD approach)
+2. Ensure all tests pass: `npm test`
+3. Check coverage: `npm run test:coverage`
+4. Aim for >80% coverage on new code
+5. Update relevant documentation
+
+When fixing bugs:
+1. Add a regression test to prevent the bug from reappearing
+2. Run regression tests: `npm run test:regression`
+3. Ensure all regression tests pass
+4. Document the bug fix in the test file
+
+## License
+
+[Add your license information here]
