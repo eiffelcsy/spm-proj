@@ -247,7 +247,7 @@ Set these in your CI/CD platform's secret management:
 
 ### Test Coverage Thresholds
 
-The pipeline enforces minimum coverage thresholds:
+The pipeline enforces minimum coverage thresholds for all API files (`server/api/**/*.{js,ts}`):
 - Lines: 80%
 - Functions: 80%
 - Branches: 80%

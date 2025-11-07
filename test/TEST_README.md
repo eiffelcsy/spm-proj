@@ -64,10 +64,12 @@ test/
 
 Coverage is configured in `vitest.config.ts` with the following targets:
 
-- **Lines**: 90%
-- **Functions**: 90%
-- **Branches**: 90%
-- **Statements**: 90%
+- **Lines**: 80%
+- **Functions**: 80%
+- **Branches**: 80%
+- **Statements**: 80%
+
+**Note:** These thresholds apply to all API files in `server/api/**/*.{js,ts}`.
 
 ### Coverage Reports
 
@@ -441,7 +443,7 @@ When adding new features:
 1. Write tests BEFORE implementing the feature (TDD)
 2. Ensure all tests pass: `npm test`
 3. Check coverage: `npm run test:coverage`
-4. Aim for >80% coverage on new code
+4. Aim for at least 80% coverage on all API files (`server/api/**/*.{js,ts}`)
 5. Document any known issues in this README
 6. Add regression tests for any bugs you fix
 

@@ -346,7 +346,7 @@ When adding new features:
 1. Write tests before implementing (TDD approach)
 2. Ensure all tests pass: `npm test`
 3. Check coverage: `npm run test:coverage`
-4. Aim for >80% coverage on new code
+4. Aim for at least 80% coverage on all API files (`server/api/**/*.{js,ts}`)
 5. Update relevant documentation
 
 When fixing bugs:
