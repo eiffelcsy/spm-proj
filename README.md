@@ -20,6 +20,8 @@ A comprehensive project and task management application built with Nuxt 3, Vue 3
 
 This is a full-stack project management system that enables teams to manage tasks, projects, and collaborate effectively. The system includes role-based access control, department-based visibility, recurring task automation, and comprehensive reporting capabilities.
 
+**GitHub Repository**: [https://github.com/eiffelcsy/spm-proj.git](https://github.com/eiffelcsy/spm-proj.git)
+
 ## Features
 
 - **Task Management**: Create, assign, and track tasks with subtasks, priorities, and due dates
@@ -33,7 +35,7 @@ This is a full-stack project management system that enables teams to manage task
 
 ## Setup
 
-Make sure to install dependencies:
+Make sure to install dependencies. Use any one of the following package managers (you don't need to run all of them):
 
 ```bash
 # npm
@@ -56,11 +58,22 @@ Create a `.env` file in the root directory with the following variables:
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
+SUPABASE_SERVICE_KEY=your_supabase_service_key
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=your_resend_from_email
 ```
+
+**Environment Variable Descriptions:**
+
+- **SUPABASE_URL**: Your Supabase project URL. Used to connect to your Supabase backend for database and authentication services.
+- **SUPABASE_KEY**: Your Supabase anonymous/public key. Used for client-side operations and public API access.
+- **SUPABASE_SERVICE_KEY**: Your Supabase service role key. Used for server-side operations that require elevated permissions (bypasses Row Level Security policies).
+- **RESEND_API_KEY**: Your Resend API key. Used to send transactional emails (e.g., password reset emails, notifications).
+- **RESEND_FROM_EMAIL**: The email address that will appear as the sender for emails sent through Resend. Must be a verified domain in your Resend account.
 
 ## Development
 
-Start the development server on `http://localhost:3000`:
+Start the development server on `http://localhost:3000`. Use any one of the following package managers (you don't need to run all of them):
 
 ```bash
 # npm
@@ -78,7 +91,7 @@ bun run dev
 
 ## Production
 
-Build the application for production:
+Build the application for production. Use any one of the following package managers (you don't need to run all of them):
 
 ```bash
 # npm
@@ -94,7 +107,7 @@ yarn build
 bun run build
 ```
 
-Locally preview production build:
+Locally preview production build. Use any one of the following package managers (you don't need to run all of them):
 
 ```bash
 # npm
@@ -343,7 +356,7 @@ To assign departments to users:
 ## Contributing
 
 When adding new features:
-1. Write tests before implementing (TDD approach)
+1. Write tests for new functionality
 2. Ensure all tests pass: `npm test`
 3. Check coverage: `npm run test:coverage`
 4. Aim for at least 80% coverage on all API files (`server/api/**/*.{js,ts}`)
@@ -354,7 +367,3 @@ When fixing bugs:
 2. Run regression tests: `npm run test:regression`
 3. Ensure all regression tests pass
 4. Document the bug fix in the test file
-
-## License
-
-[Add your license information here]
