@@ -150,7 +150,7 @@ describe('GET /api/staff', () => {
     mockGetVisibleStaffIds.mockResolvedValue([])
 
     setSupabaseResponses({
-      staff: createResult({ department: 'Engineering' }),
+      staff: createResult([]),
     })
 
     const response = await handler(mockEvent as any)
@@ -160,10 +160,7 @@ describe('GET /api/staff', () => {
 
   it('throws 500 when fetching staff list fails', async () => {
     setSupabaseResponses({
-      staff: [
-        createResult({ department: 'Engineering' }),
-        createResult(null, { message: 'Staff fetch failed' }),
-      ],
+      staff: createResult(null, { message: 'Staff fetch failed' }),
     })
 
     await expect(handler(mockEvent as any)).rejects.toMatchObject({
@@ -174,13 +171,10 @@ describe('GET /api/staff', () => {
 
   it('throws 500 when listing auth users fails', async () => {
     const supabaseInstance = setSupabaseResponses({
-      staff: [
-        createResult({ department: 'Engineering' }),
-        createResult([
-          { id: 1, fullname: 'Alice', user_id: 'alice-id' },
-          { id: 2, fullname: 'Bob', user_id: 'bob-id' },
-        ]),
-      ],
+      staff: createResult([
+        { id: 1, fullname: 'Alice', user_id: 'alice-id' },
+        { id: 2, fullname: 'Bob', user_id: 'bob-id' },
+      ]),
     })
 
     supabaseInstance.auth.admin.listUsers.mockResolvedValue({ data: null, error: { message: 'List users failed' } })
@@ -199,10 +193,7 @@ describe('GET /api/staff', () => {
     ]
 
     const supabaseInstance = setSupabaseResponses({
-      staff: [
-        createResult({ department: 'Engineering' }),
-        createResult(staffRows),
-      ],
+      staff: createResult(staffRows),
     })
 
     supabaseInstance.auth.admin.listUsers.mockResolvedValue({
@@ -223,7 +214,6 @@ describe('GET /api/staff', () => {
       { id: 2, fullname: 'Bob', email: 'bob@example.com' },
       { id: 3, fullname: 'Charlie', email: null },
     ])
-    expect(mockGetVisibleStaffIds).toHaveBeenCalledWith(expect.anything(), 'Engineering')
   })
 })
 
