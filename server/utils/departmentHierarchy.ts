@@ -202,7 +202,7 @@ export async function getVisibleStaffIds(
 
   if (error) {
     console.error('Error fetching visible staff:', error)
-    return []
+    throw new Error('Failed to fetch department staff')
   }
 
   return staffData?.map((s: any) => s.id) || []

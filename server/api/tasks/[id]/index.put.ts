@@ -90,7 +90,18 @@ export default defineEventHandler(async (event) => {
 
     // Check visibility: user can only edit task if someone from visible departments is assigned
     // Get staff IDs from departments visible to current user based on hierarchy
-    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
+    let visibleStaffIds: number[]
+    try {
+      visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
+    } catch (error: any) {
+      if (error.message === 'Failed to fetch department staff') {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch department staff'
+        })
+      }
+      throw error
+    }
     
     if (visibleStaffIds.length === 0) {
       throw createError({
@@ -556,9 +567,11 @@ export default defineEventHandler(async (event) => {
       } : undefined
     }
   } catch (error: any) {
-    if (error.statusCode) {
+    // If error already has statusCode (from createError), re-throw it as-is
+    if (error && typeof error === 'object' && ('statusCode' in error || 'statusMessage' in error)) {
       throw error
     }
+    // Otherwise, wrap unexpected errors in generic error message
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

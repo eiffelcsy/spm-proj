@@ -121,9 +121,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       // Mock department staff
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       // Mock current task data
@@ -239,9 +241,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -347,9 +351,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -454,9 +460,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
 
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
 
       const mockCurrentTaskQuery = {
@@ -566,9 +574,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
 
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
 
       const mockCurrentTaskQuery = {
@@ -727,9 +737,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }, { id: 99 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }, { id: 99 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       // No subtasks
@@ -817,9 +829,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }, { id: 2 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }, { id: 2 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -919,6 +933,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
 
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
+        in: vi.fn().mockRejectedValue(new Error('Failed to fetch department staff')),
         eq: vi.fn().mockReturnValue({ data: null, error: { message: 'Department fetch failed' } })
       }
 
@@ -1030,9 +1045,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }, { id: 2 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }, { id: 2 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       // Subtask query - user is assigned to subtask
@@ -1158,9 +1175,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -1248,9 +1267,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }, { id: 2 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }, { id: 2 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -1383,9 +1404,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -1506,7 +1529,8 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null })
+        in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -1632,9 +1656,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }, { id: 2 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }, { id: 2 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -1744,9 +1770,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
 
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
 
       const mockCurrentTaskQuery = {
@@ -1808,7 +1836,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
 
       const mockTaskExistsQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }) }
       const mockAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ id: 1 }], error: null }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = {
         select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: { title: 'T', start_date: '2024-01-01', due_date: '2024-01-31', status: 'not-started', notes: '', priority: 1, repeat_interval: 0, tags: [] }, error: null })
@@ -1886,9 +1914,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -2037,9 +2067,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
 
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 7 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 7 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
 
       let staffCall = 0
@@ -2100,7 +2132,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       const mockStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false }, error: null }) }
       const mockTaskExistsQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }) }
       const mockAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ id: 1 }], error: null }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { title: 'T', start_date: '2024-01-01', due_date: '2024-01-31', status: 'not-started', notes: '', priority: 1, repeat_interval: 0, tags: [] }, error: null }) }
 
       const updateErr = { code: 'PGRST116' }
@@ -2128,7 +2160,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       const mockStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false }, error: null }) }
       const mockTaskExistsQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }) }
       const mockAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ id: 1 }], error: null }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { title: 'T', start_date: '2024-01-01', due_date: '2024-01-31', status: 'not-started', notes: '', priority: 1, repeat_interval: 0, tags: [] }, error: null }) }
 
       const mockTaskUpdate = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }) }
@@ -2155,12 +2187,14 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       const mockStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false }, error: null }) }
       const mockTaskExistsQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }) }
       const mockAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ id: 1 }], error: null }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { title: 'T', start_date: '2024-01-01', due_date: '2024-01-31', status: 'not-started', notes: '', priority: 1, repeat_interval: 0, tags: [] }, error: null }) }
       const mockTaskUpdate = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, status: 'not-started', project_id: 1 }, error: null }) }
       const mockCurrentAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
       const mockAssigneeUpdate = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), then: (resolve: any) => Promise.resolve({ data: null, error: null }).then(resolve) }
-      const mockAssigneeUpsert = { upsert: vi.fn().mockResolvedValue({ data: null, error: { message: 'Upsert failed' } }) }
+      const mockAssigneeUpsert = {
+        upsert: vi.fn().mockResolvedValue({ data: null, error: { message: 'Upsert failed' } })
+      }
 
       let callCount = 0
       mockSupabase.from.mockImplementation((table: string) => {
@@ -2171,6 +2205,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
           if (callCount === 3) return mockAssigneesQuery
           if (callCount === 5) return mockCurrentAssigneesQuery
           if (callCount === 6) return mockAssigneeUpdate
+          if (callCount === 7) return mockAssigneeUpsert
           return mockAssigneeUpsert
         }
         return {}
@@ -2193,7 +2228,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       const mockStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false }, error: null }) }
       const mockTaskExistsQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }) }
       const mockAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ id: 1 }], error: null }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Fetch failed' } }) }
 
       let callCount = 0
@@ -2219,7 +2254,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       const mockStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, department: 'Engineering', is_manager: true, is_admin: false }, error: null }) }
       const mockTaskExistsQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }) }
       const mockAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ id: 1 }], error: null }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { title: 'T', start_date: '2024-01-01', due_date: '2024-01-31', status: 'not-started', notes: '', priority: 1, repeat_interval: 0, tags: [] }, error: null }) }
       const mockTaskUpdate = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, status: 'not-started', project_id: 1 }, error: null }) }
       const mockCurrentAssigneesQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), data: [{ assigned_to_staff_id: 1 }] }
@@ -2270,7 +2305,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
         return Promise.resolve({ data: [{ assigned_to_staff_id: 1 }], error: null })
       })
       
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }) }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { title: 'T', start_date: '2024-01-01', due_date: '2024-01-31', status: 'not-started', notes: '', priority: 1, repeat_interval: 0, tags: [] }, error: null }) }
       const mockTaskUpdate = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, status: 'not-started', project_id: 1 }, error: null }) }
       
@@ -2343,7 +2378,7 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
         return Promise.resolve({ data: [{ assigned_to_staff_id: 1 }, { assigned_to_staff_id: 2 }], error: null })
       })
       
-      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }) }
+      const mockDepartmentStaffQuery = { select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }), eq: vi.fn().mockReturnThis() }
       const mockCurrentTaskQuery = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { title: 'T', start_date: '2024-01-01', due_date: '2024-01-31', status: 'not-started', notes: '', priority: 1, repeat_interval: 0, tags: [] }, error: null }) }
       const mockTaskUpdate = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 1, status: 'not-started', project_id: 1 }, error: null }) }
       
@@ -2437,9 +2472,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -2584,9 +2621,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -2737,9 +2776,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -2864,9 +2905,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
@@ -2991,9 +3034,11 @@ describe('PUT /api/tasks/[id] - Update Task API Endpoint', () => {
       
       const mockDepartmentStaffQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        data: [{ id: 1 }],
-        error: null
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: 1 }],
+          error: null
+        }),
+        eq: vi.fn().mockReturnThis()
       }
       
       const mockCurrentTaskQuery = {
