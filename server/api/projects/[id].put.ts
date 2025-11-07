@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
         .from('staff')
         .select('id, is_manager')
         .eq('user_id', user.id)
-        .maybeSingle() as { data: { id: number } | null, error: any }
+        .maybeSingle() as { data: { id: number; is_manager: boolean } | null, error: any }
 
     if (staffError) throw createError({ statusCode: 500, statusMessage: staffError.message })
     if (!staffRow) throw createError({ statusCode: 403, statusMessage: 'No staff record found for authenticated user.' })
@@ -64,7 +64,6 @@ export default defineEventHandler(async (event) => {
         .from('projects')
         .select('*')
         .eq('id', projectId)
-        .eq('owner_id', staffRow!.id)
         .is('deleted_at', null)
         .maybeSingle() as { data: ProjectDB | null, error: any }
 
@@ -76,7 +75,6 @@ export default defineEventHandler(async (event) => {
         .from('projects')
         .select('id')
         .eq('name', body.name.trim())
-        .eq('owner_id', staffRow!.id)
         .neq('id', projectId)
         .is('deleted_at', null)
         .maybeSingle() as { data: Pick<ProjectDB, 'id'> | null, error: any }
