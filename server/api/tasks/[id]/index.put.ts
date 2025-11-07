@@ -8,6 +8,7 @@ import {
   getTaskDetails 
 } from '../../../utils/notificationService'
 import { replicateCompletedTask } from '../../../utils/recurringTaskService'
+import { getVisibleStaffIds } from '../../../utils/departmentHierarchy'
 import type { TaskDB } from '~/types'
 
 export default defineEventHandler(async (event) => {
@@ -87,37 +88,23 @@ export default defineEventHandler(async (event) => {
       .eq('task_id', taskId)
       .eq('is_active', true)
 
-    // Check visibility: user can only edit task if someone from their department is assigned
-    if (currentDepartment) {
-      // Get all staff IDs in the same department
-      const { data: departmentStaff, error: deptError } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('department', currentDepartment)
-      
-      if (deptError) {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Failed to fetch department staff',
-          data: deptError
-        })
-      }
-      
-      const departmentStaffIds = departmentStaff?.map((s: any) => s.id) || []
-      
-      // Check if any assignee is from the user's department
-      const hasAssigneeFromDepartment = assigneeRows?.some((row: any) => 
-        departmentStaffIds.includes(row.assigned_to_staff_id)
-      )
-      
-      if (!hasAssigneeFromDepartment) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: 'You do not have permission to view or edit this task'
-        })
-      }
-    } else {
-      // If user has no department, they can't edit any tasks
+    // Check visibility: user can only edit task if someone from visible departments is assigned
+    // Get staff IDs from departments visible to current user based on hierarchy
+    const visibleStaffIds = await getVisibleStaffIds(supabase, currentDepartment)
+    
+    if (visibleStaffIds.length === 0) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You do not have permission to view or edit this task'
+      })
+    }
+    
+    // Check if any assignee is from visible departments
+    const hasVisibleAssignee = assigneeRows?.some((row: any) => 
+      visibleStaffIds.includes(row.assigned_to_staff_id)
+    )
+    
+    if (!hasVisibleAssignee) {
       throw createError({
         statusCode: 403,
         statusMessage: 'You do not have permission to view or edit this task'
