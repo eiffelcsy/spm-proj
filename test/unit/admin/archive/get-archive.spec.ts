@@ -257,6 +257,79 @@ describe('GET /api/admin/archive', () => {
     })
   })
 
+  it('should tolerate missing project lookups and default project task counts to zero', async () => {
+    supabase = createSupabaseMock({
+      staff: createResult({ id: 1, is_admin: true }),
+      tasks: createResult([
+        {
+          id: 1,
+          title: 'Old Task',
+          status: 'archived',
+          deleted_at: '2024-01-01T00:00:00Z',
+          project_id: 3,
+          creator_id: 9,
+          parent_task_id: null,
+          priority: 5,
+        },
+        {
+          id: 2,
+          title: 'Missing Project Task',
+          status: 'archived',
+          deleted_at: '2024-01-03T00:00:00Z',
+          project_id: 4,
+          creator_id: 9,
+          parent_task_id: null,
+          priority: 1,
+        },
+      ]),
+      projects: [
+        createResult([
+          {
+            id: 3,
+            name: 'Archived Project',
+            status: 'archived',
+            priority: 1,
+            deleted_at: '2024-01-01T00:00:00Z',
+            owner_id: 2,
+            created_at: '2023-01-01T00:00:00Z',
+          },
+          {
+            id: 5,
+            name: 'Unrelated Project',
+            status: 'archived',
+            priority: 2,
+            deleted_at: '2024-01-05T00:00:00Z',
+            owner_id: 4,
+            created_at: '2023-02-01T00:00:00Z',
+          },
+        ]),
+        createResult([
+          { id: 3, name: 'Archived Project', deleted_at: '2024-01-01T00:00:00Z' },
+        ]),
+      ],
+    })
+
+    const { serverSupabaseServiceRole } = await import('#supabase/server')
+    vi.mocked(serverSupabaseServiceRole).mockResolvedValue(supabase)
+
+    const response = await handler(mockEvent as any)
+
+    expect(response.tasks).toHaveLength(2)
+    expect(response.tasks.find((task: any) => task.id === 1)).toMatchObject({
+      project: { id: 3, name: 'Archived Project' },
+    })
+    expect(response.tasks.find((task: any) => task.id === 2)).toMatchObject({
+      id: 2,
+      project: null,
+    })
+
+    const archivedProject = response.projects.find((project: any) => project.id === 3)
+    const unrelatedProject = response.projects.find((project: any) => project.id === 5)
+
+    expect(archivedProject).toMatchObject({ task_count: 1 })
+    expect(unrelatedProject).toMatchObject({ task_count: 0 })
+  })
+
   it('should skip project lookup when no archived tasks reference a project', async () => {
     supabase = createSupabaseMock({
       staff: createResult({ id: 1, is_admin: true }),
