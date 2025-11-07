@@ -238,6 +238,8 @@ When working with recurring tasks in the Create Task or Edit Task modals:
 
 The system implements a department hierarchy that restricts task visibility based on organizational structure. Users can only view tasks assigned to staff in their department or sub-departments.
 
+**Note:** While task visibility is restricted by department, users can assign tasks to any staff member regardless of department or role. This allows for cross-departmental collaboration while maintaining visibility controls.
+
 #### Hierarchy Structure
 
 ```
